@@ -1,0 +1,63 @@
+services:
+  # Postgres, main app database
+  postgres:
+    image: postgres:15
+    container_name: postgres
+    restart: ${DOCKER_RESTART}
+    environment:
+      POSTGRES_USER: devuser
+      POSTGRES_PASSWORD: devpassword
+      POSTGRES_DB: devdb
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # pgAdmin, a web UI for managing Postgres
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin
+    restart: ${DOCKER_RESTART}
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - '5050:80'
+    depends_on:
+      - postgres
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+      - ./docker/pgadmin-servers.json:/pgadmin4/servers.json
+
+  # Maildev, used for locally receiving emails in the development environment
+  maildev:
+    image: maildev/maildev
+    restart: ${DOCKER_RESTART}
+    container_name: maildev
+    environment:
+      - TZ=Asia/Shanghai
+      - MAILDEV_WEB_PORT=1080
+      - MAILDEV_SMTP_PORT=1025
+    ports:
+      - '8080:1080'
+      - '1025:1025'
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '1m'
+
+  # Task scheduler to run tasks like db cleanup
+  # On prod, this can be replaced by a host cron job
+  task-scheduler:
+    container_name: task-scheduler
+    build:
+      context: .
+      dockerfile: docker/task-scheduler/Dockerfile
+    environment:
+      - CLEANUP_API_KEY=${CLEANUP_API_KEY}
+    restart: ${DOCKER_RESTART}
+    network_mode: 'host'
+
+volumes:
+  postgres_data:
+  pgadmin_data:
