@@ -41,15 +41,8 @@ export async function createUserIfNotExists(email: string): Promise<Result<{ use
 	return ok({ user });
 }
 
-/**
- * Updates a user's profile by ID and returns success status
- *
- * @param userId
- * @param firstName
- * @param lastName
- * @returns
- */
-export async function updateUserProfileByUserId(
+// this could be further abstracted to a generic user update function
+export async function userSetupByUserId(
 	userId: string,
 	firstName: string,
 	lastName: string
@@ -67,7 +60,8 @@ export async function updateUserProfileByUserId(
 			where: { id: userId },
 			data: {
 				firstName: firstName.trim(),
-				lastName: lastName.trim()
+				lastName: lastName.trim(),
+				isSetup: true
 			}
 		});
 

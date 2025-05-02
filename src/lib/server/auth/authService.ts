@@ -66,7 +66,7 @@ export async function authenticateUserWithMagicToken({
 		}
 		const { session, token } = sessionResult.unwrap();
 
-		if (!user.firstName || !user.lastName) {
+		if (!user.isSetup) {
 			redirectTo = '/user/account-setup?redirect=' + encodeURIComponent(redirectTo);
 		}
 

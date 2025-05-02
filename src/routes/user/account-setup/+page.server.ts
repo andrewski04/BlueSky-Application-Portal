@@ -2,14 +2,15 @@ import { redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { validateSessionToken, getSessionTokenCookie } from '$lib/server/auth/session';
 import { requireAuth } from '$lib/server/auth/guard';
-import { updateUserProfileByUserId } from '$lib/server/auth/user';
+import { userSetupByUserId } from '$lib/server/auth/user';
 
 export const load: PageServerLoad = async (event) => {
 	const { user } = requireAuth(event);
+	const redirectTo = event.url.searchParams.get('redirect');
 
 	// this should implement User field `account-setup` or something
-	if (user.firstName && user.lastName) {
-		throw redirect(303, '/user/dashboard');
+	if (user.isSetup) {
+		throw redirect(303, redirectTo || '/user/dashboard');
 	}
 
 	return {
@@ -23,11 +24,12 @@ export const load: PageServerLoad = async (event) => {
 };
 
 export const actions: Actions = {
-	default: async ({ request, cookies }) => {
+	default: async ({ request, cookies, url }) => {
 		const formData = await request.formData();
 		const firstName = formData.get('firstName') as string;
 		const lastName = formData.get('lastName') as string;
 		const userId = formData.get('userId') as string;
+		const redirectTo = url.searchParams.get('redirect');
 
 		const sessionToken = getSessionTokenCookie({ cookies });
 		if (!sessionToken) {
@@ -39,7 +41,7 @@ export const actions: Actions = {
 			return { success: false, error: 'Invalid session' };
 		}
 
-		const result = await updateUserProfileByUserId(userId, firstName, lastName);
+		const result = await userSetupByUserId(userId, firstName, lastName);
 
 		if (result.isErr()) {
 			return {
@@ -50,6 +52,6 @@ export const actions: Actions = {
 			};
 		}
 
-		throw redirect(303, '/');
+		throw redirect(303, redirectTo || '/user/dashboard');
 	}
 };

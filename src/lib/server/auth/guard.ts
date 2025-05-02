@@ -4,7 +4,7 @@
  */
 
 import { redirect, type RequestEvent } from '@sveltejs/kit';
-import type { User, Session } from '@prisma/client';
+import type { User, Session, UserRole } from '@prisma/client';
 
 /**
  * Requires authentication to access the route, allowing ANY user to access the route.
@@ -52,7 +52,7 @@ export function requireAuth(
  */
 export function requireRole(
 	event: RequestEvent,
-	role: string,
+	role: UserRole,
 	redirectTo: string = '/auth/login'
 ): { user: User; session: Session } {
 	const { user, session } = requireAuth(event);

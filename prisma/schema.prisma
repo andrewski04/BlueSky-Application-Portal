@@ -12,14 +12,19 @@ enum AuthAttemptType {
   OTP
 }
 
+enum UserRole {
+  USER
+  ADMIN
+}
+
 model User {
   id         String       @id @default(cuid(2))
   email      String       @unique
   firstName  String?
   lastName   String?
-  // `user` or `admin`
-  role       String       @default("user")
+  role       UserRole       @default(USER)
   sessions   Session[]
+  isSetup    Boolean      @default(false)
   createdAt  DateTime     @default(now())
 }
 
