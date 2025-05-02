@@ -24,8 +24,8 @@ export const actions: Actions = {
 			return { success: false, error: 'Valid email address required.' };
 		}
 
-		if (!(await findUserByEmail(email))) {
-			return { success: false, error: 'No user found, try registering instead.' };
+		if (await findUserByEmail(email)) {
+			return { success: false, error: 'User already exists, please login instead.' };
 		}
 
 		const ipAddress =
@@ -54,7 +54,7 @@ export const actions: Actions = {
 		});
 
 		if (recentAttemptsFromIp >= loginMax) {
-			return { success: false, error: 'Too many login attempts. Please try again later.' };
+			return { success: false, error: 'Too many attempts. Please try again later.' };
 		}
 
 		// Create or reuse a device identifier cookie

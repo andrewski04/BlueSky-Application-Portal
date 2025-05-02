@@ -40,3 +40,39 @@ export async function createUserIfNotExists(email: string): Promise<Result<{ use
 
 	return ok({ user });
 }
+
+/**
+ * Updates a user's profile by ID and returns success status
+ *
+ * @param userId
+ * @param firstName
+ * @param lastName
+ * @returns
+ */
+export async function updateUserProfileByUserId(
+	userId: string,
+	firstName: string,
+	lastName: string
+): Promise<Result<boolean>> {
+	if (!firstName || firstName.trim() === '') {
+		return err(new AppError('First name is required', 'ERR_FIRST_NAME_REQUIRED'));
+	}
+
+	if (!lastName || lastName.trim() === '') {
+		return err(new AppError('Last name is required', 'ERR_LAST_NAME_REQUIRED'));
+	}
+
+	try {
+		await prisma.user.update({
+			where: { id: userId },
+			data: {
+				firstName: firstName.trim(),
+				lastName: lastName.trim()
+			}
+		});
+
+		return ok(true);
+	} catch {
+		return err(new AppError('Failed to update profile', 'ERR_UPDATE_PROFILE'));
+	}
+}

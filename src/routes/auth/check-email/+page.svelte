@@ -18,9 +18,7 @@
 			<p class="mb-1 text-white">
 				We've sent a login link to <strong>{data.email}</strong>
 			</p>
-			<p class="mb-6 text-white">
-				You can close this page if the magic link is opened on this device.
-			</p>
+			<p class="mb-6 text-white">You can close this page if the link is opened on this device.</p>
 			<div class="relative my-6">
 				<div class="absolute inset-0 flex items-center">
 					<div class="w-full border-t border-neutral-600"></div>

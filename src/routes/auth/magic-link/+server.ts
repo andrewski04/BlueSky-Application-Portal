@@ -31,7 +31,7 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 		const authResult = await authenticateUserWithMagicToken({
 			email: magicToken.email,
 			hashedMagicToken: magicToken.hashedToken,
-			redirectTo: '/'
+			redirectTo: '/user/dashboard'
 		});
 
 		if (authResult.isErr()) {

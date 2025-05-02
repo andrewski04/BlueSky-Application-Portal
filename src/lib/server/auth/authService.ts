@@ -49,7 +49,7 @@ interface AuthenticateUserResult {
 export async function authenticateUserWithMagicToken({
 	email,
 	hashedMagicToken,
-	redirectTo = '/'
+	redirectTo = '/user/dashboard'
 }: AuthenticateUserOptions): Promise<Result<AuthenticateUserResult>> {
 	try {
 		await invalidateMagicToken(hashedMagicToken, true);

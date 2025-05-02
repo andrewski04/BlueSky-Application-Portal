@@ -14,7 +14,7 @@
 </svelte:head>
 
 <div class="bg-secondary flex min-h-screen items-center justify-center">
-	<div class="bg-primary-800 mx-auto my-8 w-full max-w-lg rounded-lg p-12 shadow-lg">
+	<div class="bg-primary mx-auto my-8 w-full max-w-lg rounded-lg p-12 text-white shadow-lg">
 		<div class="text-inverted text-center">
 			<h1 class="mb-4 text-3xl font-bold">Complete Your Profile</h1>
 			<p class="mb-8 text-lg">Please provide your name to complete your account setup.</p>
@@ -31,15 +31,13 @@
 				<input type="hidden" name="userId" value={data.user.id} />
 
 				<div class="mb-6">
-					<label for="firstName" class="text-inverted mb-2 block text-sm font-medium">
-						First Name
-					</label>
+					<label for="firstName" class="mb-2 block text-sm font-medium"> First Name </label>
 					<input
 						type="text"
 						id="firstName"
 						name="firstName"
 						bind:value={firstName}
-						class="form-input w-full"
+						class="form-input w-full text-black"
 						required
 					/>
 				</div>
@@ -53,7 +51,7 @@
 						id="lastName"
 						name="lastName"
 						bind:value={lastName}
-						class="form-input w-full"
+						class="form-input w-full text-black"
 						required
 					/>
 				</div>

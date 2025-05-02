@@ -9,7 +9,7 @@
 			<div class="flex flex-col items-center space-y-6">
 				<div>
 					<p class="mb-6 text-base">Start a new application now</p>
-					<a href="/auth/login" class="btn btn-success mx-auto block w-32">Register</a>
+					<a href="/auth/register" class="btn btn-success mx-auto block w-32">Register</a>
 				</div>
 				<hr class="w-48 border-gray-300" />
 				<div>
