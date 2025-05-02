@@ -25,7 +25,7 @@
 							autocomplete="email"
 							required
 							placeholder="Enter your email"
-							class="block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 focus:outline-none sm:text-sm"
+							class="form-input block w-full appearance-none placeholder-gray-400 focus:outline-none sm:text-sm"
 						/>
 					</div>
 				</div>
@@ -45,10 +45,7 @@
 				{/if}
 
 				<div>
-					<button
-						type="submit"
-						class="flex w-full justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none"
-					>
+					<button type="submit" class="btn flex w-full justify-center focus:outline-none">
 						Send Magic Link
 					</button>
 				</div>
