@@ -1,5 +1,10 @@
 @import 'tailwindcss';
 
+#nprogress .bar {
+	background: #2d70bd !important;
+	height: 4px !important;
+}
+
 :root {
 	/* Primary colors */
 	--primary-50: #e6eef7;
