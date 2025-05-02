@@ -13,14 +13,11 @@
 	<title>Account Setup</title>
 </svelte:head>
 
-<div class="flex min-h-screen flex-col items-center justify-center px-4 py-12">
-	<div class="w-full max-w-md">
-		<div class="mb-8 text-center">
-			<h1 class="text-3xl font-bold text-gray-800">Complete Your Profile</h1>
-			<p class="mt-3 text-gray-600">Please provide your name to complete your account setup.</p>
-		</div>
-
-		<div class="rounded-lg bg-white p-8 shadow-lg">
+<div class="bg-secondary flex min-h-screen items-center justify-center">
+	<div class="bg-primary-800 mx-auto my-8 w-full max-w-lg rounded-lg p-12 shadow-lg">
+		<div class="text-inverted text-center">
+			<h1 class="mb-4 text-3xl font-bold">Complete Your Profile</h1>
+			<p class="mb-8 text-lg">Please provide your name to complete your account setup.</p>
 			<form
 				method="POST"
 				use:enhance={() => {
@@ -34,7 +31,7 @@
 				<input type="hidden" name="userId" value={data.user.id} />
 
 				<div class="mb-6">
-					<label for="firstName" class="mb-2 block text-sm font-medium text-gray-700">
+					<label for="firstName" class="text-inverted mb-2 block text-sm font-medium">
 						First Name
 					</label>
 					<input
@@ -42,13 +39,13 @@
 						id="firstName"
 						name="firstName"
 						bind:value={firstName}
-						class="w-full rounded-md border border-gray-300 px-4 py-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+						class="form-input w-full"
 						required
 					/>
 				</div>
 
 				<div class="mb-6">
-					<label for="lastName" class="mb-2 block text-sm font-medium text-gray-700">
+					<label for="lastName" class="text-inverted mb-2 block text-sm font-medium">
 						Last Name
 					</label>
 					<input
@@ -56,20 +53,20 @@
 						id="lastName"
 						name="lastName"
 						bind:value={lastName}
-						class="w-full rounded-md border border-gray-300 px-4 py-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+						class="form-input w-full"
 						required
 					/>
 				</div>
 
 				{#if form?.error}
-					<div class="mb-6 rounded-md bg-red-50 p-4 text-sm text-red-700">
+					<div class="bg-error-50 text-error-800 mb-6 rounded-md p-4 text-sm">
 						{form.error}
 					</div>
 				{/if}
 
 				<button
 					type="submit"
-					class="w-full rounded-md bg-blue-600 px-4 py-3 font-medium text-white shadow-sm transition-colors hover:bg-blue-900 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none disabled:opacity-70"
+					class="btn flex w-full justify-center focus:outline-none disabled:opacity-70"
 					disabled={loading}
 				>
 					{loading ? 'Saving...' : 'Complete Setup'}

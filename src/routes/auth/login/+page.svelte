@@ -6,17 +6,14 @@
 	let { form }: PageProps = $props();
 </script>
 
-<div class="flex min-h-screen flex-col justify-center bg-gray-50 py-12 sm:px-6 lg:px-8">
-	<div class="sm:mx-auto sm:w-full sm:max-w-md">
-		<h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">Sign in to your account</h2>
-		<p class="mt-2 text-center text-sm text-gray-600">We'll send you a magic link to your email</p>
-	</div>
+<div class="bg-secondary flex min-h-screen items-center justify-center">
+	<div class="bg-primary mx-auto my-8 w-full max-w-lg rounded-lg p-12 shadow-lg">
+		<div class="text-inverted text-center">
+			<h2 class="mb-4 text-3xl font-extrabold text-white">Sign in to your account</h2>
+			<p class="mb-8 text-lg text-white">We'll send a login link to your email</p>
 
-	<div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-		<div class="bg-white px-4 py-8 shadow sm:rounded-lg sm:px-10">
 			<form class="space-y-6" method="POST">
 				<div>
-					<label for="email" class="block text-sm font-medium text-gray-700">Email address</label>
 					<div class="mt-1">
 						<input
 							id="email"
@@ -25,16 +22,16 @@
 							autocomplete="email"
 							required
 							placeholder="Enter your email"
-							class="form-input block w-full appearance-none placeholder-gray-400 focus:outline-none sm:text-sm"
+							class="form-input block w-full appearance-none focus:outline-1 sm:text-sm"
 						/>
 					</div>
 				</div>
 
 				{#if form?.error || error === 'invalid_token'}
-					<div class="rounded-md bg-red-50 p-4">
+					<div class="bg-error-50 rounded-md p-4">
 						<div class="flex">
 							<div class="ml-3">
-								<h3 class="text-sm font-medium text-red-800">
+								<h3 class="text-error-800 text-sm font-medium">
 									{error === 'invalid_token'
 										? 'Magic link invalid or expired. Please try again.'
 										: form?.error}
@@ -46,7 +43,7 @@
 
 				<div>
 					<button type="submit" class="btn flex w-full justify-center focus:outline-none">
-						Send Magic Link
+						Login
 					</button>
 				</div>
 			</form>
