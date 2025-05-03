@@ -78,11 +78,10 @@ export function requireRole(
 export function redirectIfAuthenticated(event: RequestEvent, redirectTo: string = '') {
 	const { user, session } = event.locals;
 
-	if (redirectTo === '') {
-		redirectTo = user.role === 'ADMIN' ? '/admin/dashboard' : '/user/dashboard';
-	}
-
 	if (user && session) {
+		if (redirectTo === '') {
+			redirectTo = user.role === 'ADMIN' ? '/admin/dashboard' : '/user/dashboard';
+		}
 		throw redirect(303, redirectTo);
 	}
 }
