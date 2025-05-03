@@ -3,13 +3,6 @@ import { requireRole } from '$lib/server/auth/guard';
 import { redirect } from '@sveltejs/kit';
 
 export const load = (async (event) => {
-	const { user } = requireRole(event, 'USER');
-
-	if (!user.isSetup) {
-		throw redirect(303, '/user/account-setup');
-	}
-
-	return {
-		user
-	};
+	requireRole(event, 'ADMIN');
+	throw redirect(303, '/admin/dashboard');
 }) satisfies PageServerLoad;

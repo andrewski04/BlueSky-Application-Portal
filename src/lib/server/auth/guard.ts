@@ -65,7 +65,7 @@ export function requireRole(
 }
 
 /**
- * Redirect a user to a specified route if they are already authenticated.
+ * Redirect a user to a specified route if they are already authenticated, by default it will redirect to respective role dashboard.
  *
  * @param event - The request event object
  * @param redirectTo - The URL to redirect to if authenticated (default: '/user/dashboard')
@@ -75,11 +75,12 @@ export function requireRole(
  * 	redirectIfAuthenticated(event); // will redirect to /user/dashboard if already logged in
  * }
  */
-export function redirectIfAuthenticated(
-	event: RequestEvent,
-	redirectTo: string = '/user/dashboard'
-) {
+export function redirectIfAuthenticated(event: RequestEvent, redirectTo: string = '') {
 	const { user, session } = event.locals;
+
+	if (redirectTo === '') {
+		redirectTo = user.role === 'ADMIN' ? '/admin/dashboard' : '/user/dashboard';
+	}
 
 	if (user && session) {
 		throw redirect(303, redirectTo);

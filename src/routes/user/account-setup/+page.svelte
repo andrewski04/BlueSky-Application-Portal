@@ -17,7 +17,8 @@
 	<div class="bg-primary mx-auto my-8 w-full max-w-lg rounded-lg p-12 text-white shadow-lg">
 		<div class="text-inverted text-center">
 			<h1 class="mb-4 text-3xl font-bold">Complete Your Profile</h1>
-			<p class="mb-8 text-lg">Please provide your name to complete your account setup.</p>
+			<p class="mb-2 text-lg">Please setup your profile to continue.</p>
+
 			<form
 				method="POST"
 				use:enhance={() => {
@@ -57,7 +58,7 @@
 				</div>
 
 				{#if form?.error}
-					<div class="bg-error-50 text-error-800 mb-6 rounded-md p-4 text-sm">
+					<div class="bg-error mb-6 rounded-md p-2 text-sm text-white">
 						{form.error}
 					</div>
 				{/if}
@@ -69,6 +70,10 @@
 				>
 					{loading ? 'Saving...' : 'Complete Setup'}
 				</button>
+
+				<p class="text-md mt-6">
+					Not {data.user.email}? <a href="/auth/logout" class="text-blue-400">Logout</a>
+				</p>
 			</form>
 		</div>
 	</div>

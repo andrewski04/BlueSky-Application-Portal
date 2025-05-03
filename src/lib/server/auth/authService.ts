@@ -6,7 +6,7 @@ import { AppError, err, ok, type Result } from '$lib/util/error';
 interface AuthenticateUserOptions {
 	email: string;
 	hashedMagicToken: string;
-	redirectTo: string;
+	redirectTo?: string;
 }
 
 interface AuthenticateUserResult {
@@ -18,6 +18,7 @@ interface AuthenticateUserResult {
 
 /**
  * Handles authentication flow on pages such as `/auth/check-email` and `/auth/magic-link`.
+ * By default, it will redirect a user/admin to their respective dashboard.
  *
  * - Invalidates the magic token
  * - Creates or finds the user
@@ -49,7 +50,7 @@ interface AuthenticateUserResult {
 export async function authenticateUserWithMagicToken({
 	email,
 	hashedMagicToken,
-	redirectTo = '/user/dashboard'
+	redirectTo = ''
 }: AuthenticateUserOptions): Promise<Result<AuthenticateUserResult>> {
 	try {
 		await invalidateMagicToken(hashedMagicToken, true);
@@ -59,6 +60,10 @@ export async function authenticateUserWithMagicToken({
 			return createUserResult.unwrapErr();
 		}
 		const { user } = createUserResult.unwrap();
+
+		if (redirectTo === '') {
+			redirectTo = user.role === 'ADMIN' ? '/admin/dashboard' : '/user/dashboard';
+		}
 
 		const sessionResult = await createSession(user.id);
 		if (sessionResult.isErr()) {

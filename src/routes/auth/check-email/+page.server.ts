@@ -72,8 +72,7 @@ export const actions: Actions = {
 
 		const authResult = await authenticateUserWithMagicToken({
 			email,
-			hashedMagicToken: magicToken.hashedToken,
-			redirectTo: '/user/dashboard'
+			hashedMagicToken: magicToken.hashedToken
 		});
 
 		if (authResult.isErr()) {

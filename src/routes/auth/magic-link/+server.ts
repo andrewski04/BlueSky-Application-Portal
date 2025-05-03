@@ -30,8 +30,7 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 	if (deviceId && deviceId === magicToken.deviceId) {
 		const authResult = await authenticateUserWithMagicToken({
 			email: magicToken.email,
-			hashedMagicToken: magicToken.hashedToken,
-			redirectTo: '/user/dashboard'
+			hashedMagicToken: magicToken.hashedToken
 		});
 
 		if (authResult.isErr()) {
