@@ -4,8 +4,6 @@ import { createMagicToken } from '$lib/server/auth/magicToken';
 import { sendMagicLink } from '$lib/server/mailer';
 import { nanoid } from 'nanoid';
 import { validateEmail } from '$lib/util/validation';
-import { countRecentAttempts, recordAuthAttempt } from '$lib/server/auth/rateLimit';
-import { AuthAttemptType } from '@prisma/client';
 import { findUserByEmail } from '$lib/server/auth/user';
 import type { PageServerLoad } from './$types';
 import { redirectIfAuthenticated } from '$lib/server/auth/guard';
@@ -26,35 +24,6 @@ export const actions: Actions = {
 
 		if (await findUserByEmail(email)) {
 			return { success: false, error: 'User already exists, please login instead.' };
-		}
-
-		const ipAddress =
-			request.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
-			request.headers.get('x-real-ip') ||
-			'';
-
-		const userAgent = request.headers.get('user-agent') || '';
-
-		const loginWindowMs = Number(process.env.LOGIN_RATE_LIMIT_WINDOW_MS) || 60 * 60 * 1000;
-		const loginMax = Number(process.env.LOGIN_RATE_LIMIT_MAX) || 5;
-
-		await recordAuthAttempt({
-			email,
-			ipAddress,
-			userAgent,
-			type: AuthAttemptType.LOGIN,
-			success: false
-		});
-
-		const recentAttemptsFromIp = await countRecentAttempts({
-			ipAddress,
-			userAgent,
-			type: AuthAttemptType.LOGIN,
-			windowMs: loginWindowMs
-		});
-
-		if (recentAttemptsFromIp >= loginMax) {
-			return { success: false, error: 'Too many attempts. Please try again later.' };
 		}
 
 		// Create or reuse a device identifier cookie
