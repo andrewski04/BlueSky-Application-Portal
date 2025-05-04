@@ -8,9 +8,14 @@
 
 	<div class="w-full max-w-lg rounded-lg bg-gray-800 p-4 shadow-md">
 		<ul class="divide-y divide-gray-700">
-			<li class="p-3 transition">
+			<li class="p-3">
 				<a href="/dev/users" class="text-blue-300 hover:underline"
 					>List all user accounts and set roles</a
+				>
+			</li>
+			<li class="p-3">
+				<a href="/dev/example-form" class="text-blue-300 hover:underline"
+					>Create and publish application forms with example questions</a
 				>
 			</li>
 		</ul>

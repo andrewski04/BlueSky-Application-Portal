@@ -7,10 +7,50 @@ generator client {
   provider = "prisma-client-js"
 }
 
-enum AuthAttemptType {
-  LOGIN
-  OTP
+/**
+ * The ApplicationForm acts as a templates for Applications, defining the question response types and prompt.
+ */
+model ApplicationForm {
+  id           String        @id @default(cuid(2))
+  name         String
+  description  String?
+  published    Boolean       @default(false)
+  active       Boolean       @default(true)
+  sections     Json
+  applications Application[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 }
+
+/**
+ * The Application model represents an application form filled out by a user.
+ */
+enum ApplicationStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+}
+
+model Application {
+  id          String            @id @default(cuid(2))
+  userId      String
+  user        User              @relation(fields: [userId], references: [id])
+  formId      String
+  form        ApplicationForm   @relation(fields: [formId], references: [id])
+  status      ApplicationStatus @default(DRAFT)
+  responses   Json
+  submittedAt DateTime?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@index([userId])
+  @@index([formId])
+}
+
+/**
+ * The User model represents a user (both applicants and admins) of the application.
+ */
 
 enum UserRole {
   USER
@@ -18,45 +58,38 @@ enum UserRole {
 }
 
 model User {
-  id         String       @id @default(cuid(2))
-  email      String       @unique
-  firstName  String?
-  lastName   String?
-  role       UserRole       @default(USER)
-  sessions   Session[]
-  isSetup    Boolean      @default(false)
-  createdAt  DateTime     @default(now())
+  id          String        @id @default(cuid(2))
+  email       String        @unique
+  firstName   String?
+  lastName    String?
+  role        UserRole      @default(USER)
+  sessions    Session[]
+  isSetup     Boolean       @default(false)
+  createdAt   DateTime      @default(now())
+  Application Application[]
 }
 
+/**
+ * The Session represents an active, logged in user Session and is used to verify the user's session cookie.
+ */
 model Session {
-  hashedToken   String   @id
-  userId        String
-  expiresAt     DateTime
-  createdAt     DateTime @default(now())
+  hashedToken String   @id
+  userId      String
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
+/**
+ * The MagicToken model handles the MagicToken link sent to a users Email, and the associated OTP if one is generated.
+ * Once verified, these are deleted and the User is given a Session.
+ */
 model MagicToken {
-  hashedToken  String   @id 
-  hashedOtp    String?
-  deviceId     String
-  email        String
-  expiresAt    DateTime
-  createdAt    DateTime @default(now())
-}
-
-model AuthAttempt {
-  id         String          @id @default(uuid())
-  email      String?
-  ipAddress  String
-  userAgent  String?
-  type       AuthAttemptType
-  success    Boolean
-  createdAt  DateTime        @default(now())
-
-  @@index([email])
-  @@index([ipAddress])
-  @@index([type, createdAt])
-  @@index([ipAddress, userAgent, type, createdAt])
+  hashedToken String   @id
+  hashedOtp   String?
+  deviceId    String
+  email       String
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
 }
