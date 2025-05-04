@@ -5,11 +5,15 @@
 	const { applicationForms, error } = data;
 </script>
 
+<svelte:head>
+	<title>Manage Example Forms</title>
+</svelte:head>
+
 <div class="flex min-h-screen flex-col items-center bg-gray-900 p-6 text-white">
 	<h2 class="text-2xl font-semibold">Application Forms</h2>
 	<p class="mt-4 text-sm">Create an example form with sections and different question types.</p>
 
-	<form method="POST" class="my-4">
+	<form method="POST" action="?/create" class="my-4">
 		<button
 			type="submit"
 			class="rounded bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-700"
@@ -22,7 +26,7 @@
 		<p class="text-center text-red-400">{error}</p>
 	{/if}
 
-	<div class="mt-4 w-full max-w-3xl rounded-lg bg-gray-800 p-4 shadow-md">
+	<div class="mt-4 w-full max-w-5xl rounded-lg bg-gray-800 p-4 shadow-md">
 		{#if applicationForms.length === 0}
 			<p class="text-center text-gray-400">No application forms found</p>
 		{:else}
@@ -54,6 +58,11 @@
 						>
 							Active
 						</th>
+						<th
+							class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-300 uppercase"
+						>
+							Delete
+						</th>
 					</tr>
 				</thead>
 				<tbody class="divide-y divide-gray-700">
@@ -67,6 +76,17 @@
 							</td>
 							<td class="px-6 py-4 text-sm whitespace-nowrap text-gray-300">
 								{form.active ? 'Yes' : 'No'}
+							</td>
+							<td class="px-6 py-4 text-sm whitespace-nowrap text-gray-300">
+								<form method="POST" action="?/delete">
+									<input type="hidden" name="formId" value={form.id} />
+									<button
+										type="submit"
+										class="rounded bg-red-500 px-3 py-1 text-xs font-bold text-white hover:bg-red-700"
+									>
+										Delete
+									</button>
+								</form>
 							</td>
 						</tr>
 					{/each}

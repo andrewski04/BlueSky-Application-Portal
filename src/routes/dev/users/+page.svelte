@@ -17,6 +17,10 @@
 	}
 </script>
 
+<svelte:head>
+	<title>Manage Users</title>
+</svelte:head>
+
 <div class="flex min-h-screen flex-col items-center bg-gray-900 p-6 text-white">
 	<h2 class=" text-2xl font-semibold">User List</h2>
 

@@ -6,6 +6,10 @@
 	let { form }: PageProps = $props();
 </script>
 
+<svelte:head>
+	<title>Login</title>
+</svelte:head>
+
 <div class="bg-secondary flex min-h-screen items-center justify-center">
 	<div class="bg-primary mx-auto my-8 w-full max-w-lg rounded-lg p-12 shadow-lg">
 		<div class="text-inverted text-center">

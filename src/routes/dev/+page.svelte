@@ -1,6 +1,10 @@
 <script lang="ts">
 </script>
 
+<svelte:head>
+	<title>Dev Tools</title>
+</svelte:head>
+
 <div class="flex min-h-screen flex-col items-center bg-gray-900 p-6 text-white">
 	<h2 class="mb-4 text-2xl font-semibold">Development Tools</h2>
 	<p class="text-gray-300">These tools are for development and debugging only.</p>

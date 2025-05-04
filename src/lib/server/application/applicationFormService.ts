@@ -28,6 +28,7 @@ export async function createApplicationForm(
 		form = await prisma.applicationForm.create({
 			data: {
 				name: applicationForm.name,
+				description: applicationForm.description,
 				sections: JSON.stringify(applicationForm.sections),
 				active: true,
 				published: false
@@ -131,5 +132,77 @@ export async function getAllApplicationForms(): Promise<Result<ApplicationFormMe
 	} catch (error) {
 		console.log(error);
 		return err(new AppError('Error fetching application forms', 'ERR_FETCH_APPLICATION_FORMS'));
+	}
+}
+
+/**
+ * Retrieves all active and published (available for users) application forms from the database
+ *
+ * @returns A Result containing an array of ApplicationFormMetadata for active and published forms, or an error if fetching fails
+ */
+export async function getActivePublishedApplicationForms(): Promise<
+	Result<ApplicationFormMetadata[]>
+> {
+	try {
+		const applicationForms = await prisma.applicationForm.findMany({
+			where: { active: true, published: true }
+		});
+
+		const mappedForms: ApplicationFormMetadata[] = applicationForms.map((form) => ({
+			id: form.id,
+			name: form.name,
+			description: form.description || undefined,
+			sections: JSON.parse(form.sections as string) as ApplicationFormSection[],
+			active: form.active,
+			published: form.published,
+			createdAt: form.createdAt,
+			updatedAt: form.updatedAt
+		}));
+
+		return ok(mappedForms);
+	} catch (error) {
+		console.log(error);
+		return err(new AppError('Error fetching application forms', 'ERR_FETCH_APPLICATION_FORMS'));
+	}
+}
+
+/**
+ * Deletes an application form by its ID, if no applications are using it.
+ * This is intended for draft forms, if a form has already been used by applicants, it should instead by deactivated.
+ *
+ * @param applicationFormId - The unique identifier of the application form to delete
+ * @returns A Result containing the deleted application form's ID, or an error if deletion is not possible
+ * @throws {AppError} If the application form is not found or has existing applications
+ */
+export async function deleteApplicationFormById(
+	applicationFormId: string
+): Promise<Result<{ applicationFormId: string }>> {
+	try {
+		const applicationForm = await prisma.applicationForm.findUnique({
+			where: { id: applicationFormId },
+			include: { applications: true }
+		});
+
+		if (!applicationForm) {
+			return err(new AppError('Application form not found', 'ERR_APPLICATION_FORM_NOT_FOUND'));
+		}
+
+		if (applicationForm.applications.length > 0) {
+			return err(
+				new AppError(
+					'Cannot delete application form with applications, deactivate instead',
+					'ERR_APPLICATION_FORM_HAS_APPLICATIONS'
+				)
+			);
+		}
+
+		await prisma.applicationForm.delete({
+			where: { id: applicationFormId }
+		});
+
+		return ok({ applicationFormId });
+	} catch (error) {
+		console.log(error);
+		return err(new AppError('Error deleting application form', 'ERR_DELETE_APPLICATION_FORM'));
 	}
 }

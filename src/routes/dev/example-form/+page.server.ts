@@ -1,7 +1,8 @@
 import type { PageServerLoad } from './$types';
 import {
 	createApplicationForm,
-	getAllApplicationForms
+	getAllApplicationForms,
+	deleteApplicationFormById
 } from '$lib/server/application/applicationFormService';
 
 export const load = (async () => {
@@ -13,7 +14,7 @@ export const load = (async () => {
 }) satisfies PageServerLoad;
 
 export const actions = {
-	default: async () => {
+	create: async () => {
 		const exampleForm = await createApplicationForm({
 			name: 'Example Application Form',
 			description: 'This is an example application form with various question types.',
@@ -144,5 +145,21 @@ export const actions = {
 		});
 
 		console.log('Example form created:', exampleForm);
+	},
+	delete: async ({ request }) => {
+		const formData = await request.formData();
+		const formId = formData.get('formId')?.toString();
+
+		if (!formId) {
+			return { success: false, error: 'Form ID is required' };
+		}
+
+		const result = await deleteApplicationFormById(formId);
+
+		if (result.isErr()) {
+			return { success: false, error: result.error.message };
+		}
+
+		return { success: true };
 	}
 };

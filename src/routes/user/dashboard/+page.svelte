@@ -5,6 +5,10 @@
 	let { user } = data;
 </script>
 
+<svelte:head>
+	<title>User Dashboard</title>
+</svelte:head>
+
 <div>
 	<h1 class="text-3xl font-bold">Welcome, {user.firstName}!</h1>
 
