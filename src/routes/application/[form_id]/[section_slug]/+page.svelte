@@ -72,9 +72,17 @@
 		{/each}
 
 		<div class="flex justify-end">
+			{#if section.previousFormSectionSlug}
+				<a
+					data-sveltekit-reload
+					href={`/application/${section.formId}/${section.previousFormSectionSlug}`}
+					class="mr-2 rounded-md bg-red-600 px-6 py-2 text-white shadow hover:bg-red-700"
+					>Previous Section</a
+				>
+			{/if}
 			<button
 				type="submit"
-				class="rounded-md bg-blue-600 px-6 py-2 text-white shadow hover:bg-blue-700"
+				class="rounded-md bg-green-600 px-6 py-2 text-white shadow hover:bg-green-700"
 				>Save Section</button
 			>
 			{#if section.nextFormSectionSlug}
@@ -83,14 +91,6 @@
 					href={`/application/${section.formId}/${section.nextFormSectionSlug}`}
 					class="ml-2 rounded-md bg-blue-600 px-6 py-2 text-white shadow hover:bg-blue-700"
 					>Next Section</a
-				>
-			{/if}
-			{#if section.previousFormSectionSlug}
-				<a
-					data-sveltekit-reload
-					href={`/application/${section.formId}/${section.previousFormSectionSlug}`}
-					class="ml-2 rounded-md bg-blue-600 px-6 py-2 text-white shadow hover:bg-blue-700"
-					>Previous Section</a
 				>
 			{/if}
 		</div>
