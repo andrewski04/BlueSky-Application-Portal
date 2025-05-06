@@ -1,8 +1,18 @@
 <script lang="ts">
 	import type { PageData } from './$types';
+	import type { ApplicationForm, Prisma } from '@prisma/client';
 
 	const { data }: { data: PageData } = $props();
-	const { applicationForms, error } = data;
+	// Cast data to the expected type including the sections relation
+	const { applicationForms, error } = data as {
+		applicationForms: Prisma.ApplicationFormGetPayload<{ include: { sections: true } }>[];
+		error?: string;
+	};
+
+	// Function to generate section slug
+	function getSectionSlug(sectionName: string): string {
+		return sectionName.toLowerCase().replace(/\s+/g, '-');
+	}
 </script>
 
 <svelte:head>
@@ -61,7 +71,7 @@
 						<th
 							class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-300 uppercase"
 						>
-							Delete
+							Actions
 						</th>
 					</tr>
 				</thead>
@@ -77,7 +87,15 @@
 							<td class="px-6 py-4 text-sm whitespace-nowrap text-gray-300">
 								{form.active ? 'Yes' : 'No'}
 							</td>
-							<td class="px-6 py-4 text-sm whitespace-nowrap text-gray-300">
+							<td class="flex space-x-2 px-6 py-4 text-sm whitespace-nowrap text-gray-300">
+								{#if form.sections.length > 0}
+									<a
+										href={`/application/${form.id}/${getSectionSlug(form.sections[0].name)}`}
+										class="rounded bg-green-500 px-3 py-1 text-xs font-bold text-white hover:bg-green-700"
+									>
+										View Form
+									</a>
+								{/if}
 								<form method="POST" action="?/delete">
 									<input type="hidden" name="formId" value={form.id} />
 									<button

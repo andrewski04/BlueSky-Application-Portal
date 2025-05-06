@@ -7,8 +7,10 @@ import {
 import { authenticateUserWithMagicToken } from '$lib/server/auth/authService';
 import { validateEmail } from '$lib/util/validation';
 import { setSessionTokenCookie } from '$lib/server/auth/session';
+import { redirectIfAuthenticated } from '$lib/server/auth/guard';
 
-export const load: PageServerLoad = async ({ url }) => {
+export const load: PageServerLoad = async ({ url, locals }) => {
+	redirectIfAuthenticated(locals);
 	const email = url.searchParams.get('email');
 
 	if (!email || !validateEmail(email).isOk()) {

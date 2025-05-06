@@ -1,8 +1,11 @@
+import { ApplicationStatus } from '@prisma/client';
+
 /**
  * This contains shared type definition for `ApplicationForm`s and `Application`s
+ *
+ * THIS IS CURRENTLY DEPRECATED AND SHOULDNT BE USED, ALL TYPES ARE NOW IN PRISMA SCHEMA
  */
 
-// TODO: add types for phone number & email for proper validation
 export type QuestionType =
 	| 'TEXT'
 	| 'PARAGRAPH'
@@ -99,7 +102,7 @@ export interface ApplicationFormSection {
  **/
 export interface ApplicationFormData {
 	name: string;
-	description?: string;
+	description: string | null;
 	sections: ApplicationFormSection[];
 }
 
@@ -121,6 +124,13 @@ export type QuestionResponse = {
 	value: string | string[] | boolean | null;
 };
 
-export interface ApplicationResponseSchema {
+export interface ApplicationResponse {
+	id: string;
+	userId: string;
+	formId: string;
+	status: ApplicationStatus;
+	submittedAt?: Date;
+	createdAt: Date;
+	updatedAt: Date;
 	responses: QuestionResponse[];
 }
