@@ -113,7 +113,7 @@ export async function saveApplicationSection(
 				case 'NUMBER':
 					answerData = {
 						question: { connect: { id: questionId } },
-						valueNumber: typeof answerValue === 'number' ? answerValue : null
+						valueNumber: answerValue ? parseFloat(answerValue) : null
 					};
 					break;
 				case 'DATE':

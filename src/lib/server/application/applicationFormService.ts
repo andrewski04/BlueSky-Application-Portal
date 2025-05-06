@@ -275,25 +275,21 @@ export async function getFormSectionByFormIdAndSlug(
 	applicationFormId: string,
 	sectionSlug: string
 ): Promise<
-	Result<(FormSection & { questions: (FormQuestion & { options: FormQuestionOption[] })[] }) | null>
+	Result<
+		| (FormSection & { questions: (FormQuestion & { options: FormQuestionOption[] })[] } & {
+				nextFormSectionSlug: string | null;
+		  } & { previousFormSectionSlug: string | null })
+		| null
+	>
 > {
 	try {
+		// First, fetch the application form with all sections to determine order
 		const applicationForm = await prisma.applicationForm.findUnique({
 			where: { id: applicationFormId },
 			include: {
 				sections: {
-					where: {
-						slug: {
-							equals: sectionSlug,
-							mode: 'insensitive'
-						}
-					},
-					include: {
-						questions: {
-							include: {
-								options: true
-							}
-						}
+					orderBy: {
+						displayOrder: 'asc'
 					}
 				}
 			}
@@ -303,15 +299,54 @@ export async function getFormSectionByFormIdAndSlug(
 			return err(new AppError('Application form not found', 'ERR_APPLICATION_FORM_NOT_FOUND'));
 		}
 
-		const section = applicationForm.sections[0] || null;
+		// Find the current section's index in the ordered array
+		const currentSectionIndex = applicationForm.sections.findIndex(
+			(section) => section.slug.toLowerCase() === sectionSlug.toLowerCase()
+		);
 
-		if (!section) {
+		if (currentSectionIndex === -1) {
 			return err(
 				new AppError('Application form section not found', 'ERR_APPLICATION_FORM_SECTION_NOT_FOUND')
 			);
 		}
 
-		return ok(section);
+		// Determine previous and next section slugs
+		const previousFormSectionSlug =
+			currentSectionIndex > 0 ? applicationForm.sections[currentSectionIndex - 1].slug : null;
+
+		const nextFormSectionSlug =
+			currentSectionIndex < applicationForm.sections.length - 1
+				? applicationForm.sections[currentSectionIndex + 1].slug
+				: null;
+
+		const sectionWithQuestions = await prisma.formSection.findFirst({
+			where: {
+				formId: applicationFormId,
+				slug: {
+					equals: sectionSlug,
+					mode: 'insensitive'
+				}
+			},
+			include: {
+				questions: {
+					include: {
+						options: true
+					}
+				}
+			}
+		});
+
+		if (!sectionWithQuestions) {
+			return err(
+				new AppError('Application form section not found', 'ERR_APPLICATION_FORM_SECTION_NOT_FOUND')
+			);
+		}
+
+		return ok({
+			...sectionWithQuestions,
+			nextFormSectionSlug,
+			previousFormSectionSlug
+		});
 	} catch (error) {
 		console.error(error);
 		return err(

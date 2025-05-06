@@ -21,46 +21,79 @@
 	}
 </script>
 
-<form method="POST" action="?/saveSection" use:enhance>
+<form
+	method="POST"
+	action="?/saveSection"
+	use:enhance={() => {
+		return async ({ update }) => {
+			update({ reset: false });
+		};
+	}}
+	class="h-screen space-y-6 bg-gray-100 p-6"
+>
 	{#if section}
-		<h2>{section.name}</h2>
+		<h2 class="mb-4 text-2xl font-bold">{section.name}</h2>
 		{#if section.description}
-			<p>{section.description}</p>
+			<p class="mb-6 text-gray-700">{section.description}</p>
 		{/if}
 
 		{#each section.questions as question}
 			{@const existingAnswer = findExistingAnswer(question.id)}
-			{#if question.type === 'TEXT'}
-				<TextQuestion {question} existingAnswer={existingAnswer?.valueText} />
-			{:else if question.type === 'PARAGRAPH'}
-				<ParagraphQuestion {question} existingAnswer={existingAnswer?.valueText} />
-			{:else if question.type === 'NUMBER'}
-				<NumberQuestion {question} existingAnswer={existingAnswer?.valueNumber} />
-			{:else if question.type === 'DATE'}
-				<DateQuestion {question} existingAnswer={existingAnswer?.valueDate} />
-			{:else if question.type === 'CHECKBOX'}
-				<CheckboxQuestion
-					{question}
-					existingAnswer={existingAnswer?.selectedOptions.map(
-						(opt: AnswerOptionSelection) => opt.optionId
-					)}
-				/>
-			{:else if question.type === 'MULTIPLE_CHOICE'}
-				<MultipleChoiceQuestion
-					{question}
-					existingAnswer={existingAnswer?.selectedOptions[0]?.optionId}
-				/>
-			{:else if question.type === 'DROPDOWN'}
-				<DropdownQuestion
-					{question}
-					existingAnswer={existingAnswer?.selectedOptions[0]?.optionId}
-				/>
-			{:else if question.type === 'FILE_UPLOAD'}
-				<FileUploadQuestion {question} existingAnswer={existingAnswer?.fileUploadId} />
-			{/if}
+			<div class="rounded-md border border-gray-200 bg-white p-4 shadow-sm">
+				{#if question.type === 'TEXT'}
+					<TextQuestion {question} existingAnswer={existingAnswer?.valueText} />
+				{:else if question.type === 'PARAGRAPH'}
+					<ParagraphQuestion {question} existingAnswer={existingAnswer?.valueText} />
+				{:else if question.type === 'NUMBER'}
+					<NumberQuestion {question} existingAnswer={existingAnswer?.valueNumber} />
+				{:else if question.type === 'DATE'}
+					<DateQuestion {question} existingAnswer={existingAnswer?.valueDate} />
+				{:else if question.type === 'CHECKBOX'}
+					<CheckboxQuestion
+						{question}
+						existingAnswer={existingAnswer?.selectedOptions.map(
+							(opt: AnswerOptionSelection) => opt.optionId
+						)}
+					/>
+				{:else if question.type === 'MULTIPLE_CHOICE'}
+					<MultipleChoiceQuestion
+						{question}
+						existingAnswer={existingAnswer?.selectedOptions[0]?.optionId}
+					/>
+				{:else if question.type === 'DROPDOWN'}
+					<DropdownQuestion
+						{question}
+						existingAnswer={existingAnswer?.selectedOptions[0]?.optionId}
+					/>
+				{:else if question.type === 'FILE_UPLOAD'}
+					<FileUploadQuestion {question} existingAnswer={existingAnswer?.fileUploadId} />
+				{/if}
+			</div>
 		{/each}
 
-		<button type="submit">Save Section</button>
+		<div class="flex justify-end">
+			<button
+				type="submit"
+				class="rounded-md bg-blue-600 px-6 py-2 text-white shadow hover:bg-blue-700"
+				>Save Section</button
+			>
+			{#if section.nextFormSectionSlug}
+				<a
+					data-sveltekit-reload
+					href={`/application/${section.formId}/${section.nextFormSectionSlug}`}
+					class="ml-2 rounded-md bg-blue-600 px-6 py-2 text-white shadow hover:bg-blue-700"
+					>Next Section</a
+				>
+			{/if}
+			{#if section.previousFormSectionSlug}
+				<a
+					data-sveltekit-reload
+					href={`/application/${section.formId}/${section.previousFormSectionSlug}`}
+					class="ml-2 rounded-md bg-blue-600 px-6 py-2 text-white shadow hover:bg-blue-700"
+					>Previous Section</a
+				>
+			{/if}
+		</div>
 	{:else}
 		<p>Section not found.</p>
 	{/if}

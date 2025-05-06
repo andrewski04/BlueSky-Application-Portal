@@ -30,7 +30,7 @@
 						name={question.id}
 						value={option.id}
 						bind:group={value}
-						class="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-500"
+						class="h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-500"
 						required={question.required}
 					/>
 					<label for={`${question.id}-${option.id}`} class="ml-3 text-sm text-gray-700">

@@ -62,7 +62,7 @@ export const actions = {
 
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const responses: Record<string, any> = {};
-		// Assuming form data keys are question IDs
+
 		for (const [key, value] of formData.entries()) {
 			responses[key] = value;
 		}

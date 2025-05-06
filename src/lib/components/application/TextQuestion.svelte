@@ -28,7 +28,7 @@
 		name={question.id}
 		bind:value
 		maxlength={question.maxLength ?? undefined}
-		class="w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 focus:outline-none"
+		class="w-full rounded-md border border-blue-600 px-3 py-2 shadow-sm focus:border-blue-700 focus:ring-blue-700 focus:outline-none"
 		class:border-red-500={error}
 		required={question.required}
 	/>
