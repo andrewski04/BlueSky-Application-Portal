@@ -14,7 +14,7 @@ import { AppError, err, ok, type Result } from '$lib/util/error';
 export async function saveApplicationSection(
 	userId: string,
 	formId: string,
-	sectionId: string,
+	sectionSlug: string,
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	responses: Record<string, any>
 ): Promise<Result<void>> {
@@ -60,7 +60,9 @@ export async function saveApplicationSection(
 				id: {
 					in: questionIds
 				},
-				sectionId: sectionId // Ensure questions belong to the specified section
+				section: {
+					slug: sectionSlug
+				}
 			},
 			include: {
 				options: true
@@ -74,7 +76,7 @@ export async function saveApplicationSection(
 			const question = questionMap.get(questionId);
 
 			if (!question) {
-				console.warn(`Question with ID ${questionId} not found in section ${sectionId}`);
+				console.warn(`Question with ID ${questionId} not found in section ${sectionSlug}`);
 				continue; // Skip if question not found in the section
 			}
 

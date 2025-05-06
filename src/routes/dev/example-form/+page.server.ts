@@ -21,13 +21,13 @@ export const actions = {
 			sections: {
 				create: [
 					{
-						id: 'personal-information-section',
+						slug: 'personal-information',
 						name: 'Personal Information',
 						displayOrder: 0,
 						questions: {
 							create: [
 								{
-									id: 'personal-name',
+									slug: 'personal-name',
 									type: 'TEXT',
 									prompt: 'What is your full name?',
 									required: true,
@@ -35,7 +35,7 @@ export const actions = {
 									maxLength: 100
 								},
 								{
-									id: 'personal-age',
+									slug: 'personal-age',
 									type: 'NUMBER',
 									prompt: 'What is your age?',
 									required: true,
@@ -43,7 +43,7 @@ export const actions = {
 									minValue: 0
 								},
 								{
-									id: 'personal-dob',
+									slug: 'personal-dob',
 									type: 'DATE',
 									prompt: 'What is your date of birth?',
 									required: true,
@@ -53,13 +53,13 @@ export const actions = {
 						}
 					},
 					{
-						id: 'contact-information-section',
+						slug: 'contact-information',
 						name: 'Contact Information',
 						displayOrder: 1,
 						questions: {
 							create: [
 								{
-									id: 'contact-email',
+									slug: 'contact-email',
 									type: 'TEXT',
 									prompt: 'What is your email address?',
 									required: true,
@@ -67,7 +67,7 @@ export const actions = {
 									maxLength: 100
 								},
 								{
-									id: 'contact-phone',
+									slug: 'contact-phone',
 									type: 'TEXT',
 									prompt: 'What is your phone number?',
 									required: false,
@@ -78,50 +78,50 @@ export const actions = {
 						}
 					},
 					{
-						id: 'preferences-section',
+						slug: 'preferences-section',
 						name: 'Preferences',
 						displayOrder: 2,
 						questions: {
 							create: [
 								{
-									id: 'preferences-interests',
+									slug: 'preferences-interests',
 									type: 'CHECKBOX',
 									prompt: 'Which of the following are you interested in?',
 									required: false,
 									order: 0,
 									options: {
 										create: [
-											{ id: 'option-a', text: 'Option A', order: 0 },
-											{ id: 'option-b', text: 'Option B', order: 1 },
-											{ id: 'option-c', text: 'Option C', order: 2 }
+											{ slug: 'option-a', text: 'Option A', order: 0 },
+											{ slug: 'option-b', text: 'Option B', order: 1 },
+											{ slug: 'option-c', text: 'Option C', order: 2 }
 										]
 									}
 								},
 								{
-									id: 'preferences-contact-method',
+									slug: 'preferences-contact-method',
 									type: 'MULTIPLE_CHOICE',
 									prompt: 'What is your preferred contact method?',
 									required: true,
 									order: 1,
 									options: {
 										create: [
-											{ id: 'email', text: 'Email', order: 0 },
-											{ id: 'phone', text: 'Phone', order: 1 },
-											{ id: 'mail', text: 'Mail', order: 2 }
+											{ slug: 'email', text: 'Email', order: 0 },
+											{ slug: 'phone', text: 'Phone', order: 1 },
+											{ slug: 'mail', text: 'Mail', order: 2 }
 										]
 									}
 								},
 								{
-									id: 'preferences-color',
+									slug: 'preferences-color',
 									type: 'DROPDOWN',
 									prompt: 'What is your favorite color?',
 									required: false,
 									order: 2,
 									options: {
 										create: [
-											{ id: 'red', text: 'Red', order: 0 },
-											{ id: 'blue', text: 'Blue', order: 1 },
-											{ id: 'green', text: 'Green', order: 2 }
+											{ slug: 'red', text: 'Red', order: 0 },
+											{ slug: 'blue', text: 'Blue', order: 1 },
+											{ slug: 'green', text: 'Green', order: 2 }
 										]
 									}
 								}
@@ -129,13 +129,13 @@ export const actions = {
 						}
 					},
 					{
-						id: 'file-upload-section',
+						slug: 'file-upload',
 						name: 'File Upload',
 						displayOrder: 3,
 						questions: {
 							create: [
 								{
-									id: 'file-upload-resume',
+									slug: 'file-upload-resume',
 									type: 'FILE_UPLOAD',
 									prompt: 'Please upload your resume.',
 									required: false,
@@ -147,13 +147,13 @@ export const actions = {
 						}
 					},
 					{
-						id: 'large-text-section',
+						slug: 'large-text',
 						name: 'Large Text',
 						displayOrder: 4,
 						questions: {
 							create: [
 								{
-									id: 'large-text-about',
+									slug: 'large-text-about',
 									type: 'PARAGRAPH',
 									prompt: 'Tell us about yourself.',
 									required: false,

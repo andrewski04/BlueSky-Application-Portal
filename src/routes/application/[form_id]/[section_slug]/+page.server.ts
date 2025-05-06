@@ -3,16 +3,15 @@ import {
 	getApplicationByUserIdAndFormId,
 	saveApplicationSection
 } from '$lib/server/application/applicationResponseService';
+import { requireAuth } from '$lib/server/auth/guard.js';
 import { error } from '@sveltejs/kit';
 
-export async function load({ params, locals }) {
-	const formId = params.form_id;
-	const sectionSlug = params.section_id;
-	const userId = locals.user?.id; // Assuming user ID is available in locals
+export async function load({ locals, params }) {
+	const { user } = requireAuth(locals);
 
-	if (!userId) {
-		throw error(401, 'Unauthorized');
-	}
+	const formId = params.form_id;
+	const sectionSlug = params.section_slug;
+	const userId = user.id;
 
 	const sectionResult = await getFormSectionByFormIdAndSlug(formId, sectionSlug);
 
@@ -33,7 +32,7 @@ export async function load({ params, locals }) {
 			.filter((answer) => sectionQuestionIds.includes(answer.questionId))
 			.map((answer) => ({
 				id: answer.id,
-				applicationId: answer.applicationId, // Include applicationId
+				applicationId: answer.applicationId,
 				questionId: answer.questionId,
 				valueText: answer.valueText,
 				valueNumber: answer.valueNumber,
@@ -56,12 +55,10 @@ export const actions = {
 	saveSection: async ({ request, params, locals }) => {
 		const formData = await request.formData();
 		const formId = params.form_id;
-		const sectionId = params.section_id; // Assuming section_id in params is the actual section ID now
-		const userId = locals.user?.id;
+		const sectionSlug = params.section_slug;
 
-		if (!userId) {
-			throw error(401, 'Unauthorized');
-		}
+		const { user } = requireAuth(locals);
+		const userId = user.id;
 
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const responses: Record<string, any> = {};
@@ -70,7 +67,7 @@ export const actions = {
 			responses[key] = value;
 		}
 
-		const saveResult = await saveApplicationSection(userId, formId, sectionId, responses);
+		const saveResult = await saveApplicationSection(userId, formId, sectionSlug, responses);
 
 		if (saveResult.isErr()) {
 			throw error(500, `Error saving application section: ${saveResult.error.message}`);

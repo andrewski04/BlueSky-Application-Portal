@@ -4,9 +4,9 @@ import { validateSessionToken, getSessionTokenCookie } from '$lib/server/auth/se
 import { requireAuth } from '$lib/server/auth/guard';
 import { userSetupByUserId } from '$lib/server/auth/user';
 
-export const load: PageServerLoad = async (event) => {
-	const { user } = requireAuth(event);
-	const redirectTo = event.url.searchParams.get('redirect');
+export const load: PageServerLoad = async ({ locals, url }) => {
+	const { user } = requireAuth(locals);
+	const redirectTo = url.searchParams.get('redirect');
 
 	// this should implement User field `account-setup` or something
 	if (user.isSetup) {

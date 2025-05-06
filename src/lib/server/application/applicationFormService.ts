@@ -283,8 +283,8 @@ export async function getFormSectionByFormIdAndSlug(
 			include: {
 				sections: {
 					where: {
-						name: {
-							equals: sectionSlug.replace(/-/g, ' '),
+						slug: {
+							equals: sectionSlug,
 							mode: 'insensitive'
 						}
 					},

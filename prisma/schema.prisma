@@ -27,6 +27,7 @@ model FormSection {
   formId       String
   form         ApplicationForm @relation(fields: [formId], references: [id])
   name         String
+  slug         String
   description  String?
   displayOrder Int
   questions    FormQuestion[]
@@ -51,6 +52,7 @@ model FormQuestion {
   prompt    String
   required  Boolean
   order     Int
+  slug      String
 
   maxLength        Int? /// TEXT / PARAGRAPH
   minValue         Float? /// NUMBER
@@ -70,6 +72,7 @@ model FormQuestionOption {
   question              FormQuestion            @relation(fields: [questionId], references: [id])
   text                  String
   order                 Int
+  slug                  String
   AnswerOptionSelection AnswerOptionSelection[]
 }
 

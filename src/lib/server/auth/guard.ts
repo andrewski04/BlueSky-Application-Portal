@@ -3,7 +3,7 @@
  * They are meant to be used on PageServerLoads and API endpoints.
  */
 
-import { redirect, type RequestEvent } from '@sveltejs/kit';
+import { redirect } from '@sveltejs/kit';
 import type { User, Session, UserRole } from '@prisma/client';
 
 /**
@@ -22,10 +22,10 @@ import type { User, Session, UserRole } from '@prisma/client';
  * }
  */
 export function requireAuth(
-	event: RequestEvent,
+	eventLocals: App.Locals,
 	redirectTo: string = '/auth/login'
 ): { user: User; session: Session } {
-	const { user, session } = event.locals;
+	const { user, session } = eventLocals;
 
 	if (!user || !session) {
 		throw redirect(303, redirectTo);
@@ -51,11 +51,11 @@ export function requireAuth(
  * }
  */
 export function requireRole(
-	event: RequestEvent,
+	eventLocals: App.Locals,
 	role: UserRole,
 	redirectTo: string = '/auth/login'
 ): { user: User; session: Session } {
-	const { user, session } = requireAuth(event);
+	const { user, session } = requireAuth(eventLocals);
 
 	if (!user.role || user.role !== role) {
 		throw redirect(303, redirectTo);
@@ -75,8 +75,8 @@ export function requireRole(
  * 	redirectIfAuthenticated(event); // will redirect to /user/dashboard if already logged in
  * }
  */
-export function redirectIfAuthenticated(event: RequestEvent, redirectTo: string = '') {
-	const { user, session } = event.locals;
+export function redirectIfAuthenticated(eventLocals: App.Locals, redirectTo: string = '') {
+	const { user, session } = eventLocals;
 
 	if (user && session) {
 		if (redirectTo === '') {
