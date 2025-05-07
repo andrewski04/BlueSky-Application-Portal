@@ -125,10 +125,16 @@ export async function saveApplicationSection(
 				case 'CHECKBOX':
 				case 'MULTIPLE_CHOICE':
 				case 'DROPDOWN':
+					if (existingAnswer) {
+						await prisma.answerOptionSelection.deleteMany({
+							where: {
+								answerId: existingAnswer.id
+							}
+						});
+					}
 					answerData = {
 						question: { connect: { id: questionId } },
 						selectedOptions: {
-							deleteMany: {}, // Delete existing selections for this answer
 							create: selectedOptionIds.map((optionId) => ({
 								optionId: optionId
 							}))
@@ -136,15 +142,15 @@ export async function saveApplicationSection(
 					};
 					break;
 				case 'FILE_UPLOAD':
-					// Assuming answerValue is the fileUploadId
+					// file uploads not yet handled
 					answerData = {
 						question: { connect: { id: questionId } },
-						FileUpload: answerValue ? { connect: { id: answerValue } } : undefined // Use connect for relation
+						FileUpload: answerValue ? { connect: { id: answerValue } } : undefined
 					};
 					break;
 				default:
 					console.warn(`Unhandled question type: ${question.type}`);
-					continue; // Skip if unhandled type
+					continue;
 			}
 
 			if (existingAnswer) {

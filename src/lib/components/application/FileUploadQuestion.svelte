@@ -16,7 +16,7 @@
 
 <div class="mb-4">
 	<label for={question.id} class="mb-1 block text-sm font-medium text-gray-700">
-		{question.prompt}
+		{question.prompt} <b>(File uploads not yet supported)</b>
 		{#if question.required}<span class="text-red-500">*</span>{/if}
 	</label>
 	<input

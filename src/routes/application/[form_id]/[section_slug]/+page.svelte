@@ -1,6 +1,9 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import { enhance } from '$app/forms';
+	import NProgress from 'nprogress';
+	import type { AnswerOptionSelection } from '@prisma/client';
+
 	import CheckboxQuestion from '$lib/components/application/CheckboxQuestion.svelte';
 	import DateQuestion from '$lib/components/application/DateQuestion.svelte';
 	import DropdownQuestion from '$lib/components/application/DropdownQuestion.svelte';
@@ -9,8 +12,6 @@
 	import NumberQuestion from '$lib/components/application/NumberQuestion.svelte';
 	import ParagraphQuestion from '$lib/components/application/ParagraphQuestion.svelte';
 	import TextQuestion from '$lib/components/application/TextQuestion.svelte';
-
-	import type { AnswerOptionSelection } from '@prisma/client';
 
 	const { data }: { data: PageData } = $props();
 
@@ -21,11 +22,18 @@
 	}
 </script>
 
+<svelte:head>
+	<title>Application - {section.name}</title>
+</svelte:head>
+
 <form
 	method="POST"
 	action="?/saveSection"
 	use:enhance={() => {
+		NProgress.start();
+
 		return async ({ update }) => {
+			NProgress.done();
 			update({ reset: false });
 		};
 	}}

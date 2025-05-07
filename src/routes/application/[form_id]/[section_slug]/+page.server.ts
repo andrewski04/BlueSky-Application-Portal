@@ -64,9 +64,16 @@ export const actions = {
 		const responses: Record<string, any> = {};
 
 		for (const [key, value] of formData.entries()) {
-			responses[key] = value;
+			// If the key exists, convert to array for questions with multiple answers, like checkboxes
+			if (key in responses) {
+				if (!Array.isArray(responses[key])) {
+					responses[key] = [responses[key]];
+				}
+				responses[key].push(value);
+			} else {
+				responses[key] = value;
+			}
 		}
-
 		const saveResult = await saveApplicationSection(userId, formId, sectionSlug, responses);
 
 		if (saveResult.isErr()) {
