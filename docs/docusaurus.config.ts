@@ -36,23 +36,23 @@ const config: Config = {
 	themes: ['@docusaurus/theme-mermaid'],
 
 	plugins: [
-		[
-			'docusaurus-plugin-typedoc',
-			{
-				name: 'API Documentation',
-				entryPoints: ['../src/**/*.ts'],
-				exclude: ['**/*.test.ts'],
-				tsconfig: '../tsconfig.json',
-				out: './docs/api',
-				entryPointStrategy: 'expand',
-				sidebar: {
-					autoConfiguration: true,
-					pretty: false,
-					typescript: true,
-					deprecatedItemClassName: 'typedoc-sidebar-item-deprecated'
-				}
-			}
-		]
+		//		[
+		//			'docusaurus-plugin-typedoc',
+		//			{
+		//				name: 'API Documentation',
+		//				entryPoints: ['../src/**/*.ts'],
+		//				exclude: ['**/*.test.ts'],
+		//				tsconfig: '../tsconfig.json',
+		//				out: './docs/api',
+		//				entryPointStrategy: 'expand',
+		//				sidebar: {
+		//					autoConfiguration: true,
+		//					pretty: false,
+		//					typescript: true,
+		//					deprecatedItemClassName: 'typedoc-sidebar-item-deprecated'
+		//				}
+		//			}
+		//		]
 	],
 
 	presets: [
