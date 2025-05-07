@@ -1,6 +1,6 @@
 import nodemailer from 'nodemailer';
-import { validateEmail } from '$lib/util/validation';
-import { err, ok, AppError, type Result } from '$lib/util/error';
+import { validateEmail } from '$lib/utils/validation';
+import { err, ok, AppError, type Result } from '$lib/utils/error';
 
 /**
  * Nodemailer transporter configured using environment variables.

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { validateEmail } from '$lib/util/validation';
-import { AppError } from '$lib/util/error';
+import { validateEmail } from '$lib/utils/validation';
+import { AppError } from '$lib/utils/error';
 
 describe('Validation Utilities', () => {
 	describe('validateEmail', () => {

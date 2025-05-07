@@ -4,12 +4,20 @@
 	let {
 		question,
 		existingAnswer,
-		value = $bindable(existingAnswer ?? undefined)
+		value = $bindable(existingAnswer ?? undefined),
+		onchange // Add onchange prop
 	}: {
 		question: FormQuestion;
 		existingAnswer: string | null | undefined;
 		value?: string | null | undefined;
+		onchange?: (value: string | null | undefined) => void; // Add onchange type
 	} = $props();
+
+	$effect(() => {
+		if (onchange) {
+			onchange(value); // Call onchange when value changes
+		}
+	});
 
 	// TODO: Handle file upload logic and display existing file information
 </script>
@@ -24,7 +32,6 @@
 		id={question.id}
 		name={question.id}
 		bind:value
-		required={question.required}
 		accept={question.acceptedTypes ?? undefined}
 		multiple={false}
 		class="w-full rounded-md border border-blue-600 px-3 py-2 shadow-sm file:mr-4 file:rounded-full file:border-0 file:bg-blue-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-blue-700 hover:file:bg-blue-100 focus:border-blue-700 focus:ring-blue-700 focus:outline-none"

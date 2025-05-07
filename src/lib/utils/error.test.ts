@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { ok, err, AppError } from '$lib/util/error';
+import { ok, err, AppError } from '$lib/utils/error';
 
 describe('Error Utilities', () => {
 	describe('ok Result type', () => {

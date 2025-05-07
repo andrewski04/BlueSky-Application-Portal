@@ -5,13 +5,21 @@
 		question,
 		existingAnswer,
 		value = $bindable(existingAnswer ?? undefined),
-		error = $bindable<string | null>(null)
+		error = $bindable<string | null>(null),
+		onchange // Add onchange prop
 	}: {
 		question: FormQuestion & { options: FormQuestionOption[] };
 		existingAnswer: string | null | undefined;
 		value?: string | null | undefined;
 		error?: string | null;
+		onchange?: (value: string | null | undefined) => void; // Add onchange type
 	} = $props();
+
+	$effect(() => {
+		if (onchange) {
+			onchange(value); // Call onchange when value changes
+		}
+	});
 </script>
 
 <div class="mb-4">
@@ -31,7 +39,6 @@
 						value={option.id}
 						bind:group={value}
 						class="h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-500"
-						required={question.required}
 					/>
 					<label for={`${question.id}-${option.id}`} class="ml-3 text-sm text-gray-700">
 						{option.text}

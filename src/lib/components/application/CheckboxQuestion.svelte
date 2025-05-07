@@ -4,12 +4,20 @@
 	let {
 		question,
 		existingAnswer,
-		value = $bindable(existingAnswer ?? [])
+		value = $bindable(existingAnswer ?? []),
+		onchange // Add onchange prop
 	}: {
 		question: FormQuestion & { options: FormQuestionOption[] };
 		existingAnswer: string[] | null | undefined;
 		value?: string[];
+		onchange?: (value: string[]) => void; // Add onchange type
 	} = $props();
+
+	$effect(() => {
+		if (onchange) {
+			onchange(value); // Call onchange when value changes
+		}
+	});
 
 	// TODO: Implement validation (e.g., required)
 </script>
@@ -31,7 +39,6 @@
 						value={option.id}
 						bind:group={value}
 						class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-						required={question.required}
 					/>
 					<label for="{question.id}-{option.id}" class="ml-3 text-sm text-gray-700">
 						{option.text}

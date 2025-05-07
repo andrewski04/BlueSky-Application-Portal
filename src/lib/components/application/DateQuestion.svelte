@@ -6,12 +6,20 @@
 		existingAnswer,
 		value = $bindable(
 			existingAnswer instanceof Date ? existingAnswer.toISOString().split('T')[0] : undefined
-		)
+		),
+		onchange // Add onchange prop
 	}: {
 		question: FormQuestion;
 		existingAnswer: Date | null | undefined;
 		value?: string | null | undefined;
+		onchange?: (value: string | null | undefined) => void; // Add onchange type
 	} = $props();
+
+	$effect(() => {
+		if (onchange) {
+			onchange(value); // Call onchange when value changes
+		}
+	});
 
 	// TODO: Implement min/max date restrictions and validation
 </script>
@@ -26,7 +34,6 @@
 		id={question.id}
 		name={question.id}
 		bind:value
-		required={question.required}
 		min={question.minDate?.toISOString().split('T')[0] ?? undefined}
 		max={question.maxDate?.toISOString().split('T')[0] ?? undefined}
 		class="w-full rounded-md border border-blue-600 px-3 py-2 shadow-sm focus:border-blue-700 focus:ring-blue-700 focus:outline-none"

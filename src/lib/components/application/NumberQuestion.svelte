@@ -4,12 +4,20 @@
 	let {
 		question,
 		existingAnswer,
-		value = $bindable(existingAnswer ?? undefined)
+		value = $bindable(existingAnswer ?? undefined),
+		onchange // Add onchange prop
 	}: {
 		question: FormQuestion;
 		existingAnswer: number | null | undefined;
 		value?: number | null | undefined;
+		onchange?: (value: number | null | undefined) => void; // Add onchange type
 	} = $props();
+
+	$effect(() => {
+		if (onchange) {
+			onchange(value); // Call onchange when value changes
+		}
+	});
 
 	// TODO: Implement min/max value restrictions and validation
 </script>
@@ -24,7 +32,6 @@
 		id={question.id}
 		name={question.id}
 		bind:value
-		required={question.required}
 		min={question.minValue ?? undefined}
 		max={question.maxValue ?? undefined}
 		class="w-full rounded-md border border-blue-600 px-3 py-2 shadow-sm focus:border-blue-700 focus:ring-blue-700 focus:outline-none"

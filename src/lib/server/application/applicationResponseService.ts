@@ -1,6 +1,6 @@
 import { prisma } from '$lib/server/prisma';
 import type { Prisma } from '@prisma/client';
-import { AppError, err, ok, type Result } from '$lib/util/error';
+import { AppError, err, ok, type Result } from '$lib/utils/error';
 
 /**
  * Saves the responses for a section of an application.

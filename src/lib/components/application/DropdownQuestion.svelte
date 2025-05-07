@@ -4,12 +4,20 @@
 	let {
 		question,
 		existingAnswer,
-		value = $bindable(existingAnswer ?? undefined)
+		value = $bindable(existingAnswer ?? undefined),
+		onchange // Add onchange prop
 	}: {
 		question: FormQuestion & { options: FormQuestionOption[] };
 		existingAnswer: string | null | undefined;
 		value?: string | null | undefined;
+		onchange?: (value: string | null | undefined) => void; // Add onchange type
 	} = $props();
+
+	$effect(() => {
+		if (onchange) {
+			onchange(value); // Call onchange when value changes
+		}
+	});
 </script>
 
 <div class="mb-4">
@@ -21,7 +29,6 @@
 		id={question.id}
 		name={question.id}
 		bind:value
-		required={question.required}
 		class="w-full rounded-md border border-blue-600 px-3 py-2 shadow-sm focus:border-blue-700 focus:ring-blue-700 focus:outline-none"
 	>
 		{#each question.options as option}

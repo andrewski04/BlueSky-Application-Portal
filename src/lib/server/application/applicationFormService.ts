@@ -5,7 +5,7 @@
  * This contains functions for interacting with the ApplicationForm.
  */
 
-import { AppError, err, ok, type Result } from '$lib/util/error';
+import { AppError, err, ok, type Result } from '$lib/utils/error';
 import { prisma } from '$lib/server/prisma';
 import type {
 	ApplicationForm,

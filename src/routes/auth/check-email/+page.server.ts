@@ -5,7 +5,7 @@ import {
 	findMagicTokenByEmailAndOtp
 } from '$lib/server/auth/magicToken';
 import { authenticateUserWithMagicToken } from '$lib/server/auth/authService';
-import { validateEmail } from '$lib/util/validation';
+import { validateEmail } from '$lib/utils/validation';
 import { setSessionTokenCookie } from '$lib/server/auth/session';
 import { redirectIfAuthenticated } from '$lib/server/auth/guard';
 

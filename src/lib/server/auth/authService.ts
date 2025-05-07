@@ -1,7 +1,7 @@
 import { invalidateMagicToken } from '$lib/server/auth/magicToken';
 import { createUserIfNotExists } from '$lib/server/auth/user';
 import { createSession } from '$lib/server/auth/session';
-import { AppError, err, ok, type Result } from '$lib/util/error';
+import { AppError, err, ok, type Result } from '$lib/utils/error';
 
 interface AuthenticateUserOptions {
 	email: string;

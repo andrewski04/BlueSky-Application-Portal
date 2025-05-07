@@ -3,7 +3,7 @@ import type { Actions } from './$types';
 import { createMagicToken } from '$lib/server/auth/magicToken';
 import { sendMagicLink } from '$lib/server/mailer';
 import { nanoid } from 'nanoid';
-import { validateEmail } from '$lib/util/validation';
+import { validateEmail } from '$lib/utils/validation';
 import { findUserByEmail } from '$lib/server/auth/user';
 import type { PageServerLoad } from './$types';
 import { redirectIfAuthenticated } from '$lib/server/auth/guard';

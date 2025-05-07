@@ -128,7 +128,7 @@ export const actions = {
 							]
 						}
 					},
-					{
+					/**{
 						slug: 'file-upload',
 						name: 'File Upload',
 						displayOrder: 3,
@@ -145,7 +145,7 @@ export const actions = {
 								}
 							]
 						}
-					},
+					},*/
 					{
 						slug: 'large-text',
 						name: 'Large Text',

@@ -3,7 +3,7 @@ import { encodeBase32LowerCaseNoPadding, encodeHexLowerCase } from '@oslojs/enco
 import { sha256 } from '@oslojs/crypto/sha2';
 import type { User, Session } from '@prisma/client';
 import type { RequestEvent } from '@sveltejs/kit';
-import { err, ok, AppError, type Result } from '$lib/util/error';
+import { err, ok, AppError, type Result } from '$lib/utils/error';
 
 // API to manage user session tokens
 // Session tokens are stored in cookies to authenticate users,
