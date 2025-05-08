@@ -165,23 +165,24 @@ export async function getAllApplicationForms(): Promise<Result<ApplicationForm[]
 	}
 }
 
+type ApplicationFormWithSections = Prisma.ApplicationFormGetPayload<{
+	include: { sections: true };
+}>;
 /**
  * Retrieves all active and published (available for users) application forms from the database
  *
  * @returns A Result containing an array of ApplicationForm for active and published forms, or an error if fetching fails
  */
-export async function getActivePublishedApplicationForms(): Promise<Result<ApplicationForm[]>> {
+export async function getActivePublishedApplicationForms(): Promise<
+	Result<ApplicationFormWithSections[]>
+> {
 	try {
 		const applicationForms = await prisma.applicationForm.findMany({
 			where: { active: true, published: true },
 			include: {
 				sections: {
-					include: {
-						questions: {
-							include: {
-								options: true
-							}
-						}
+					orderBy: {
+						displayOrder: 'asc'
 					}
 				}
 			}

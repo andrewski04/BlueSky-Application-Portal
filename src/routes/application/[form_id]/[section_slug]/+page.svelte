@@ -1,14 +1,12 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import { enhance } from '$app/forms';
-	import NProgress from 'nprogress';
 	import type { AnswerOptionSelection } from '@prisma/client';
 	import { debounce } from '$lib/utils/debounce';
 	import { autoSubmit } from '$lib/utils/autoSubmit';
 	import { onMount } from 'svelte';
 
 	import CheckboxQuestion from '$lib/components/application/CheckboxQuestion.svelte';
-	import { writable } from 'svelte/store';
 	import DateQuestion from '$lib/components/application/DateQuestion.svelte';
 	import DropdownQuestion from '$lib/components/application/DropdownQuestion.svelte';
 	import FileUploadQuestion from '$lib/components/application/FileUploadQuestion.svelte';
@@ -33,15 +31,21 @@
 
 	// debounce form submission; wait 1 second after last input before submitting
 	const debouncedSubmit = debounce(() => {
+		// temporary workaround to date cursor position resetting on save
+		if (
+			document.activeElement instanceof HTMLInputElement &&
+			document.activeElement.type === 'date'
+		) {
+			debouncedSubmit();
+			return;
+		}
 		if (form && !isInitialLoad) {
-			console.log('Input changed, auto-submitting form');
 			form.requestSubmit();
 		}
-	}, 500);
+	}, 1000);
 
 	// save on form value changes
 	function handleInputChange() {
-		activeElement = document.activeElement;
 		if (!isInitialLoad) {
 			saveStatus = 'Unsaved';
 			debouncedSubmit();
@@ -49,14 +53,8 @@
 	}
 
 	function saveAndNavigate(href: string) {
-		if (saveStatus === 'Saved') {
-			window.location.href = href;
-		} else {
-			form.requestSubmit();
-			setTimeout(() => {
-				window.location.href = href;
-			}, 500);
-		}
+		// save handled by use:autoSubmit, doesn't work with regular <a> link
+		window.location.href = href;
 	}
 
 	// prevent initial form submission on page load
@@ -78,11 +76,11 @@
 	use:autoSubmit
 	use:enhance={() => {
 		saveStatus = 'Saving';
+		activeElement = document.activeElement;
 
 		return async ({ update }) => {
 			await update({ reset: false });
 			saveStatus = 'Saved';
-			// dont deselect element on save
 			if (activeElement && activeElement instanceof HTMLElement) {
 				activeElement.focus();
 			}
@@ -167,6 +165,11 @@
 		{/each}
 
 		<div class="flex justify-end">
+			<button
+				onclick={() => saveAndNavigate(`/user/dashboard`)}
+				class="mr-auto rounded-md bg-green-600 px-6 py-2 text-white shadow hover:bg-green-700"
+				>Back to Dashboard</button
+			>
 			{#if section.previousFormSectionSlug}
 				<button
 					onclick={() =>
@@ -177,7 +180,7 @@
 			{/if}
 			<button
 				type="submit"
-				class="rounded-md bg-green-600 px-6 py-2 text-white shadow hover:bg-green-700"
+				class="hidden rounded-md bg-green-600 px-6 py-2 text-white shadow hover:bg-green-700"
 				>Save Section</button
 			>
 			{#if section.nextFormSectionSlug}
