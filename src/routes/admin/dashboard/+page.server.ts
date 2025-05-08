@@ -1,6 +1,6 @@
 import type { PageServerLoad } from './$types';
 import { requireRole } from '$lib/server/auth/guard';
-import { redirect } from '@sveltejs/kit';
+
 import {
 	getAllApplicationForms,
 	deleteApplicationFormById,
@@ -10,10 +10,6 @@ import { createExampleForm } from '$lib/server/application/exampleForm';
 
 export const load = (async ({ locals }) => {
 	const { user } = requireRole(locals, 'ADMIN');
-
-	if (!user.isSetup) {
-		throw redirect(303, '/user/account-setup');
-	}
 
 	const applicationForms = await getAllApplicationForms();
 	if (applicationForms.isErr()) {

@@ -5,17 +5,19 @@
 		question,
 		existingAnswer,
 		value = $bindable(existingAnswer ?? undefined),
-		onchange // Add onchange prop
+		onchange,
+		readonly = false
 	}: {
 		question: FormQuestion & { options: FormQuestionOption[] };
 		existingAnswer: string | null | undefined;
 		value?: string | null | undefined;
-		onchange?: (value: string | null | undefined) => void; // Add onchange type
+		onchange?: (value: string | null | undefined) => void;
+		readonly?: boolean;
 	} = $props();
 
 	$effect(() => {
 		if (onchange) {
-			onchange(value); // Call onchange when value changes
+			onchange(value);
 		}
 	});
 </script>
@@ -25,14 +27,21 @@
 		{question.prompt}
 		{#if question.required}<span class="text-red-500">*</span>{/if}
 	</label>
-	<select
-		id={question.id}
-		name={question.id}
-		bind:value
-		class="w-full rounded-md border border-blue-600 px-3 py-2 shadow-sm focus:border-blue-700 focus:ring-blue-700 focus:outline-none"
-	>
-		{#each question.options as option}
-			<option value={option.id}>{option.text}</option>
-		{/each}
-	</select>
+	{#if readonly}
+		{@const selectedOption = question.options.find((opt) => opt.id === value)}
+		<div class="w-full rounded-md border border-gray-300 bg-gray-100 px-3 py-2 text-gray-700">
+			{selectedOption ? selectedOption.text : 'N/A'}
+		</div>
+	{:else}
+		<select
+			id={question.id}
+			name={question.id}
+			bind:value
+			class="w-full rounded-md border border-blue-600 px-3 py-2 shadow-sm focus:border-blue-700 focus:ring-blue-700 focus:outline-none"
+		>
+			{#each question.options as option}
+				<option value={option.id}>{option.text}</option>
+			{/each}
+		</select>
+	{/if}
 </div>

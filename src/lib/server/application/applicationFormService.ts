@@ -235,9 +235,30 @@ export async function deleteApplicationFormById(
 	}
 }
 
-export async function getApplicationFormById(
-	applicationFormId: string
-): Promise<Result<ApplicationForm | null>> {
+/**
+ * Retrieves an application form by its unique identifier with all related sections and questions.
+ *
+ * @param applicationFormId - The unique identifier of the application form to retrieve
+ * @returns A Result containing the full ApplicationForm with sections and questions, or null if not found
+ * @throws {AppError} If there is an error fetching the application form
+ */
+export async function getApplicationFormById(applicationFormId: string): Promise<
+	Result<
+		Prisma.ApplicationFormGetPayload<{
+			include: {
+				sections: {
+					include: {
+						questions: {
+							include: {
+								options: true;
+							};
+						};
+					};
+				};
+			};
+		}>
+	>
+> {
 	try {
 		const applicationForm = await prisma.applicationForm.findUnique({
 			where: { id: applicationFormId },

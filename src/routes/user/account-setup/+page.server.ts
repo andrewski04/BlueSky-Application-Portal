@@ -5,10 +5,9 @@ import { requireAuth } from '$lib/server/auth/guard';
 import { userSetupByUserId } from '$lib/server/auth/user';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
-	const { user } = requireAuth(locals);
+	const { user } = requireAuth(locals, '/auth/login', false);
 	const redirectTo = url.searchParams.get('redirect');
 
-	// this should implement User field `account-setup` or something
 	if (user.isSetup) {
 		throw redirect(303, redirectTo || '/user/dashboard');
 	}

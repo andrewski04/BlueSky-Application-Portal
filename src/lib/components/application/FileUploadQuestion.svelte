@@ -5,21 +5,21 @@
 		question,
 		existingAnswer,
 		value = $bindable(existingAnswer ?? undefined),
-		onchange // Add onchange prop
+		onchange,
+		readonly = false
 	}: {
 		question: FormQuestion;
 		existingAnswer: string | null | undefined;
 		value?: string | null | undefined;
-		onchange?: (value: string | null | undefined) => void; // Add onchange type
+		onchange?: (value: string | null | undefined) => void;
+		readonly?: boolean;
 	} = $props();
 
 	$effect(() => {
 		if (onchange) {
-			onchange(value); // Call onchange when value changes
+			onchange(value);
 		}
 	});
-
-	// TODO: Handle file upload logic and display existing file information
 </script>
 
 <div class="mb-4">
@@ -46,5 +46,16 @@
 	{#if existingAnswer}
 		<p class="mt-1 text-sm text-gray-500">Existing file ID: {existingAnswer}</p>
 		<!-- TODO: Display existing file name or link -->
+	{/if}
+
+	{#if readonly}
+		<div class="mt-1 text-sm text-gray-700">
+			{#if existingAnswer}
+				Existing file ID: {existingAnswer}
+				<!-- TODO: Display existing file name or link in readonly mode -->
+			{:else}
+				No file uploaded.
+			{/if}
+		</div>
 	{/if}
 </div>

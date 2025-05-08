@@ -6,18 +6,20 @@
 		existingAnswer,
 		value = $bindable(existingAnswer ?? undefined),
 		error = $bindable<string | null>(null),
-		onchange // Add onchange prop
+		onchange,
+		readonly = false
 	}: {
 		question: FormQuestion & { options: FormQuestionOption[] };
 		existingAnswer: string | null | undefined;
 		value?: string | null | undefined;
 		error?: string | null;
-		onchange?: (value: string | null | undefined) => void; // Add onchange type
+		onchange?: (value: string | null | undefined) => void;
+		readonly?: boolean;
 	} = $props();
 
 	$effect(() => {
 		if (onchange) {
-			onchange(value); // Call onchange when value changes
+			onchange(value);
 		}
 	});
 </script>
@@ -39,6 +41,7 @@
 						value={option.id}
 						bind:group={value}
 						class="h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-500"
+						disabled={readonly}
 					/>
 					<label for={`${question.id}-${option.id}`} class="ml-3 text-sm text-gray-700">
 						{option.text}
@@ -51,4 +54,11 @@
 			<p class="mt-1 text-sm text-red-600">{error}</p>
 		{/if}
 	</fieldset>
+
+	{#if readonly}
+		{@const selectedOption = question.options.find((opt) => opt.id === value)}
+		<div class="mt-2 text-sm text-gray-700">
+			Selected: {selectedOption ? selectedOption.text : 'N/A'}
+		</div>
+	{/if}
 </div>

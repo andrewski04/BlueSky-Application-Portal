@@ -12,8 +12,8 @@
 
 <div class="bg-secondary min-h-screen">
 	<NavBar message={`Welcome, ${user.firstName}!`}>
-		<a href="/user/dashboard" class="hover:underline">Applications</a>
-		<a href="/user/settings" class="hover:underline">Settings</a>
+		<a href="/user/dashboard" class="underline hover:font-bold">Applications</a>
+		<a href="/user/settings" class="hover:font-bold">Settings</a>
 	</NavBar>
 
 	<div class="flex flex-col items-center p-4">

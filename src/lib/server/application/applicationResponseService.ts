@@ -2,6 +2,87 @@ import { prisma } from '$lib/server/prisma';
 import type { Prisma } from '@prisma/client';
 import { AppError, err, ok, type Result } from '$lib/utils/error';
 
+type ApplicationResponseWithUser = Prisma.ApplicationResponseGetPayload<{
+	include: {
+		user: true;
+	};
+}>;
+/**
+ * Retrieves all application responses without any additional relations.
+ *
+ * @returns A Promise resolving to a Result containing an array of ApplicationResponse.
+ * @throws Will return an error Result if there's an issue fetching the application responses.
+ */
+export async function getAllApplicationResponsesWithUser(): Promise<
+	Result<ApplicationResponseWithUser[]>
+> {
+	try {
+		const applicationResponses = await prisma.applicationResponse.findMany({
+			include: {
+				user: true
+			}
+		});
+		return ok(applicationResponses);
+	} catch (error) {
+		console.error(error);
+		return err(
+			new AppError('Error getting all application responses', 'ERR_GET_ALL_APPLICATION_RESPONSES')
+		);
+	}
+}
+
+type ApplicationResponseWithSelectedOptionsAndUser = Prisma.ApplicationResponseGetPayload<{
+	include: {
+		answers: {
+			include: {
+				selectedOptions: true;
+				question: {
+					include: {
+						section: true;
+					};
+				};
+			};
+		};
+		user: true;
+	};
+}>;
+
+/**
+ * Retrieves a specific application response by its ID with detailed related information.
+ *
+ * @param id The unique identifier of the application response.
+ * @returns A Promise resolving to a Result containing the ApplicationResponse with selected options and user details, or null if not found.
+ * @throws Will return an error Result if there's an issue fetching the application response.
+ */
+export async function getApplicationResponseById(
+	id: string
+): Promise<Result<ApplicationResponseWithSelectedOptionsAndUser | null>> {
+	try {
+		const applicationResponse = await prisma.applicationResponse.findUnique({
+			where: {
+				id: id
+			},
+			include: {
+				answers: {
+					include: {
+						selectedOptions: true,
+						question: {
+							include: {
+								section: true
+							}
+						}
+					}
+				},
+				user: true
+			}
+		});
+		return ok(applicationResponse);
+	} catch (error) {
+		console.error(error);
+		return err(new AppError('INTERNAL_SERVER_ERROR', 'Error getting all application responses'));
+	}
+}
+
 /**
  * Saves the responses for a section of an application.
  *

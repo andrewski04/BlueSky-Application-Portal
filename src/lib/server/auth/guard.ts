@@ -13,6 +13,7 @@ import type { User, Session, UserRole } from '@prisma/client';
  *
  * @param event - The request event object
  * @param redirectTo - The URL to redirect to if not authenticated or authorized (default: '/auth/login')
+ * @param redirectSetup - Temporarily redirect the user to the setup page, if account not setup (default: true)
  * @returns user and session if authenticated and authorized
  * @example
  * export const load: PageServerLoad = (event) => {
@@ -23,12 +24,17 @@ import type { User, Session, UserRole } from '@prisma/client';
  */
 export function requireAuth(
 	eventLocals: App.Locals,
-	redirectTo: string = '/auth/login'
+	redirectTo: string = '/auth/login',
+	redirectSetup: boolean = true
 ): { user: User; session: Session } {
 	const { user, session } = eventLocals;
 
 	if (!user || !session) {
 		throw redirect(303, redirectTo);
+	}
+
+	if (!user.isSetup && redirectSetup) {
+		throw redirect(303, `/user/account-setup`);
 	}
 
 	return { user, session };
