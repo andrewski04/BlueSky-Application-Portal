@@ -12,6 +12,10 @@ import type {
 	ApplicationResponseFull,
 	ApplicationResponseAnswer
 } from './applicationTypes';
+import { Logger } from '$lib/utils/logger';
+
+const log = new Logger('applicationResponseService');
+
 /**
  * Retrieves the application response ID for a specific user and form.
  *
@@ -49,8 +53,8 @@ export async function getOrCreateApplicationIdByUserIdAndFormId(
 
 		return ok(application.id);
 	} catch (error) {
-		console.error(error);
-		return err(new AppError('INTERNAL_SERVER_ERROR', 'Error getting application id'));
+		log.error('Error getting application ID', error);
+		return err(new AppError('Error getting application ID', 'ERR_GET_APPLICATION_ID'));
 	}
 }
 
@@ -71,7 +75,7 @@ export async function getAllApplicationResponsesWithUser(): Promise<
 		});
 		return ok(applicationResponses);
 	} catch (error) {
-		console.error(error);
+		log.error('Error getting all application responses', error);
 		return err(
 			new AppError('Error getting all application responses', 'ERR_GET_ALL_APPLICATION_RESPONSES')
 		);
@@ -109,8 +113,10 @@ export async function getApplicationResponseById(
 		});
 		return ok(applicationResponse);
 	} catch (error) {
-		console.error(error);
-		return err(new AppError('INTERNAL_SERVER_ERROR', 'Error getting all application responses'));
+		log.error('Error getting application response by ID', error);
+		return err(
+			new AppError('Error getting application response by ID', 'ERR_GET_APPLICATION_RESPONSE_BY_ID')
+		);
 	}
 }
 
@@ -144,7 +150,7 @@ export async function getApplicationResponseSectionById(
 
 		return ok(answersForSection);
 	} catch (error) {
-		console.error(error);
+		log.error('Error getting application section responses', error);
 		return err(
 			new AppError('Error getting application section responses', 'ERR_GET_APPLICATION_SECTION')
 		);
@@ -225,8 +231,8 @@ export async function saveApplicationSection(
 			const question = questionMap.get(questionId);
 
 			if (!question) {
-				console.warn(`Question with ID ${questionId} not found in section ${sectionSlug}`);
-				continue; // Skip if question not found in the section
+				log.warn(`Question with ID ${questionId} not found in section ${sectionSlug}`);
+				continue;
 			}
 
 			const existingAnswer = application.answers.find((a) => a.questionId === questionId);
@@ -297,7 +303,7 @@ export async function saveApplicationSection(
 					};
 					break;
 				default:
-					console.warn(`Unhandled question type: ${question.type}`);
+					log.warn(`Unhandled question type: ${question.type}`);
 					continue;
 			}
 
@@ -336,7 +342,7 @@ export async function saveApplicationSection(
 
 		return ok(undefined);
 	} catch (error) {
-		console.error(error);
-		return err(new AppError('Error saving application section', 'ERR_SAVE_APPLICATION_SECTION'));
+		log.error('Error saving application response', error);
+		return err(new AppError('Error saving application response', 'ERR_SAVE_APPLICATION_RESPONSE'));
 	}
 }

@@ -1,4 +1,7 @@
 import { createApplicationForm } from './applicationFormService';
+import { Logger } from '$lib/utils/logger';
+
+const log = new Logger('exampleForm');
 
 export async function createExampleForm() {
 	const exampleForm = await createApplicationForm({
@@ -154,7 +157,7 @@ export async function createExampleForm() {
 	});
 
 	if (exampleForm.isErr()) {
-		console.error('Error creating example form:', exampleForm.error);
+		log.error('Error creating example form', exampleForm.error);
 		throw exampleForm.error;
 	}
 

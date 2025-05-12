@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { Logger } from '../utils/logger';
 
 // save Prisma client as global, avoiding multiple instances being started
 
@@ -9,12 +10,12 @@ export const prisma = globalForPrisma.prisma || new PrismaClient();
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 
 async function checkDatabaseConnection() {
+	const log = new Logger('prisma');
 	try {
 		await prisma.$connect();
-		console.log('Database connection successful.');
+		log.info('Database connection successful.');
 	} catch (error) {
-		console.error('Database connection failed.');
-		console.error(error);
+		log.error('Database connection failed.', error);
 		process.exit(1);
 	}
 }

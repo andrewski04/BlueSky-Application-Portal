@@ -1,13 +1,16 @@
 import type { PageServerLoad } from './$types';
 import { getAllApplicationResponsesWithUser } from '$lib/server/application/applicationResponseService';
 import { requireRole } from '$lib/server/auth/guard';
+import { Logger } from '$lib/utils/logger';
+
+const log = new Logger('submissions');
 
 export const load = (async ({ locals }) => {
 	const { user } = requireRole(locals, 'ADMIN');
 
 	const applicationResponses = await getAllApplicationResponsesWithUser();
 	if (applicationResponses.isErr()) {
-		console.error(applicationResponses.error);
+		log.error('Error getting all application responses', applicationResponses.error);
 		return { error: applicationResponses.error.message, user };
 	}
 

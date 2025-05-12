@@ -5,6 +5,9 @@ import {
 	publishApplicationForm
 } from '$lib/server/application/applicationFormService';
 import { createExampleForm } from '$lib/server/application/exampleForm';
+import { Logger } from '$lib/utils/logger';
+
+const log = new Logger('exampleForm');
 
 export const load = (async () => {
 	const applicationForms = await getAllApplicationForms();
@@ -17,8 +20,9 @@ export const load = (async () => {
 export const actions = {
 	create: async () => {
 		const exampleForm = await createExampleForm();
-		console.log(exampleForm.applicationFormId);
+		log.info('Example form created with ID:', exampleForm.applicationFormId);
 		await publishApplicationForm(exampleForm.applicationFormId);
+		log.info('Example form published');
 	},
 	delete: async ({ request }) => {
 		const formData = await request.formData();

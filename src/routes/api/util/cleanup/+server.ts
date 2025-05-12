@@ -1,6 +1,9 @@
 import { json } from '@sveltejs/kit';
 import type { RequestEvent } from '@sveltejs/kit';
 import { prisma } from '$lib/server/prisma';
+import { Logger } from '$lib/utils/logger';
+
+const log = new Logger('cleanup');
 
 async function cleanupExpiredRecords() {
 	const now = new Date();
@@ -21,8 +24,8 @@ async function cleanupExpiredRecords() {
 		}
 	});
 
-	console.log(`Cleaned ${deletedSessions.count} expired sessions`);
-	console.log(`Cleaned ${deletedTokens.count} expired tokens`);
+	log.info(`Cleaned ${deletedSessions.count} expired sessions`);
+	log.info(`Cleaned ${deletedTokens.count} expired tokens`);
 }
 
 export async function POST({ request }: RequestEvent) {
@@ -35,12 +38,12 @@ export async function POST({ request }: RequestEvent) {
 
 	try {
 		await cleanupExpiredRecords();
-		console.log('Database cleanup successful');
+		log.info('Database cleanup successful');
 		return json({
 			success: true
 		});
 	} catch (error) {
-		console.error('Cleanup failed:', error);
+		log.error('Cleanup failed', error);
 		return json(
 			{
 				success: false,

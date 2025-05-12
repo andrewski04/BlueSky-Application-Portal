@@ -2,13 +2,16 @@ import type { PageServerLoad } from './$types';
 import { getApplicationResponseById } from '$lib/server/application/applicationResponseService';
 import { requireRole } from '$lib/server/auth/guard';
 import { getApplicationFormById } from '$lib/server/application/applicationFormService';
+import { Logger } from '$lib/utils/logger';
+
+const log = new Logger('Admin submissions page');
 
 export const load = (async ({ locals, params }) => {
 	const { user } = requireRole(locals, 'ADMIN');
 
 	const applicationResponse = await getApplicationResponseById(params.submission_id);
 	if (applicationResponse.isErr()) {
-		console.error(applicationResponse.error);
+		log.error('Error getting application response by ID', applicationResponse.error);
 		return { error: applicationResponse.error.message, user };
 	}
 	if (!applicationResponse.value) {
@@ -17,7 +20,7 @@ export const load = (async ({ locals, params }) => {
 
 	const applicationForm = await getApplicationFormById(applicationResponse.value.formId);
 	if (applicationForm.isErr()) {
-		console.error(applicationForm.error);
+		log.error('Error getting application form by ID', applicationForm.error);
 		return { error: applicationForm.error.message, user };
 	}
 	if (!applicationForm.value) {

@@ -3,6 +3,9 @@ import { prisma } from '$lib/server/prisma';
 import { UserRole } from '@prisma/client';
 import { fail } from '@sveltejs/kit';
 //import { requireAuth } from '$lib/server/auth/guard';
+import { Logger } from '$lib/utils/logger';
+
+const log = new Logger('dev/users page');
 
 export const load: PageServerLoad = async () => {
 	//const { user } = requireAuth(event);
@@ -44,7 +47,7 @@ export const actions: Actions = {
 
 			return { success: true };
 		} catch (error) {
-			console.error('Error updating user role:', error);
+			log.error('Error updating user role', error);
 			return fail(500, { error: 'Failed to update user role' });
 		}
 	}

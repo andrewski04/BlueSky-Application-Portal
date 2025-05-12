@@ -1,5 +1,6 @@
 /**
- * Automatically saves form data when navigating away from the page and refreshing the page
+ * Automatically saves form data when navigating away from the page and refreshing the page.
+ * This is currently not implemented, as it causes issues by rapidly submitting multiple times.
  *
  * @example
  * <form use:autoSubmit />

@@ -13,6 +13,9 @@ import type {
 	ApplicationFormWithSections,
 	FormSectionWithNavigationSlugs
 } from './applicationTypes';
+import { Logger } from '$lib/utils/logger';
+
+const log = new Logger('applicationFormService');
 
 /**
  * Creates a new application form in the database.
@@ -37,7 +40,7 @@ export async function createApplicationForm(
 			}
 		});
 	} catch (error) {
-		console.error(error);
+		log.error('Error creating application form', error);
 		return err(new AppError('Error creating application form', 'ERR_CREATE_APPLICATION_FORM'));
 	}
 	return ok({ applicationFormId: form.id });
@@ -108,7 +111,7 @@ export async function editApplicationFormById(
 			}
 		});
 	} catch (error) {
-		console.error(error);
+		log.error('Error editing application form', error);
 		return err(new AppError('Error editing application form', 'ERR_EDIT_APPLICATION_FORM'));
 	}
 	return ok({ applicationFormId: applicationForm.id });
@@ -131,7 +134,7 @@ export async function publishApplicationForm(
 			data: { published: true }
 		});
 	} catch (error) {
-		console.error(error);
+		log.error('Error publishing application form', error);
 		return err(new AppError('Error publishing application form', 'ERR_PUBLISH_APPLICATION_FORM'));
 	}
 	return ok({ applicationFormId: applicationForm.id });
@@ -159,7 +162,7 @@ export async function getAllApplicationForms(): Promise<Result<ApplicationFormFu
 		});
 		return ok(applicationForms);
 	} catch (error) {
-		console.error(error);
+		log.error('Error fetching application forms', error);
 		return err(new AppError('Error fetching application forms', 'ERR_FETCH_APPLICATION_FORMS'));
 	}
 }
@@ -185,7 +188,7 @@ export async function getActivePublishedApplicationForms(): Promise<
 		});
 		return ok(applicationForms);
 	} catch (error) {
-		console.error(error);
+		log.error('Error fetching application forms', error);
 		return err(new AppError('Error fetching application forms', 'ERR_FETCH_APPLICATION_FORMS'));
 	}
 }
@@ -226,7 +229,7 @@ export async function deleteApplicationFormById(
 
 		return ok({ applicationFormId });
 	} catch (error) {
-		console.error(error);
+		log.error('Error deleting application form', error);
 		return err(new AppError('Error deleting application form', 'ERR_DELETE_APPLICATION_FORM'));
 	}
 }
@@ -263,7 +266,7 @@ export async function getApplicationFormById(
 
 		return ok(applicationForm);
 	} catch (error) {
-		console.error(error);
+		log.error('Error fetching application form', error);
 		return err(new AppError('Error fetching application form', 'ERR_FETCH_APPLICATION_FORM'));
 	}
 }
@@ -342,7 +345,7 @@ export async function getFormSectionWithNavigationByFormIdAndSlug(
 			previousFormSectionSlug
 		});
 	} catch (error) {
-		console.error(error);
+		log.error('Error fetching application form section', error);
 		return err(
 			new AppError('Error fetching application form section', 'ERR_FETCH_APPLICATION_FORM_SECTION')
 		);
