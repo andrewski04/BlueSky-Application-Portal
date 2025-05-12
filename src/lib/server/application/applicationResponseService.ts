@@ -1,14 +1,61 @@
+/**
+ * ApplicationResponses represent a user's answers to an ApplicationForm.
+ * This file contains functions to interact with ApplicationResponses through the database.
+ *
+ */
+
 import { prisma } from '$lib/server/prisma';
 import type { Prisma } from '@prisma/client';
 import { AppError, err, ok, type Result } from '$lib/utils/error';
-
-type ApplicationResponseWithUser = Prisma.ApplicationResponseGetPayload<{
-	include: {
-		user: true;
-	};
-}>;
+import type {
+	ApplicationResponseWithUser,
+	ApplicationResponseFull,
+	ApplicationResponseAnswer
+} from './applicationTypes';
 /**
- * Retrieves all application responses without any additional relations.
+ * Retrieves the application response ID for a specific user and form.
+ *
+ * @param userId The unique identifier of the user.
+ * @param formId The unique identifier of the form.
+ * @returns A Promise resolving to a Result containing the application response ID or null if not found.
+ * @throws Will return an error Result if there's an issue fetching the application response ID.
+ */
+export async function getOrCreateApplicationIdByUserIdAndFormId(
+	userId: string,
+	formId: string
+): Promise<Result<string | null>> {
+	try {
+		let application = await prisma.applicationResponse.findFirst({
+			where: {
+				userId,
+				formId
+			},
+			select: {
+				id: true
+			}
+		});
+
+		if (!application) {
+			application = await prisma.applicationResponse.create({
+				data: {
+					userId,
+					formId
+				},
+				select: {
+					id: true
+				}
+			});
+		}
+
+		return ok(application.id);
+	} catch (error) {
+		console.error(error);
+		return err(new AppError('INTERNAL_SERVER_ERROR', 'Error getting application id'));
+	}
+}
+
+/**
+ * Retrieves all application responses with only the user relation.
  *
  * @returns A Promise resolving to a Result containing an array of ApplicationResponse.
  * @throws Will return an error Result if there's an issue fetching the application responses.
@@ -31,22 +78,6 @@ export async function getAllApplicationResponsesWithUser(): Promise<
 	}
 }
 
-type ApplicationResponseWithSelectedOptionsAndUser = Prisma.ApplicationResponseGetPayload<{
-	include: {
-		answers: {
-			include: {
-				selectedOptions: true;
-				question: {
-					include: {
-						section: true;
-					};
-				};
-			};
-		};
-		user: true;
-	};
-}>;
-
 /**
  * Retrieves a specific application response by its ID with detailed related information.
  *
@@ -56,7 +87,7 @@ type ApplicationResponseWithSelectedOptionsAndUser = Prisma.ApplicationResponseG
  */
 export async function getApplicationResponseById(
 	id: string
-): Promise<Result<ApplicationResponseWithSelectedOptionsAndUser | null>> {
+): Promise<Result<ApplicationResponseFull | null>> {
 	try {
 		const applicationResponse = await prisma.applicationResponse.findUnique({
 			where: {
@@ -80,6 +111,43 @@ export async function getApplicationResponseById(
 	} catch (error) {
 		console.error(error);
 		return err(new AppError('INTERNAL_SERVER_ERROR', 'Error getting all application responses'));
+	}
+}
+
+/**
+ * Retrieves a specific application response section by its ID and section slug.
+ *
+ * @param applicationId The unique identifier of the application response.
+ * @param sectionSlug The slug of the section to retrieve answers for.
+ * @returns A Promise resolving to a Result containing the ApplicationResponse with answers for the specified section, or null if not found.
+ * @throws Will return an error Result if there's an issue fetching the application response section.
+ */
+export async function getApplicationResponseSectionById(
+	applicationId: string,
+	sectionSlug: string
+): Promise<Result<ApplicationResponseAnswer[] | null>> {
+	try {
+		const answersForSection = await prisma.answer.findMany({
+			where: {
+				applicationId: applicationId,
+				question: {
+					section: {
+						slug: sectionSlug
+					}
+				}
+			},
+			include: {
+				selectedOptions: true,
+				question: true
+			}
+		});
+
+		return ok(answersForSection);
+	} catch (error) {
+		console.error(error);
+		return err(
+			new AppError('Error getting application section responses', 'ERR_GET_APPLICATION_SECTION')
+		);
 	}
 }
 
@@ -163,7 +231,6 @@ export async function saveApplicationSection(
 
 			const existingAnswer = application.answers.find((a) => a.questionId === questionId);
 
-			// Use correct Prisma type based on whether updating or creating
 			let answerData:
 				| Prisma.AnswerCreateWithoutApplicationInput
 				| Prisma.AnswerUpdateWithoutApplicationInput;
@@ -272,37 +339,4 @@ export async function saveApplicationSection(
 		console.error(error);
 		return err(new AppError('Error saving application section', 'ERR_SAVE_APPLICATION_SECTION'));
 	}
-}
-
-/**
- * Retrieves an application response by user ID and form ID.
- * Includes related answers and their selected options.
- *
- * @param userId The ID of the user.
- * @param formId The ID of the application form.
- * @returns A Promise that resolves with the application response, or null if not found.
- */
-export async function getApplicationByUserIdAndFormId(
-	userId: string,
-	formId: string
-): Promise<Prisma.ApplicationResponseGetPayload<{
-	include: { answers: { include: { selectedOptions: true; question: true } } };
-}> | null> {
-	const application = await prisma.applicationResponse.findUnique({
-		where: {
-			userId_formId: {
-				userId: userId,
-				formId: formId
-			}
-		},
-		include: {
-			answers: {
-				include: {
-					selectedOptions: true,
-					question: true // Include question to get type and options if needed
-				}
-			}
-		}
-	});
-	return application;
 }

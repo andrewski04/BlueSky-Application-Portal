@@ -11,14 +11,14 @@ generator client {
  * The ApplicationForm acts as a templates for Applications, defining the question response types and prompt.
  */
 model ApplicationForm {
-  id          String        @id @default(cuid())
-  name        String
-  description String?
-  published   Boolean       @default(false)
-  active      Boolean       @default(true)
-  sections    FormSection[]
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  id                  String                @id @default(cuid())
+  name                String
+  description         String?
+  published           Boolean               @default(false)
+  active              Boolean               @default(true)
+  sections            FormSection[]
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
   ApplicationResponse ApplicationResponse[]
 }
 
@@ -45,14 +45,14 @@ enum QuestionType {
 }
 
 model FormQuestion {
-  id        String       @id @default(cuid())
-  sectionId String
-  section   FormSection  @relation(fields: [sectionId], references: [id])
-  type      QuestionType
-  prompt    String
-  required  Boolean
-  order     Int
-  slug      String
+  id           String       @id @default(cuid())
+  sectionId    String
+  section      FormSection  @relation(fields: [sectionId], references: [id])
+  type         QuestionType
+  prompt       String
+  required     Boolean
+  displayOrder Int
+  slug         String
 
   maxLength        Int? /// TEXT / PARAGRAPH
   minValue         Float? /// NUMBER
@@ -71,7 +71,7 @@ model FormQuestionOption {
   questionId            String
   question              FormQuestion            @relation(fields: [questionId], references: [id])
   text                  String
-  order                 Int
+  displayOrder          Int
   slug                  String
   AnswerOptionSelection AnswerOptionSelection[]
 }
@@ -104,11 +104,11 @@ model ApplicationResponse {
 }
 
 model Answer {
-  id            String       @id @default(cuid())
+  id            String              @id @default(cuid())
   applicationId String
-  application   ApplicationResponse  @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  application   ApplicationResponse @relation(fields: [applicationId], references: [id], onDelete: Cascade)
   questionId    String
-  question      FormQuestion @relation(fields: [questionId], references: [id])
+  question      FormQuestion        @relation(fields: [questionId], references: [id])
 
   valueText    String?
   valueNumber  Float?
@@ -155,14 +155,14 @@ enum UserRole {
 }
 
 model User {
-  id          String        @id @default(cuid(2))
-  email       String        @unique
-  firstName   String?
-  lastName    String?
-  role        UserRole      @default(USER)
-  sessions    Session[]
-  isSetup     Boolean       @default(false)
-  createdAt   DateTime      @default(now())
+  id                  String                @id @default(cuid(2))
+  email               String                @unique
+  firstName           String?
+  lastName            String?
+  role                UserRole              @default(USER)
+  sessions            Session[]
+  isSetup             Boolean               @default(false)
+  createdAt           DateTime              @default(now())
   ApplicationResponse ApplicationResponse[]
 }
 

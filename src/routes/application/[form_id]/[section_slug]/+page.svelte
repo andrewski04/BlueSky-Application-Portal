@@ -22,7 +22,10 @@
 	let saveStatus: 'Saved' | 'Saving' | 'Unsaved' = $state('Saved');
 
 	function findExistingAnswer(questionId: string) {
-		return existingAnswers.find((answer) => answer.questionId === questionId);
+		if (existingAnswers) {
+			return existingAnswers.find((answer) => answer.questionId === questionId);
+		}
+		return undefined;
 	}
 
 	let isInitialLoad = true;
@@ -73,7 +76,6 @@
 	bind:this={form}
 	method="POST"
 	action="?/saveSection"
-	use:autoSubmit
 	use:enhance={() => {
 		saveStatus = 'Saving';
 		activeElement = document.activeElement;

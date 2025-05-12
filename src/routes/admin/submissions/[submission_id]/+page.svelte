@@ -19,11 +19,7 @@
 	function findExistingAnswer(
 		questionId: string
 	): (Answer & { selectedOptions: AnswerOptionSelection[] }) | undefined {
-		// Find the answer for the given question ID
 		const answer = applicationResponse?.answers.find((answer) => answer.questionId === questionId);
-
-		// If answer exists, ensure selectedOptions is included (it should be due to Prisma include in server load)
-		// We cast here assuming the server is loading the relation
 		return answer as (Answer & { selectedOptions: AnswerOptionSelection[] }) | undefined;
 	}
 </script>
@@ -34,7 +30,7 @@
 
 <NavBar message={`Welcome to the admin dashboard, ${user.firstName}!`}>
 	<a href="/admin/dashboard" class=" hover:font-bold">Forms</a>
-	<a href="/admin/form-submissions" class="underline hover:font-bold">Submissions</a>
+	<a href="/admin/submissions" class="underline hover:font-bold">Submissions</a>
 	<a href="/admin/users" class=" hover:font-bold">Users</a>
 	<a href="/admin/settings" class=" hover:font-bold">Settings</a>
 </NavBar>
@@ -42,7 +38,7 @@
 <div class="container mx-auto p-6">
 	<div class="mb-4 flex items-center justify-between">
 		<h1 class="text-3xl font-bold">Submission Details</h1>
-		<a href="/admin/form-submissions" class="btn btn-danger px-3 py-1">Back</a>
+		<a href="/admin/submissions" class="btn btn-danger px-3 py-1">Back</a>
 	</div>
 	{#if applicationForm && applicationResponse}
 		<div class="mb-6 rounded-md border border-gray-200 bg-white p-6 shadow-sm">

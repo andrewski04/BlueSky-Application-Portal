@@ -7,13 +7,12 @@
 
 import { AppError, err, ok, type Result } from '$lib/utils/error';
 import { prisma } from '$lib/server/prisma';
+import type { Prisma } from '@prisma/client';
 import type {
-	ApplicationForm,
-	FormSection,
-	FormQuestion,
-	FormQuestionOption,
-	Prisma
-} from '@prisma/client';
+	ApplicationFormFull,
+	ApplicationFormWithSections,
+	FormSectionWithNavigationSlugs
+} from './applicationTypes';
 
 /**
  * Creates a new application form in the database.
@@ -141,9 +140,9 @@ export async function publishApplicationForm(
 /**
  * Retrieves all application forms from the database.
  *
- * @returns A Result containing an array of ApplicationForm, or an error if fetching fails
+ * @returns A Result containing an array of ApplicationFormFull, or an error if fetching fails
  */
-export async function getAllApplicationForms(): Promise<Result<ApplicationForm[]>> {
+export async function getAllApplicationForms(): Promise<Result<ApplicationFormFull[]>> {
 	try {
 		const applicationForms = await prisma.applicationForm.findMany({
 			include: {
@@ -165,11 +164,8 @@ export async function getAllApplicationForms(): Promise<Result<ApplicationForm[]
 	}
 }
 
-type ApplicationFormWithSections = Prisma.ApplicationFormGetPayload<{
-	include: { sections: true };
-}>;
 /**
- * Retrieves all active and published (available for users) application forms from the database
+ * Retrieves all active and published (available for users) application forms, with included sections in display order.
  *
  * @returns A Result containing an array of ApplicationForm for active and published forms, or an error if fetching fails
  */
@@ -242,23 +238,9 @@ export async function deleteApplicationFormById(
  * @returns A Result containing the full ApplicationForm with sections and questions, or null if not found
  * @throws {AppError} If there is an error fetching the application form
  */
-export async function getApplicationFormById(applicationFormId: string): Promise<
-	Result<
-		Prisma.ApplicationFormGetPayload<{
-			include: {
-				sections: {
-					include: {
-						questions: {
-							include: {
-								options: true;
-							};
-						};
-					};
-				};
-			};
-		}>
-	>
-> {
+export async function getApplicationFormById(
+	applicationFormId: string
+): Promise<Result<ApplicationFormFull | null>> {
 	try {
 		const applicationForm = await prisma.applicationForm.findUnique({
 			where: { id: applicationFormId },
@@ -287,25 +269,17 @@ export async function getApplicationFormById(applicationFormId: string): Promise
 }
 
 /**
- * Retrieves a specific section of an application form by form ID and section slug.
+ * Retrieves a specific section of an application form, with next and previous section slugs, by form ID and section slug.
  *
  * @param applicationFormId The ID of the application form
  * @param sectionSlug The slug of the section
  * @returns A Result containing the FormSection, or an error if not found
  */
-export async function getFormSectionByFormIdAndSlug(
+export async function getFormSectionWithNavigationByFormIdAndSlug(
 	applicationFormId: string,
 	sectionSlug: string
-): Promise<
-	Result<
-		| (FormSection & { questions: (FormQuestion & { options: FormQuestionOption[] })[] } & {
-				nextFormSectionSlug: string | null;
-		  } & { previousFormSectionSlug: string | null })
-		| null
-	>
-> {
+): Promise<Result<FormSectionWithNavigationSlugs | null>> {
 	try {
-		// First, fetch the application form with all sections to determine order
 		const applicationForm = await prisma.applicationForm.findUnique({
 			where: { id: applicationFormId },
 			include: {
@@ -321,26 +295,6 @@ export async function getFormSectionByFormIdAndSlug(
 			return err(new AppError('Application form not found', 'ERR_APPLICATION_FORM_NOT_FOUND'));
 		}
 
-		// Find the current section's index in the ordered array
-		const currentSectionIndex = applicationForm.sections.findIndex(
-			(section) => section.slug.toLowerCase() === sectionSlug.toLowerCase()
-		);
-
-		if (currentSectionIndex === -1) {
-			return err(
-				new AppError('Application form section not found', 'ERR_APPLICATION_FORM_SECTION_NOT_FOUND')
-			);
-		}
-
-		// Determine previous and next section slugs
-		const previousFormSectionSlug =
-			currentSectionIndex > 0 ? applicationForm.sections[currentSectionIndex - 1].slug : null;
-
-		const nextFormSectionSlug =
-			currentSectionIndex < applicationForm.sections.length - 1
-				? applicationForm.sections[currentSectionIndex + 1].slug
-				: null;
-
 		const sectionWithQuestions = await prisma.formSection.findFirst({
 			where: {
 				formId: applicationFormId,
@@ -351,6 +305,9 @@ export async function getFormSectionByFormIdAndSlug(
 			},
 			include: {
 				questions: {
+					orderBy: {
+						displayOrder: 'asc'
+					},
 					include: {
 						options: true
 					}
@@ -363,6 +320,21 @@ export async function getFormSectionByFormIdAndSlug(
 				new AppError('Application form section not found', 'ERR_APPLICATION_FORM_SECTION_NOT_FOUND')
 			);
 		}
+
+		// Find the section's position in the ordered array
+		const orderedSections = applicationForm.sections;
+		const currentSectionIndex = orderedSections.findIndex(
+			(section) => section.slug.toLowerCase() === sectionSlug.toLowerCase()
+		);
+
+		// Determine previous and next section slugs
+		const previousFormSectionSlug =
+			currentSectionIndex > 0 ? orderedSections[currentSectionIndex - 1].slug : null;
+
+		const nextFormSectionSlug =
+			currentSectionIndex < orderedSections.length - 1
+				? orderedSections[currentSectionIndex + 1].slug
+				: null;
 
 		return ok({
 			...sectionWithQuestions,

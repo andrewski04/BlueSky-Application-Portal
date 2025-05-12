@@ -12,7 +12,7 @@
 <div class="bg-secondary min-h-screen">
 	<NavBar message={`TO BE IMPLEMENTED`}>
 		<a href="/admin/dashboard" class=" hover:font-bold">Forms</a>
-		<a href="/admin/form-submissions" class="hover:font-bold">Submissions</a>
+		<a href="/admin/submissions" class="hover:font-bold">Submissions</a>
 		<a href="/admin/users" class="hover:font-bold">Users</a>
 		<a href="/admin/settings" class="underline hover:font-bold">Settings</a>
 	</NavBar>

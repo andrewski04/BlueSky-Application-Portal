@@ -1,7 +1,8 @@
-import { getFormSectionByFormIdAndSlug } from '$lib/server/application/applicationFormService';
+import { getFormSectionWithNavigationByFormIdAndSlug } from '$lib/server/application/applicationFormService';
 import {
-	getApplicationByUserIdAndFormId,
-	saveApplicationSection
+	getOrCreateApplicationIdByUserIdAndFormId,
+	saveApplicationSection,
+	getApplicationResponseSectionById
 } from '$lib/server/application/applicationResponseService';
 import { requireAuth } from '$lib/server/auth/guard.js';
 import { error } from '@sveltejs/kit';
@@ -13,37 +14,37 @@ export async function load({ locals, params }) {
 	const sectionSlug = params.section_slug;
 	const userId = user.id;
 
-	const sectionResult = await getFormSectionByFormIdAndSlug(formId, sectionSlug);
-
+	// fetch form section, with navigation slugs
+	const sectionResult = await getFormSectionWithNavigationByFormIdAndSlug(formId, sectionSlug);
 	if (sectionResult.isErr()) {
 		throw error(500, `Error fetching form section: ${sectionResult.error.message}`);
 	}
-
 	if (!sectionResult.value) {
 		throw error(404, 'Form section not found');
 	}
 
-	const applicationResponse = await getApplicationByUserIdAndFormId(userId, formId);
+	// fetch application id for user and form
+	const applicationIdResult = await getOrCreateApplicationIdByUserIdAndFormId(userId, formId);
+	if (applicationIdResult.isErr()) {
+		throw error(500, `Error fetching application id: ${applicationIdResult.error.message}`);
+	}
+	const applicationId = applicationIdResult.value;
+	if (!applicationId) {
+		throw error(404, 'Application not found');
+	}
 
-	// Filter and select necessary fields from answers for the current section's questions
-	const sectionQuestionIds = sectionResult.value.questions.map((q) => q.id);
-	const existingSectionAnswers =
-		applicationResponse?.answers
-			.filter((answer) => sectionQuestionIds.includes(answer.questionId))
-			.map((answer) => ({
-				id: answer.id,
-				applicationId: answer.applicationId,
-				questionId: answer.questionId,
-				valueText: answer.valueText,
-				valueNumber: answer.valueNumber,
-				valueBool: answer.valueBool,
-				valueDate: answer.valueDate,
-				fileUploadId: answer.fileUploadId,
-				selectedOptions: answer.selectedOptions.map((opt) => ({
-					answerId: opt.answerId,
-					optionId: opt.optionId
-				}))
-			})) || [];
+	// fetch existing section answers
+	const existingSectionAnswersResult = await getApplicationResponseSectionById(
+		applicationId,
+		sectionSlug
+	);
+	if (existingSectionAnswersResult.isErr()) {
+		throw error(
+			500,
+			`Error fetching application section answers: ${existingSectionAnswersResult.error.message}`
+		);
+	}
+	const existingSectionAnswers = existingSectionAnswersResult.value;
 
 	return {
 		section: sectionResult.value,

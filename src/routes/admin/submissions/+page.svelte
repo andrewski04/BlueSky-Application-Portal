@@ -13,7 +13,7 @@
 <div class="bg-secondary min-h-screen">
 	<NavBar message={`Welcome to the admin dashboard, ${user.firstName}!`}>
 		<a href="/admin/dashboard" class=" hover:font-bold">Forms</a>
-		<a href="/admin/form-submissions" class="underline hover:font-bold">Submissions</a>
+		<a href="/admin/submissions" class="underline hover:font-bold">Submissions</a>
 		<a href="/admin/users" class=" hover:font-bold">Users</a>
 		<a href="/admin/settings" class=" hover:font-bold">Settings</a>
 	</NavBar>
@@ -75,7 +75,7 @@
 									</td>
 									<td class="px-6 py-4 text-sm whitespace-nowrap text-gray-900">
 										<a
-											href="/admin/form-submissions/{response.id}"
+											href="/admin/submissions/{response.id}"
 											class="btn bg-green-500 px-4 py-1 text-white hover:bg-green-700"
 										>
 											View

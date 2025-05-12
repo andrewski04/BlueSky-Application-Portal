@@ -17,7 +17,7 @@ export async function createExampleForm() {
 								type: 'TEXT',
 								prompt: 'What is your full name?',
 								required: true,
-								order: 0,
+								displayOrder: 0,
 								maxLength: 100
 							},
 							{
@@ -25,7 +25,7 @@ export async function createExampleForm() {
 								type: 'NUMBER',
 								prompt: 'What is your age?',
 								required: true,
-								order: 1,
+								displayOrder: 1,
 								minValue: 0
 							},
 							{
@@ -33,7 +33,7 @@ export async function createExampleForm() {
 								type: 'DATE',
 								prompt: 'What is your date of birth?',
 								required: true,
-								order: 2
+								displayOrder: 2
 							}
 						]
 					}
@@ -49,7 +49,7 @@ export async function createExampleForm() {
 								type: 'TEXT',
 								prompt: 'What is your email address?',
 								required: true,
-								order: 0,
+								displayOrder: 0,
 								maxLength: 100
 							},
 							{
@@ -57,7 +57,7 @@ export async function createExampleForm() {
 								type: 'TEXT',
 								prompt: 'What is your phone number?',
 								required: false,
-								order: 1,
+								displayOrder: 1,
 								maxLength: 20
 							}
 						]
@@ -74,12 +74,12 @@ export async function createExampleForm() {
 								type: 'CHECKBOX',
 								prompt: 'Which of the following are you interested in?',
 								required: false,
-								order: 0,
+								displayOrder: 0,
 								options: {
 									create: [
-										{ slug: 'option-a', text: 'Option A', order: 0 },
-										{ slug: 'option-b', text: 'Option B', order: 1 },
-										{ slug: 'option-c', text: 'Option C', order: 2 }
+										{ slug: 'option-a', text: 'Option A', displayOrder: 0 },
+										{ slug: 'option-b', text: 'Option B', displayOrder: 1 },
+										{ slug: 'option-c', text: 'Option C', displayOrder: 2 }
 									]
 								}
 							},
@@ -88,12 +88,12 @@ export async function createExampleForm() {
 								type: 'MULTIPLE_CHOICE',
 								prompt: 'What is your preferred contact method?',
 								required: true,
-								order: 1,
+								displayOrder: 1,
 								options: {
 									create: [
-										{ slug: 'email', text: 'Email', order: 0 },
-										{ slug: 'phone', text: 'Phone', order: 1 },
-										{ slug: 'mail', text: 'Mail', order: 2 }
+										{ slug: 'email', text: 'Email', displayOrder: 0 },
+										{ slug: 'phone', text: 'Phone', displayOrder: 1 },
+										{ slug: 'mail', text: 'Mail', displayOrder: 2 }
 									]
 								}
 							},
@@ -102,12 +102,12 @@ export async function createExampleForm() {
 								type: 'DROPDOWN',
 								prompt: 'What is your favorite color?',
 								required: false,
-								order: 2,
+								displayOrder: 2,
 								options: {
 									create: [
-										{ slug: 'red', text: 'Red', order: 0 },
-										{ slug: 'blue', text: 'Blue', order: 1 },
-										{ slug: 'green', text: 'Green', order: 2 }
+										{ slug: 'red', text: 'Red', displayOrder: 0 },
+										{ slug: 'blue', text: 'Blue', displayOrder: 1 },
+										{ slug: 'green', text: 'Green', displayOrder: 2 }
 									]
 								}
 							}
@@ -125,7 +125,7 @@ export async function createExampleForm() {
                                         type: 'FILE_UPLOAD',
                                         prompt: 'Please upload your resume.',
                                         required: false,
-                                        order: 0,
+                                        displayOrder: 0,
                                         acceptedTypes: '.pdf,.doc,.docx', // Changed to string
                                         maxFileSizeBytes: 5 * 1024 * 1024 // 5MB
                                     }
@@ -143,7 +143,7 @@ export async function createExampleForm() {
 								type: 'PARAGRAPH',
 								prompt: 'Tell us about yourself.',
 								required: false,
-								order: 0,
+								displayOrder: 0,
 								maxLength: 500
 							}
 						]

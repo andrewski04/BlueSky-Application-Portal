@@ -13,7 +13,7 @@
 <div class="bg-secondary min-h-screen">
 	<NavBar message={`Welcome to the admin dashboard, ${user.firstName}!`}>
 		<a href="/admin/dashboard" class="underline hover:font-bold">Forms</a>
-		<a href="/admin/form-submissions" class="hover:font-bold">Submissions</a>
+		<a href="/admin/submissions" class="hover:font-bold">Submissions</a>
 		<a href="/admin/users" class="hover:font-bold">Users</a>
 		<a href="/admin/settings" class="hover:font-bold">Settings</a>
 	</NavBar>

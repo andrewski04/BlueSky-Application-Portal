@@ -58,13 +58,12 @@ export function requireAuth(
  */
 export function requireRole(
 	eventLocals: App.Locals,
-	role: UserRole,
-	redirectTo: string = '/auth/login'
+	role: UserRole
 ): { user: User; session: Session } {
 	const { user, session } = requireAuth(eventLocals);
 
 	if (!user.role || user.role !== role) {
-		throw redirect(303, redirectTo);
+		redirectIfAuthenticated(eventLocals);
 	}
 
 	return { user, session };
