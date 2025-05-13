@@ -3,7 +3,7 @@
 	import NavBar from '$lib/components/dashboard/NavBar.svelte';
 
 	let { data }: { data: PageData } = $props();
-	let { user, error, applicationForms } = data;
+	let { user, error, applicationForms, announcements } = data;
 </script>
 
 <svelte:head>
@@ -17,6 +17,30 @@
 	</NavBar>
 
 	<div class="flex flex-col items-center p-4">
+		<div class="mb-6 w-full max-w-5xl rounded-lg bg-white p-6 shadow-md">
+			<h2 class="mb-4 text-xl font-semibold text-gray-800">Announcements</h2>
+			{#if announcements && announcements.length > 0}
+				<div class="max-h-64 overflow-y-auto pr-2">
+					{#each announcements.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()) as announcement}
+						<div class="mb-4 rounded-lg border border-gray-200 bg-gray-50 p-4 last:mb-0">
+							<div class="mb-2 flex items-center justify-between">
+								<h3 class="text-primary font-bold">{announcement.title}</h3>
+								<span class="text-xs text-gray-500">
+									{new Date(announcement.createdAt).toLocaleDateString()}
+								</span>
+							</div>
+							<p class="mb-2 text-gray-700">{announcement.message}</p>
+							<p class="text-right text-xs text-gray-600">
+								Posted by: {announcement.user.firstName}
+								{announcement.user.lastName}
+							</p>
+						</div>
+					{/each}
+				</div>
+			{:else}
+				<p class="text-center text-gray-500">No announcements at this time</p>
+			{/if}
+		</div>
 		<div class="w-full max-w-5xl rounded-lg bg-white p-6 shadow-md">
 			{#if error}
 				<p class="mb-4 text-center text-red-500">{error}</p>

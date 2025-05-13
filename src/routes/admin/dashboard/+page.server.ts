@@ -23,11 +23,15 @@ export const load = (async ({ locals }) => {
 }) satisfies PageServerLoad;
 
 export const actions = {
-	create: async () => {
+	create: async ({ locals }) => {
+		requireRole(locals, 'ADMIN');
+
 		const exampleForm = await createExampleForm();
 		await publishApplicationForm(exampleForm.applicationFormId);
 	},
-	delete: async ({ request }) => {
+	delete: async ({ request, locals }) => {
+		requireRole(locals, 'ADMIN');
+
 		const formData = await request.formData();
 		const formId = formData.get('formId')?.toString();
 

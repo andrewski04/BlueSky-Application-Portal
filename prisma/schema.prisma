@@ -8,6 +8,18 @@ generator client {
 }
 
 /**
+ * Announcements are admin-created messages that are displayed to all users
+ */
+model Announcement {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  title     String
+  message   String
+  createdAt DateTime @default(now())
+}
+
+/**
  * The ApplicationForm acts as a templates for Applications, defining the question response types and prompt.
  */
 model ApplicationForm {
@@ -164,6 +176,7 @@ model User {
   isSetup             Boolean               @default(false)
   createdAt           DateTime              @default(now())
   ApplicationResponse ApplicationResponse[]
+  Announcement       Announcement[]
 }
 
 /**

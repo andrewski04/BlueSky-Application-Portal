@@ -10,7 +10,7 @@
 	import NumberQuestion from '$lib/components/application/NumberQuestion.svelte';
 	import ParagraphQuestion from '$lib/components/application/ParagraphQuestion.svelte';
 	import TextQuestion from '$lib/components/application/TextQuestion.svelte';
-	import NavBar from '$lib/components/dashboard/NavBar.svelte';
+	import AdminNavBar from '$lib/components/dashboard/AdminNavBar.svelte';
 
 	let { data }: { data: PageData } = $props();
 
@@ -28,12 +28,7 @@
 	<title>View Submission</title>
 </svelte:head>
 
-<NavBar message={`Welcome to the admin dashboard, ${user.firstName}!`}>
-	<a href="/admin/dashboard" class=" hover:font-bold">Forms</a>
-	<a href="/admin/submissions" class="underline hover:font-bold">Submissions</a>
-	<a href="/admin/users" class=" hover:font-bold">Users</a>
-	<a href="/admin/settings" class=" hover:font-bold">Settings</a>
-</NavBar>
+<AdminNavBar message={`Welcome to the admin dashboard, ${user.firstName}!`} />
 
 <div class="container mx-auto p-6">
 	<div class="mb-4 flex items-center justify-between">

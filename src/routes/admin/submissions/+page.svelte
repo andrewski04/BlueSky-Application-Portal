@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { PageData } from './$types';
-	import NavBar from '$lib/components/dashboard/NavBar.svelte';
+	import AdminNavBar from '$lib/components/dashboard/AdminNavBar.svelte';
 
 	let { data }: { data: PageData } = $props();
 	let { user, error, applicationResponses } = data;
@@ -11,12 +11,7 @@
 </svelte:head>
 
 <div class="bg-secondary min-h-screen">
-	<NavBar message={`Welcome to the admin dashboard, ${user.firstName}!`}>
-		<a href="/admin/dashboard" class=" hover:font-bold">Forms</a>
-		<a href="/admin/submissions" class="underline hover:font-bold">Submissions</a>
-		<a href="/admin/users" class=" hover:font-bold">Users</a>
-		<a href="/admin/settings" class=" hover:font-bold">Settings</a>
-	</NavBar>
+	<AdminNavBar message={`Welcome to the admin dashboard, ${user.firstName}!`} />
 
 	<div class="flex flex-col items-center p-4">
 		<div class="w-full max-w-5xl rounded-lg bg-white p-6 shadow-md">
