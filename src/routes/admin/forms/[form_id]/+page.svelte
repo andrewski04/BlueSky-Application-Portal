@@ -1,0 +1,76 @@
+<script lang="ts">
+	import type { PageData } from './$types';
+	import AdminNavBar from '$lib/components/dashboard/AdminNavBar.svelte';
+
+	let { data }: { data: PageData } = $props();
+	let { applicationForm, user } = data;
+</script>
+
+<svelte:head>
+	<title>Application Form Details</title>
+</svelte:head>
+
+{#if applicationForm}
+	<div class="bg-secondary min-h-screen">
+		<AdminNavBar message={`Viewing Form: ${applicationForm?.name} - ${applicationForm?.id}`} />
+		<div class="container mx-auto p-6">
+			<div class="mb-4 flex items-center justify-between">
+				<h1 class="text-3xl font-bold">Form Details: {applicationForm?.name}</h1>
+				<a href="/admin/forms" class="btn btn-danger px-3 py-1">Back</a>
+			</div>
+
+			<div class="mb-6 rounded-md border border-gray-200 bg-white p-6 shadow-sm">
+				<p><b>Description:</b> {applicationForm.description}</p>
+				<br />
+				<p>
+					Note: A form cannot be edited or deleted once it is published and responses are submitted.
+					It can, however, be deactivated so it is not accessible to users.
+				</p>
+				<p><b>Active:</b> {applicationForm.active ? 'Yes' : 'No'}</p>
+				<p><b>Published:</b> {applicationForm.published ? 'Yes' : 'No'}</p>
+				<br />
+				<p><b>Created At:</b> {applicationForm.createdAt.toLocaleString()}</p>
+				<p><b>Last Updated:</b> {applicationForm.updatedAt.toLocaleString()}</p>
+			</div>
+
+			{#if applicationForm.sections.length == 0}
+				<div class="mb-8 rounded-md border border-gray-200 bg-white p-6 shadow-sm">
+					<p class="text-center font-bold text-red-600">
+						This form currently has no sections or questions.
+					</p>
+				</div>
+			{/if}
+
+			{#each applicationForm.sections as section}
+				<div class="mb-8 rounded-md border border-gray-200 bg-white p-6 shadow-sm">
+					<p><b>Section Name:</b> {section.name}</p>
+					<p><b>Section Description:</b> {section.description ? section.description : 'N/A'}</p>
+					<br />
+					{#each section.questions as question}
+						<p><b>Question:</b> {question.prompt}</p>
+						<p>
+							<b>Question Type:</b>
+							{question.type.charAt(0) + question.type.substring(1).toLowerCase()}
+						</p>
+						<br />
+					{/each}
+				</div>
+			{/each}
+		</div>
+	</div>
+{:else}
+	<div class="bg-secondary min-h-screen">
+		<AdminNavBar message={`Viewing Form: Form Not Found`} />
+		<div class="container mx-auto p-6">
+			<div class="mb-4 flex items-center justify-between">
+				<h1 class="text-3xl font-bold">Form Details</h1>
+				<a href="/admin/forms" class="btn btn-danger px-3 py-1">Back</a>
+			</div>
+			<div
+				class="mb-6 rounded-md border border-gray-200 bg-white p-6 text-center text-red-500 shadow-sm"
+			>
+				<p><b>Error retrieving form details</b></p>
+			</div>
+		</div>
+	</div>
+{/if}

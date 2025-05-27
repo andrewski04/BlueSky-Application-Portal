@@ -1,8 +1,8 @@
 import type { PageServerLoad, Actions } from './$types';
 import { requireRole } from '$lib/server/auth/guard';
 
+import { prisma } from '$lib/server/prisma';
 import {
-	getAllApplicationForms,
 	deleteApplicationFormById,
 	publishApplicationForm,
 	createApplicationForm
@@ -15,15 +15,16 @@ const log = new Logger('admin.forms.page.server');
 export const load = (async ({ locals }) => {
 	const { user } = requireRole(locals, 'ADMIN');
 
-	const applicationForms = await getAllApplicationForms();
-	if (applicationForms.isErr()) {
-		return { applicationForms: [], error: applicationForms.error.message, user };
+	try {
+		const applicationForms = await await prisma.applicationForm.findMany();
+		return {
+			user,
+			applicationForms: applicationForms
+		};
+	} catch (error) {
+		log.error('Error loading application forms', error);
+		return { applicationForms: [], error: 'Unable to fetch application forms', user };
 	}
-
-	return {
-		user,
-		applicationForms: applicationForms.value
-	};
 }) satisfies PageServerLoad;
 
 export const actions = {
