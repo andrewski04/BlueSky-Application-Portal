@@ -7,11 +7,11 @@
 </script>
 
 <svelte:head>
-	<title>Application Submissions</title>
+	<title>Application Submissions Overview</title>
 </svelte:head>
 
 <div class="bg-secondary min-h-screen">
-	<AdminNavBar message={`Welcome to the admin dashboard, ${user.firstName}!`} />
+	<AdminNavBar message={`View Student Application Submissions`} />
 
 	<div class="flex flex-col items-center p-4">
 		<div class="w-full max-w-5xl rounded-lg bg-white p-6 shadow-md">

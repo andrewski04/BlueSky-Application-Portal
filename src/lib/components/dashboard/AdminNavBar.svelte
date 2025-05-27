@@ -13,7 +13,11 @@
 <NavBar {message}>
 	<a
 		href="/admin/dashboard"
-		class="{isActive('/admin/dashboard') ? 'font-bold underline' : ''} hover:font-bold">Forms</a
+		class="{isActive('/admin/dashboard') ? 'font-bold underline' : ''} hover:font-bold">Dashboard</a
+	>
+	<a
+		href="/admin/forms"
+		class="{isActive('/admin/forms') ? 'font-bold underline' : ''} hover:font-bold">Forms</a
 	>
 	<a
 		href="/admin/submissions"
