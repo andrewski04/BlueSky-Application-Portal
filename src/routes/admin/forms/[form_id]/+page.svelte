@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import AdminNavBar from '$lib/components/dashboard/AdminNavBar.svelte';
+	import Tooltip from 'sv-tooltip';
 
 	let { data }: { data: PageData } = $props();
 	let { applicationForm, user } = data;
@@ -21,16 +22,57 @@
 
 			<div class="mb-6 rounded-md border border-gray-200 bg-white p-6 shadow-sm">
 				<p><b>Description:</b> {applicationForm.description}</p>
-				<br />
+
 				<p>
-					Note: A form cannot be edited or deleted once it is published and responses are submitted.
-					It can, however, be deactivated so it is not accessible to users.
+					<b>Active:</b>
+					{applicationForm.active ? 'Yes' : 'No'}
 				</p>
-				<p><b>Active:</b> {applicationForm.active ? 'Yes' : 'No'}</p>
-				<p><b>Published:</b> {applicationForm.published ? 'Yes' : 'No'}</p>
-				<br />
+				<p>
+					<b>Published:</b>
+					{applicationForm.published ? 'Yes' : 'No'}
+				</p>
 				<p><b>Created At:</b> {applicationForm.createdAt.toLocaleString()}</p>
 				<p><b>Last Updated:</b> {applicationForm.updatedAt.toLocaleString()}</p>
+
+				<div class="mt-4 flex items-center gap-2">
+					{#if !applicationForm.published}
+						<a
+							class="rounded-xl bg-green-600 px-4 py-1 text-white hover:bg-green-700"
+							href="/admin/forms/{applicationForm.id}/edit"
+						>
+							Edit
+						</a>
+						<form action="?delete" method="post">
+							<button
+								type="submit"
+								class="rounded-xl bg-red-600 px-4 py-1 text-white hover:bg-red-700"
+							>
+								Delete
+							</button>
+						</form>
+
+						<form action="?publish" method="post">
+							<Tooltip tip="Once published, a form cannot be edited." top>
+								<button
+									type="submit"
+									class="rounded-xl bg-blue-600 px-4 py-1 text-white hover:bg-blue-700"
+								>
+									Publish
+								</button>
+							</Tooltip>
+						</form>
+					{/if}
+					{#if applicationForm.published && applicationForm.active}
+						<form action="?deactivate" method="post">
+							<button
+								type="submit"
+								class="rounded-xl bg-red-600 px-4 py-1 text-white hover:bg-red-700"
+							>
+								Deactivate
+							</button>
+						</form>
+					{/if}
+				</div>
 			</div>
 
 			{#if applicationForm.sections.length == 0}
