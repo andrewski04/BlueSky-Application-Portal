@@ -1,4 +1,43 @@
+---
+sidebar_position: 30
+---
+
 # Authentication
+
+## Protecting Routes
+
+The `guard.ts` library in `$lib/server/guard.ts` can be used to protect routes. These functions can be called in `+page.server.ts` files on page loading or form actions and will redirect to the login page if the user is not authenticated. All guard functions take the event `locals` as the first argument (see example.)
+
+### Guard Functions
+
+- `requireAuth(eventLocals, redirectTo, redirectSetup)`
+
+  - `redirectTo` (Optional) - The URL to redirect to if the user is not authenticated, by default `/auth/login`
+  - `redirectSetup` (Optional) - Whether to redirect the user to account setup if not complete, by default `true`
+
+- `requireRole(eventLocals, role)`
+
+  - `role` (Required) - Required role to access page, either "USER" or "ADMIN"
+
+- `redirectIfAuthenticated(eventLocals, redirectTo)`
+
+  - `redirectTo` (Optional) - The URL to redirect to if the user is authenticated, by default this will redirect to the user's dashboard.
+  - Used for pages that SHOULD'T be accessible if the user is authenticated. For example, the landing or login page will redirect to the dashboard if the user is authenticated.
+
+### Guard Example
+
+```ts
+// locals contains the `user` and `session` objects if the user has a valid session cookie
+export const load: PageServerLoad = async ({ locals, url }) => {
+	// by default this will redirect to the login page if the user is not authenticated,
+	// otherwise it will pass the user object to the page and load it
+	const { user } = requireAuth(locals);
+
+	return {
+		user
+	};
+};
+```
 
 ## Authentication Flow
 

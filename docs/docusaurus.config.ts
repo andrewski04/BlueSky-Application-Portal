@@ -75,7 +75,7 @@ const config: Config = {
 	themeConfig: {
 		// Replace with your project's social card
 		navbar: {
-			title: 'BlueSky Application Portal',
+			title: 'BlueSky Application Portal - Developer Documentation',
 			logo: {
 				alt: 'Logo',
 				src: 'img/logo.svg'
