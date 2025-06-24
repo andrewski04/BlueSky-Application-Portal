@@ -82,22 +82,21 @@
 					</p>
 				</div>
 			{/if}
-
-			{#each applicationForm.sections as section}
-				<div class="mb-8 rounded-md border border-gray-200 bg-white p-6 shadow-sm">
-					<p><b>Section Name:</b> {section.name}</p>
-					<p><b>Section Description:</b> {section.description ? section.description : 'N/A'}</p>
-					<br />
+			<div class="mb-8 rounded-md border border-gray-200 bg-white p-6 shadow-sm">
+				{#each applicationForm.sections as section}
+					<p class="mb-1 text-2xl font-bold">{section.name}</p>
+					<p class="text-md">
+						{section.description ? section.description : 'No description provided'}
+					</p>
 					{#each section.questions as question}
-						<p><b>Question:</b> {question.prompt}</p>
-						<p>
-							<b>Question Type:</b>
-							{question.type.charAt(0) + question.type.substring(1).toLowerCase()}
+						<p class="mt-4 font-bold">{question.prompt}</p>
+						<p class="text-sm">
+							{question.type.charAt(0) + question.type.substring(1).toLowerCase()} Question
 						</p>
-						<br />
 					{/each}
-				</div>
-			{/each}
+					<hr class="my-6 text-gray-400" />
+				{/each}
+			</div>
 		</div>
 	</div>
 {:else}

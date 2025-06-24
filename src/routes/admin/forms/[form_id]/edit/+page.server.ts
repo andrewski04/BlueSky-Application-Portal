@@ -3,7 +3,7 @@ import { requireRole } from '$lib/server/auth/guard';
 import { getApplicationFormById } from '$lib/server/application/applicationFormService';
 import { Logger } from '$lib/utils/logger';
 
-const log = new Logger('Admin form details page');
+const log = new Logger('Admin edit form page');
 
 export const load = (async ({ locals, params }) => {
 	const { user } = requireRole(locals, 'ADMIN');
