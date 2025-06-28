@@ -1,12 +1,7 @@
 import type { PageServerLoad, Actions } from './$types';
 import { requireRole } from '$lib/server/auth/guard';
 
-import { prisma } from '$lib/server/prisma';
-import {
-	deleteApplicationFormById,
-	publishApplicationForm,
-	createApplicationForm
-} from '$lib/server/application/applicationFormService';
+import { prisma, prismaResult } from '$lib/server/prisma';
 import { createExampleForm } from '$lib/server/application/exampleForm';
 import { redirect } from '@sveltejs/kit';
 import { Logger } from '$lib/utils/logger';
@@ -15,16 +10,25 @@ const log = new Logger('admin.forms.page.server');
 export const load = (async ({ locals }) => {
 	const { user } = requireRole(locals, 'ADMIN');
 
-	try {
-		const applicationForms = await await prisma.applicationForm.findMany();
-		return {
-			user,
-			applicationForms: applicationForms
-		};
-	} catch (error) {
-		log.error('Error loading application forms', error);
+	const applicationFormsResult = await prismaResult(
+		prisma.applicationFormDraft.findMany({
+			select: {
+				id: true,
+				name: true,
+				description: true,
+				createdAt: true,
+				updatedAt: true
+			}
+		})
+	);
+	if (applicationFormsResult.isErr()) {
+		log.error('Error loading application forms', applicationFormsResult.error);
 		return { applicationForms: [], error: 'Unable to fetch application forms', user };
 	}
+	return {
+		user,
+		applicationForms: applicationFormsResult.value
+	};
 }) satisfies PageServerLoad;
 
 export const actions = {
@@ -38,26 +42,30 @@ export const actions = {
 			return { success: false, error: 'Form name is required' };
 		}
 
-		const newFormId = await createApplicationForm({
-			name: formName,
-			description: formDesc
-		});
+		const newFormId = await prismaResult(
+			prisma.applicationFormDraft.create({
+				data: {
+					name: formName,
+					description: formDesc
+				},
+				select: { id: true }
+			})
+		);
 
 		if (newFormId.isErr()) {
 			log.error('Error creating form', newFormId.error);
 			return { success: false, error: newFormId.error.message };
 		}
 
-		log.info('New form created with ID:', newFormId.value.applicationFormId);
-		return redirect(302, `/admin/forms/${newFormId.value.applicationFormId}`);
+		log.info('New form draft created with ID:', newFormId.value.id);
+		return redirect(302, `/admin/form-drafts/${newFormId.value.id}`);
 	},
 	createExampleForm: async ({ locals }) => {
 		requireRole(locals, 'ADMIN');
 
-		const exampleForm = await createExampleForm();
-		await publishApplicationForm(exampleForm.applicationFormId);
-	},
-	delete: async ({ request, locals }) => {
+		await createExampleForm();
+	}
+	/**delete: async ({ request, locals }) => {
 		requireRole(locals, 'ADMIN');
 
 		const formData = await request.formData();
@@ -74,5 +82,5 @@ export const actions = {
 		}
 
 		return { success: true };
-	}
+	}*/
 } satisfies Actions;

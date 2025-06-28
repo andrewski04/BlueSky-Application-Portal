@@ -16,8 +16,9 @@
 		class="{isActive('/admin/dashboard') ? 'font-bold underline' : ''} hover:font-bold">Dashboard</a
 	>
 	<a
-		href="/admin/forms"
-		class="{isActive('/admin/forms') ? 'font-bold underline' : ''} hover:font-bold">Forms</a
+		href="/admin/form-drafts"
+		class="{isActive('/admin/form-drafts') ? 'font-bold underline' : ''} hover:font-bold"
+		>Form Drafts</a
 	>
 	<a
 		href="/admin/submissions"

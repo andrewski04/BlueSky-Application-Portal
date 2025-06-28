@@ -1,0 +1,192 @@
+/// ─────────────────────────────────────────────────────────────────────────────
+/// ENUMS
+/// ─────────────────────────────────────────────────────────────────────────────
+
+// ensure new types are added to $lib/util/QuestionTypeMap.ts
+enum QuestionType {
+  TEXT
+  PARAGRAPH
+  MULTIPLE_CHOICE
+  DROPDOWN
+  CHECKBOX
+  FILE_UPLOAD
+  DATE
+  NUMBER
+}
+
+enum ApplicationStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+}
+
+/// ─────────────────────────────────────────────────────────────────────────────
+/// QUESTION LIBRARY  (immutable versions)
+/// ─────────────────────────────────────────────────────────────────────────────
+/// - Each edit produces a new QuestionVersion + its option rows.
+/// - Existing versions are immutable, but can be edited (which creates a new version)
+
+model QuestionTemplate {
+  id           String            @id @default(cuid(2))
+  slug         String            @unique /// human-readable key (“gpa”)
+  displayName  String /// “Grade-Point Average”
+  inLibrary    Boolean           @default(false) /// show in question library?
+  currentVersionId String?           @unique
+  currentVersion   QuestionVersion?  @relation("Current", fields: [currentVersionId], references: [id])
+  versions     QuestionVersion[] @relation("Template")
+}
+
+model QuestionVersion {
+  id                 String            @id @default(cuid(2))
+  templateId         String
+  template           QuestionTemplate  @relation("Template", fields: [templateId], references: [id])
+  currentForTemplate QuestionTemplate? @relation("Current")
+  version            Int
+  prompt             String
+  type               QuestionType
+  slug               String
+
+  /// validation / requirements fields 
+  minLength        Int?
+  maxLength        Int?
+  minValue         Float?
+  maxValue         Float?
+  minDate          DateTime?
+  maxDate          DateTime?
+  acceptedTypes    String?
+  maxFileSizeBytes Int?
+
+  options               QuestionOption[] /// choices if applicable
+  createdAt             DateTime                @default(now())
+  QuestionLinkDraft     QuestionLinkDraft[]
+  QuestionLinkPublished QuestionLinkPublished[]
+  Answer                Answer[]
+
+  @@unique([templateId, version])
+}
+
+model QuestionOption {
+  id                    String                  @id @default(cuid(2))
+  questionId            String
+  question              QuestionVersion         @relation(fields: [questionId], references: [id])
+  text                  String
+  displayOrder          Int
+  slug                  String
+  AnswerOptionSelection AnswerOptionSelection[]
+}
+
+/// ─────────────────────────────────────────────────────────────────────────────
+/// FORM-BUILDER DRAFT LAYER  (mutable while designing)
+/// ─────────────────────────────────────────────────────────────────────────────
+
+model ApplicationFormDraft {
+  id          String             @id @default(cuid(2))
+  name        String
+  description String?
+  sections    FormSectionDraft[]
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+}
+
+model FormSectionDraft {
+  id           String               @id @default(cuid(2))
+  formId       String
+  form         ApplicationFormDraft @relation(fields: [formId], references: [id])
+  name         String
+  slug         String
+  description  String?
+  displayOrder Int
+  /// linking table holds the questions & their order
+  questions    QuestionLinkDraft[]
+}
+
+/// Editable copy of a question, converted to a QuestionTemplate & Version when published.
+model QuestionDraft {
+  id         String       @id @default(cuid(2))
+  templateId String?      
+  prompt     String
+  type       QuestionType
+  slug       String
+
+  minLength        Int?
+  maxLength        Int?
+  minValue         Float?
+  maxValue         Float?
+  minDate          DateTime?
+  maxDate          DateTime?
+  acceptedTypes    String?
+  maxFileSizeBytes Int?
+
+  options           QuestionOptionDraft[]
+  QuestionLinkDraft QuestionLinkDraft[]
+}
+
+model QuestionOptionDraft {
+  id           String        @id @default(cuid(2))
+  questionId   String
+  question     QuestionDraft @relation(fields: [questionId], references: [id])
+  text         String
+  displayOrder Int
+  slug         String
+}
+
+/// Stores order of questions inside a draft section.
+/// Must reference either a QuestionDraft or a QuestionVersion but not both.
+model QuestionLinkDraft {
+  sectionId String
+  section   FormSectionDraft @relation(fields: [sectionId], references: [id])
+
+  questionDraftId String?
+  questionDraft   QuestionDraft? @relation(fields: [questionDraftId], references: [id])
+
+  questionVersionId String?
+  questionVersion   QuestionVersion? @relation(fields: [questionVersionId], references: [id])
+
+  displayOrder Int
+  required     Boolean                @default(false)
+
+  @@id([sectionId, displayOrder])
+}
+
+/// ─────────────────────────────────────────────────────────────────────────────
+/// PUBLISHED (IMMUTABLE) FORMS
+/// ─────────────────────────────────────────────────────────────────────────────
+
+model ApplicationFormPublished {
+  id          String                 @id @default(cuid(2))
+  name        String
+  description String?
+  active      Boolean                @default(true) /// hide/show to students
+  publishedAt DateTime               @default(now())
+  sections    FormSectionPublished[]
+  responses   ApplicationResponse[]
+}
+
+model FormSectionPublished {
+  id           String                   @id @default(cuid(2))
+  formId       String
+  form         ApplicationFormPublished @relation(fields: [formId], references: [id])
+  name         String
+  slug         String
+  description  String?
+  displayOrder Int
+  questions    QuestionLinkPublished[]
+}
+
+/// Stores order of questions in a published section.
+/// Always points at an immutable QuestionVersion.
+model QuestionLinkPublished {
+  sectionId String
+  section   FormSectionPublished @relation(fields: [sectionId], references: [id])
+
+  questionVersionId String
+  questionVersion   QuestionVersion @relation(fields: [questionVersionId], references: [id])
+
+  displayOrder Int
+  required     Boolean                @default(false)
+  
+  Answer       Answer[]
+
+  @@id([sectionId, displayOrder])
+}

@@ -33,8 +33,9 @@
 		<div class="w-full max-w-5xl rounded-lg bg-white p-6 shadow-md">
 			<h2 class="mb-2 text-2xl font-semibold text-gray-800">Application Forms</h2>
 			<p class="mb-4 text-sm text-gray-600">
-				An application form is a template for an application with the questions a student will
-				answer.
+				An application form draft is an editable template for an application.
+				<br />
+				When published, an uneditable copy of the form is created that students can fill out.
 			</p>
 
 			<div class="mb-6 flex gap-4">
@@ -87,12 +88,12 @@
 								<th
 									class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
 								>
-									Published
+									Created
 								</th>
 								<th
 									class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
 								>
-									Active
+									Updated
 								</th>
 								<th
 									class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
@@ -107,15 +108,17 @@
 									<td class="px-6 py-4 text-sm whitespace-nowrap text-gray-900">{form.id}</td>
 									<td class="px-6 py-4 text-sm whitespace-nowrap text-gray-900">{form.name}</td>
 									<td class="px-6 py-4 text-sm text-gray-900">{form.description ?? 'N/A'}</td>
-									<td class="px-6 py-4 text-sm whitespace-nowrap text-gray-900">
-										{form.published ? 'Yes' : 'No'}
-									</td>
-									<td class="px-6 py-4 text-sm whitespace-nowrap text-gray-900">
-										{form.active ? 'Yes' : 'No'}
-									</td>
+									<td class="px-6 py-4 text-sm whitespace-nowrap text-gray-900"
+										>{form.createdAt.toLocaleDateString()} <br />
+										{form.createdAt.toLocaleTimeString()}</td
+									>
+									<td class="px-6 py-4 text-sm whitespace-nowrap text-gray-900"
+										>{form.updatedAt.toLocaleDateString()} <br />
+										{form.updatedAt.toLocaleTimeString()}</td
+									>
 									<td class="px-6 py-4 text-sm whitespace-nowrap text-gray-900">
 										<a
-											href={`/admin/forms/${form.id}`}
+											href={`/admin/form-drafts/${form.id}`}
 											class="mr-2 inline-block rounded bg-green-600 px-2 py-1 text-xs font-semibold text-white hover:bg-green-700"
 										>
 											Manage

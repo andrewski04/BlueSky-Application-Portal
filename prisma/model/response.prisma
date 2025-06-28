@@ -1,0 +1,67 @@
+/// ─────────────────────────────────────────────────────────────────────────────
+/// APPLICATION RESPONSES
+/// ─────────────────────────────────────────────────────────────────────────────
+
+model ApplicationResponse {
+  id          String                   @id @default(cuid(2))
+  userId      String
+  user        User                     @relation(fields: [userId], references: [id])
+  formId      String
+  form        ApplicationFormPublished @relation(fields: [formId], references: [id])
+  status      ApplicationStatus        @default(DRAFT)
+  submittedAt DateTime?
+  createdAt   DateTime                 @default(now())
+  updatedAt   DateTime                 @updatedAt
+
+  answers Answer[]
+
+  @@unique([userId, formId])
+  @@index([formId])
+}
+
+model Answer {
+  id            String              @id @default(cuid())
+  applicationId String
+  application   ApplicationResponse @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  /// which question in this published form?
+  publishedSectionId    String
+  publishedDisplayOrder Int
+  questionLink          QuestionLinkPublished @relation(fields: [publishedSectionId, publishedDisplayOrder], references: [sectionId, displayOrder])
+
+  /// shortcut to the immutable question version for validations
+  questionVersionId String
+  questionVersion   QuestionVersion @relation(fields: [questionVersionId], references: [id])
+
+  valueText    String?
+  valueNumber  Float?
+  valueBool    Boolean?
+  valueDate    DateTime?
+  fileUploadId String?
+
+  selectedOptions AnswerOptionSelection[]
+  FileUpload      FileUpload?             @relation(fields: [fileUploadId], references: [id])
+
+  @@index([applicationId, publishedSectionId, publishedDisplayOrder])
+  @@index([questionVersionId])
+}
+
+model AnswerOptionSelection {
+  answerId String
+  optionId String
+  answer   Answer         @relation(fields: [answerId], references: [id], onDelete: Cascade)
+  option   QuestionOption @relation(fields: [optionId], references: [id])
+
+  @@id([answerId, optionId])
+}
+
+model FileUpload {
+  id          String   @id @default(cuid())
+  filename    String
+  mimeType    String
+  sizeBytes   Int
+  storagePath String
+  uploadedAt  DateTime @default(now())
+
+  answers Answer[]
+}
