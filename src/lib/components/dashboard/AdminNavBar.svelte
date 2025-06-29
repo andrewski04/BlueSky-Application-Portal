@@ -21,6 +21,11 @@
 		>Form Drafts</a
 	>
 	<a
+		href="/admin/published-forms"
+		class="{isActive('/admin/published-forms') ? 'font-bold underline' : ''} hover:font-bold"
+		>Published Forms</a
+	>
+	<a
 		href="/admin/submissions"
 		class="{isActive('/admin/submissions') ? 'font-bold underline' : ''} hover:font-bold"
 		>Submissions</a

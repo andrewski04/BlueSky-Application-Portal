@@ -9,15 +9,15 @@
 </script>
 
 <svelte:head>
-	<title>Application Form Details</title>
+	<title>Form Draft Details</title>
 </svelte:head>
 
 {#if applicationForm}
 	<div class="bg-secondary min-h-screen">
-		<AdminNavBar message={`Viewing Form: ${applicationForm?.name} - ${applicationForm?.id}`} />
+		<AdminNavBar message={`Viewing Draft: ${applicationForm?.name}`} />
 		<div class="container mx-auto p-6">
 			<div class="mb-4 flex items-center justify-between">
-				<h1 class="text-3xl font-bold">Form Details: {applicationForm?.name}</h1>
+				<h1 class="text-3xl font-bold">Form Draft: {applicationForm?.name}</h1>
 				<a href="/admin/form-drafts" class="btn btn-danger px-3 py-1">Back</a>
 			</div>
 
@@ -33,7 +33,7 @@
 					>
 						Edit
 					</a>
-					<form action="?delete" method="post">
+					<form action="?/deleteDraft" method="post">
 						<button
 							type="submit"
 							class="rounded-xl bg-red-600 px-4 py-1 text-white hover:bg-red-700"
@@ -42,7 +42,7 @@
 						</button>
 					</form>
 
-					<form action="?publish" method="post">
+					<form action="?/publishDraft" method="post">
 						<Tooltip
 							tip="Creates uneditable copy of the form, <br> the draft will remain after publishing."
 							top
