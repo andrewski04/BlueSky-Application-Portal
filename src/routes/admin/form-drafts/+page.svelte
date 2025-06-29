@@ -1,6 +1,8 @@
 <script lang="ts">
 	import type { PageProps } from './$types';
 	import AdminNavBar from '$lib/components/dashboard/AdminNavBar.svelte';
+	import Tooltip from '$lib/components/util/Tooltip.svelte';
+
 	let { data, form }: PageProps = $props();
 
 	let showFormCreationPopup = $state(false);
@@ -42,7 +44,7 @@
 				<button
 					type="button"
 					onclick={openFormCreationPopup}
-					class="rounded bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-700"
+					class="rounded bg-blue-500 px-2 py-1.5 text-sm font-bold text-white hover:bg-blue-700"
 				>
 					Create Custom Form
 				</button>
@@ -50,7 +52,7 @@
 				<form method="POST" action="?/createExampleForm">
 					<button
 						type="submit"
-						class="rounded bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-700"
+						class="rounded bg-blue-500 px-2 py-1.5 text-sm font-bold text-white hover:bg-blue-700"
 					>
 						Create Example Form
 					</button>
@@ -105,7 +107,11 @@
 						<tbody class="divide-y divide-gray-200 bg-white">
 							{#each applicationForms as form}
 								<tr class="hover:bg-gray-100">
-									<td class="px-6 py-4 text-sm whitespace-nowrap text-gray-900">{form.id}</td>
+									<Tooltip tip={form.id} right>
+										<td class="px-6 py-4 text-sm whitespace-nowrap text-gray-900"
+											>{form.id.slice(0, 6)}...</td
+										>
+									</Tooltip>
 									<td class="px-6 py-4 text-sm whitespace-nowrap text-gray-900">{form.name}</td>
 									<td class="px-6 py-4 text-sm text-gray-900">{form.description ?? 'N/A'}</td>
 									<td class="px-6 py-4 text-sm whitespace-nowrap text-gray-900"

@@ -1,12 +1,20 @@
 import type { PageServerLoad } from './$types';
 import { requireRole } from '$lib/server/auth/guard';
-import { getActivePublishedApplicationForms } from '$lib/server/application/applicationFormService';
 import { getAllAnnouncements } from '$lib/server/announcementService';
+import { prisma, prismaResult } from '$lib/server/prisma';
+import { PublishedFormWithSections } from '$lib/server/application/formPublishedArgs';
 
 export const load = (async ({ locals }) => {
 	const { user } = requireRole(locals, 'USER');
 
-	const applicationFormsResult = await getActivePublishedApplicationForms();
+	const applicationFormsResult = await prismaResult(
+		prisma.applicationFormPublished.findMany({
+			where: {
+				active: true
+			},
+			...PublishedFormWithSections
+		})
+	);
 	if (applicationFormsResult.isErr()) {
 		return { error: applicationFormsResult.error.message, user };
 	}

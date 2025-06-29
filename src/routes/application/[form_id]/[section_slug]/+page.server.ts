@@ -1,10 +1,9 @@
-import { getFormSectionWithNavigationByFormIdAndSlug } from '$lib/server/application/applicationFormService';
-import {
-	getOrCreateApplicationIdByUserIdAndFormId,
-	saveApplicationSection,
-	getApplicationResponseSectionById
-} from '$lib/server/application/applicationResponseService';
 import { requireAuth } from '$lib/server/auth/guard.js';
+import {
+	getSectionWithNavAndAnswers,
+	saveApplicationSection
+} from '$lib/server/application/formResponseService';
+import { prisma, prismaResult } from '$lib/server/prisma';
 import { error } from '@sveltejs/kit';
 
 export async function load({ locals, params }) {
@@ -14,17 +13,25 @@ export async function load({ locals, params }) {
 	const sectionSlug = params.section_slug;
 	const userId = user.id;
 
-	// fetch form section, with navigation slugs
-	const sectionResult = await getFormSectionWithNavigationByFormIdAndSlug(formId, sectionSlug);
-	if (sectionResult.isErr()) {
-		throw error(500, `Error fetching form section: ${sectionResult.error.message}`);
-	}
-	if (!sectionResult.value) {
-		throw error(404, 'Form section not found');
-	}
-
-	// fetch application id for user and form
-	const applicationIdResult = await getOrCreateApplicationIdByUserIdAndFormId(userId, formId);
+	// find or create application response
+	const applicationIdResult = await prismaResult(
+		prisma.applicationResponse.upsert({
+			where: {
+				userId_formId: {
+					userId,
+					formId
+				}
+			},
+			create: {
+				userId,
+				formId
+			},
+			update: {},
+			select: {
+				id: true
+			}
+		})
+	);
 	if (applicationIdResult.isErr()) {
 		throw error(500, `Error fetching application id: ${applicationIdResult.error.message}`);
 	}
@@ -34,21 +41,16 @@ export async function load({ locals, params }) {
 	}
 
 	// fetch existing section answers
-	const existingSectionAnswersResult = await getApplicationResponseSectionById(
-		applicationId,
-		sectionSlug
-	);
-	if (existingSectionAnswersResult.isErr()) {
+	const sectionWithAnswersResult = await getSectionWithNavAndAnswers(applicationId.id, sectionSlug);
+	if (sectionWithAnswersResult.isErr()) {
 		throw error(
 			500,
-			`Error fetching application section answers: ${existingSectionAnswersResult.error.message}`
+			`Error fetching application section answers: ${sectionWithAnswersResult.error.message}`
 		);
 	}
-	const existingSectionAnswers = existingSectionAnswersResult.value;
 
 	return {
-		section: sectionResult.value,
-		existingAnswers: existingSectionAnswers
+		sectionWithAnswers: sectionWithAnswersResult.value
 	};
 }
 

@@ -49,6 +49,7 @@
 			{#if !applicationForms || applicationForms.length === 0}
 				<p class="text-center text-gray-500">No application forms found</p>
 			{:else}
+				<h2 class="mb-4 text-xl font-semibold text-gray-800">Available Application Forms</h2>
 				<div class="overflow-x-auto">
 					<table class="min-w-full divide-y divide-gray-200">
 						<thead>
@@ -63,11 +64,7 @@
 								>
 									Description
 								</th>
-								<th
-									class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
-								>
-									Active
-								</th>
+
 								<th
 									class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
 								>
@@ -81,9 +78,6 @@
 									<td class="px-6 py-4 text-sm whitespace-nowrap text-gray-900">{form.name}</td>
 									<td class="px-6 py-4 text-sm text-gray-900">{form.description ?? 'N/A'}</td>
 
-									<td class="px-6 py-4 text-sm whitespace-nowrap text-gray-900">
-										{form.active ? 'Yes' : 'No'}
-									</td>
 									<td class="flex space-x-2 px-6 py-4 text-sm whitespace-nowrap text-gray-900">
 										<a
 											href="/application/{form.id}/{form.sections[0].slug}"

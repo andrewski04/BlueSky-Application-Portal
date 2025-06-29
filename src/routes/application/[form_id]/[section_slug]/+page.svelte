@@ -1,9 +1,7 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import { enhance } from '$app/forms';
-	import type { AnswerOptionSelection } from '@prisma/client';
 	import { debounce } from '$lib/utils/debounce';
-	import { autoSubmit } from '$lib/utils/autoSubmit';
 	import { onMount } from 'svelte';
 
 	import CheckboxQuestion from '$lib/components/application/CheckboxQuestion.svelte';
@@ -17,16 +15,9 @@
 
 	const { data }: { data: PageData } = $props();
 
-	const { section, existingAnswers } = data;
+	const { sectionWithAnswers } = data;
 
 	let saveStatus: 'Saved' | 'Saving' | 'Unsaved' = $state('Saved');
-
-	function findExistingAnswer(questionId: string) {
-		if (existingAnswers) {
-			return existingAnswers.find((answer) => answer.questionId === questionId);
-		}
-		return undefined;
-	}
 
 	let isInitialLoad = true;
 	let form: HTMLFormElement;
@@ -55,11 +46,6 @@
 		}
 	}
 
-	function saveAndNavigate(href: string) {
-		// save handled by use:autoSubmit, doesn't work with regular <a> link
-		window.location.href = href;
-	}
-
 	// prevent initial form submission on page load
 	onMount(() => {
 		setTimeout(() => {
@@ -69,7 +55,7 @@
 </script>
 
 <svelte:head>
-	<title>Application - {section.name}</title>
+	<title>Application - {sectionWithAnswers.name}</title>
 </svelte:head>
 
 <form
@@ -90,9 +76,9 @@
 	}}
 	class="h-screen space-y-6 bg-gray-100 p-6"
 >
-	{#if section}
+	{#if sectionWithAnswers}
 		<div class="flex items-center justify-between">
-			<h2 class="mb-4 text-2xl font-bold">{section.name}</h2>
+			<h2 class="mb-4 text-2xl font-bold">{sectionWithAnswers.name}</h2>
 			<div
 				class="rounded p-2 text-sm font-semibold"
 				class:bg-green-200={saveStatus === 'Saved'}
@@ -105,79 +91,76 @@
 				{saveStatus}
 			</div>
 		</div>
-		{#if section.description}
-			<p class="mb-6 text-gray-700">{section.description}</p>
+		{#if sectionWithAnswers.description}
+			<p class="mb-6 text-gray-700">{sectionWithAnswers.description}</p>
 		{/if}
 
-		{#each section.questions as question}
-			{@const existingAnswer = findExistingAnswer(question.id)}
+		{#each sectionWithAnswers.questions as question}
 			<div class="rounded-md border border-gray-200 bg-white p-4 shadow-sm">
 				{#if question.type === 'TEXT'}
 					<TextQuestion
 						onchange={handleInputChange}
 						{question}
-						existingAnswer={existingAnswer?.valueText}
+						existingAnswer={question.answer?.valueText}
 					/>
 				{:else if question.type === 'PARAGRAPH'}
 					<ParagraphQuestion
 						onchange={handleInputChange}
 						{question}
-						existingAnswer={existingAnswer?.valueText}
+						existingAnswer={question.answer?.valueText}
 					/>
 				{:else if question.type === 'NUMBER'}
 					<NumberQuestion
 						onchange={handleInputChange}
 						{question}
-						existingAnswer={existingAnswer?.valueNumber}
+						existingAnswer={question.answer?.valueNumber}
 					/>
 				{:else if question.type === 'DATE'}
 					<DateQuestion
 						onchange={handleInputChange}
 						{question}
-						existingAnswer={existingAnswer?.valueDate}
+						existingAnswer={question.answer?.valueDate}
 					/>
 				{:else if question.type === 'CHECKBOX'}
 					<CheckboxQuestion
 						onchange={handleInputChange}
 						{question}
-						existingAnswer={existingAnswer?.selectedOptions.map(
-							(opt: AnswerOptionSelection) => opt.optionId
-						)}
+						existingAnswer={question.answer?.selections.map((opt) => opt.id)}
 					/>
 				{:else if question.type === 'MULTIPLE_CHOICE'}
 					<MultipleChoiceQuestion
 						onchange={handleInputChange}
 						{question}
-						existingAnswer={existingAnswer?.selectedOptions[0]?.optionId}
+						existingAnswer={question.answer?.selections[0]?.id}
 					/>
 				{:else if question.type === 'DROPDOWN'}
 					<DropdownQuestion
 						{question}
 						onchange={handleInputChange}
-						existingAnswer={existingAnswer?.selectedOptions[0]?.optionId}
+						existingAnswer={question.answer?.selections[0]?.id}
 					/>
 				{:else if question.type === 'FILE_UPLOAD'}
 					<FileUploadQuestion
 						onchange={handleInputChange}
 						{question}
-						existingAnswer={existingAnswer?.fileUploadId}
+						existingAnswer={question.answer?.file?.filename}
 					/>
 				{/if}
 			</div>
 		{/each}
 
 		<div class="flex justify-end">
-			<button
-				onclick={() => saveAndNavigate(`/user/dashboard`)}
-				class="mr-auto rounded-md bg-green-600 px-6 py-2 text-white shadow hover:bg-green-700"
-				>Back to Dashboard</button
+			<a
+				href="/user/dashboard"
+				class="hover:bg-green-70a mr-auto rounded-md bg-green-600 px-6 py-2 text-white shadow"
+				>Back to Dashboard</a
 			>
-			{#if section.previousFormSectionSlug}
-				<button
-					onclick={() =>
-						saveAndNavigate(`/application/${section.formId}/${section.previousFormSectionSlug}`)}
+			{#if sectionWithAnswers.prevSlug}
+				<a
+					data-sveltekit-reload
+					href="/application/{sectionWithAnswers.formId}/{sectionWithAnswers.prevSlug}"
 					class="mr-2 rounded-md bg-red-600 px-6 py-2 text-white shadow hover:bg-red-700"
-					>Previous Section</button
+					>Previous Section</a
 				>
 			{/if}
 			<button
@@ -185,12 +168,12 @@
 				class="hidden rounded-md bg-green-600 px-6 py-2 text-white shadow hover:bg-green-700"
 				>Save Section</button
 			>
-			{#if section.nextFormSectionSlug}
-				<button
-					onclick={() =>
-						saveAndNavigate(`/application/${section.formId}/${section.nextFormSectionSlug}`)}
+			{#if sectionWithAnswers.nextSlug}
+				<a
+					data-sveltekit-reload
+					href="/application/{sectionWithAnswers.formId}/{sectionWithAnswers.nextSlug}"
 					class="ml-2 rounded-md bg-blue-600 px-6 py-2 text-white shadow hover:bg-blue-700"
-					>Next Section</button
+					>Next Section</a
 				>
 			{/if}
 		</div>

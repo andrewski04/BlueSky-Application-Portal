@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { PageProps } from './$types';
 	import AdminNavBar from '$lib/components/dashboard/AdminNavBar.svelte';
-	import Tooltip from 'sv-tooltip';
+	import Tooltip from '$lib/components/util/Tooltip.svelte';
 
 	let { data }: PageProps = $props();
 	let { publishedForms, error } = data;
@@ -64,7 +64,11 @@
 						<tbody class="divide-y divide-gray-200 bg-white">
 							{#each publishedForms as form}
 								<tr class="hover:bg-gray-100">
-									<td class="px-6 py-4 text-sm whitespace-nowrap text-gray-900">{form.id}</td>
+									<Tooltip tip={form.id} right>
+										<td class="px-6 py-4 text-sm whitespace-nowrap text-gray-900"
+											>{form.id.slice(0, 6)}...</td
+										>
+									</Tooltip>
 									<td class="px-6 py-4 text-sm whitespace-nowrap text-gray-900">{form.name}</td>
 									<td class="px-6 py-4 text-sm text-gray-900">{form.description ?? 'N/A'}</td>
 									<td class="px-6 py-4 text-sm whitespace-nowrap text-gray-900"

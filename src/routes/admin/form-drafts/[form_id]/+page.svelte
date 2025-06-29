@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import AdminNavBar from '$lib/components/dashboard/AdminNavBar.svelte';
-	import Tooltip from 'sv-tooltip';
+	import Tooltip from '$lib/components/util/Tooltip.svelte';
 	import { QuestionTypeMap } from '$lib/utils/QuestionTypeMap';
 
 	let { data }: { data: PageData } = $props();

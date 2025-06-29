@@ -3,7 +3,7 @@ import { requireRole } from '$lib/server/auth/guard';
 import { Logger } from '$lib/utils/logger';
 import { prisma, prismaResult } from '$lib/server/prisma';
 
-import { FormDraftWithSectionsWithQuestionsWithOptions } from '$lib/server/application/FormDraftArgs';
+import { FormDraftWithSectionsWithQuestionsWithOptions } from '$lib/server/application/formDraftArgs';
 const log = new Logger('Admin edit form page');
 
 export const load = (async ({ locals, params }) => {

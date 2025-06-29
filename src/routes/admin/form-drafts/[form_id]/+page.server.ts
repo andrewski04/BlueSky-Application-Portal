@@ -2,7 +2,7 @@ import type { PageServerLoad, Actions } from './$types';
 import { requireRole } from '$lib/server/auth/guard';
 import { prisma, prismaResult } from '$lib/server/prisma';
 import { Logger } from '$lib/utils/logger';
-import { FormDraftWithSectionsWithQuestionsWithOptions } from '$lib/server/application/FormDraftArgs';
+import { FormDraftWithSectionsWithQuestionsWithOptions } from '$lib/server/application/formDraftArgs';
 import { publishFormFromDraft } from '$lib/server/application/formService';
 
 const log = new Logger('Admin form details page');

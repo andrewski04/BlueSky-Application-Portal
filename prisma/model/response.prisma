@@ -24,7 +24,6 @@ model Answer {
   applicationId String
   application   ApplicationResponse @relation(fields: [applicationId], references: [id], onDelete: Cascade)
 
-  /// which question in this published form?
   publishedSectionId    String
   publishedDisplayOrder Int
   questionLink          QuestionLinkPublished @relation(fields: [publishedSectionId, publishedDisplayOrder], references: [sectionId, displayOrder])
@@ -42,6 +41,7 @@ model Answer {
   selectedOptions AnswerOptionSelection[]
   FileUpload      FileUpload?             @relation(fields: [fileUploadId], references: [id])
 
+  @@unique([applicationId, questionVersionId])
   @@index([applicationId, publishedSectionId, publishedDisplayOrder])
   @@index([questionVersionId])
 }
