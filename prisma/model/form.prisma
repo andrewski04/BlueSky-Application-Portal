@@ -84,7 +84,7 @@ model ApplicationFormDraft {
   id          String             @id @default(cuid(2))
   name        String
   description String?
-  sections    FormSectionDraft[]
+  sections    FormSectionDraft[] 
   createdAt   DateTime           @default(now())
   updatedAt   DateTime           @updatedAt
 }
@@ -92,7 +92,7 @@ model ApplicationFormDraft {
 model FormSectionDraft {
   id           String               @id @default(cuid(2))
   formId       String
-  form         ApplicationFormDraft @relation(fields: [formId], references: [id])
+  form         ApplicationFormDraft @relation(fields: [formId], references: [id], onDelete: Cascade)
   name         String
   slug         String
   description  String?
@@ -125,7 +125,7 @@ model QuestionDraft {
 model QuestionOptionDraft {
   id           String        @id @default(cuid(2))
   questionId   String
-  question     QuestionDraft @relation(fields: [questionId], references: [id])
+  question     QuestionDraft @relation(fields: [questionId], references: [id], onDelete: Cascade)
   text         String
   displayOrder Int
   slug         String
@@ -135,10 +135,10 @@ model QuestionOptionDraft {
 /// Must reference either a QuestionDraft or a QuestionVersion but not both.
 model QuestionLinkDraft {
   sectionId String
-  section   FormSectionDraft @relation(fields: [sectionId], references: [id])
+  section   FormSectionDraft @relation(fields: [sectionId], references: [id], onDelete: Cascade)
 
   questionDraftId String?
-  questionDraft   QuestionDraft? @relation(fields: [questionDraftId], references: [id])
+  questionDraft   QuestionDraft? @relation(fields: [questionDraftId], references: [id], onDelete: Cascade)
 
   questionVersionId String?
   questionVersion   QuestionVersion? @relation(fields: [questionVersionId], references: [id])

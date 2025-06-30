@@ -1,6 +1,5 @@
 <script lang="ts">
-	let props = $props();
-	let { message } = props;
+	let { message } = $props();
 </script>
 
 <header class="flex items-center justify-between bg-blue-800 p-4 text-white">

@@ -4,6 +4,7 @@ import { prisma, prismaResult } from '$lib/server/prisma';
 import { Logger } from '$lib/utils/logger';
 import { FormDraftWithSectionsWithQuestionsWithOptions } from '$lib/server/application/formDraftArgs';
 import { publishFormFromDraft } from '$lib/server/application/formService';
+import { redirect } from '@sveltejs/kit';
 
 const log = new Logger('Admin form details page');
 
@@ -40,24 +41,27 @@ export const actions = {
 			return { success: false, error: publishRes.error.message };
 		}
 		return { success: true };
-	}
+	},
 
-	/**deleteDraft: async ({ request, locals }) => {
+	deleteDraft: async ({ locals, params }) => {
 		requireRole(locals, 'ADMIN');
 
-		const formData = await request.formData();
-		const formId = formData.get('formId')?.toString();
-
-		if (!formId) {
+		if (!params.form_id) {
 			return { success: false, error: 'Form ID is required' };
 		}
 
-		const result = await deleteApplicationFormById(formId);
+		const result = await prismaResult(
+			prisma.applicationFormDraft.delete({
+				where: {
+					id: params.form_id
+				}
+			})
+		);
 
 		if (result.isErr()) {
 			return { success: false, error: result.error.message };
 		}
 
-		return { success: true };
-	}*/
+		return redirect(302, '/admin/form-drafts');
+	}
 } satisfies Actions;

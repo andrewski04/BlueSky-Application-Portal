@@ -57,7 +57,7 @@ export const actions = {
 			return { success: false, error: newFormId.error.message };
 		}
 
-		log.info('New form draft created with ID:', newFormId.value.id);
+		log.info(`New form draft created with ID: ${newFormId.value.id}`);
 		return redirect(302, `/admin/form-drafts/${newFormId.value.id}`);
 	},
 	createExampleForm: async ({ locals }) => {

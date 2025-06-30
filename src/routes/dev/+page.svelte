@@ -17,11 +17,6 @@
 					>List all user accounts and set roles</a
 				>
 			</li>
-			<li class="p-3">
-				<a href="/dev/example-form" class="text-blue-300 hover:underline"
-					>Create and publish application forms with example questions</a
-				>
-			</li>
 		</ul>
 	</div>
 </div>

@@ -2,8 +2,7 @@
 	import NavBar from '$lib/components/dashboard/NavBar.svelte';
 	import { page } from '$app/state';
 
-	let props = $props();
-	let { message } = props;
+	let { message } = $props();
 
 	function isActive(path: string): boolean {
 		return page.url.pathname.startsWith(path);

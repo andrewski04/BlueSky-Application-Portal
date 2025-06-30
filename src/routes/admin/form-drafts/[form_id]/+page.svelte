@@ -1,10 +1,10 @@
 <script lang="ts">
-	import type { PageData } from './$types';
+	import type { PageProps } from './$types';
 	import AdminNavBar from '$lib/components/dashboard/AdminNavBar.svelte';
 	import Tooltip from '$lib/components/util/Tooltip.svelte';
 	import { QuestionTypeMap } from '$lib/utils/QuestionTypeMap';
 
-	let { data }: { data: PageData } = $props();
+	let { data, form }: PageProps = $props();
 	let { applicationForm, user } = data;
 </script>
 
@@ -29,7 +29,7 @@
 				<div class="mt-4 flex items-center gap-2">
 					<a
 						class="rounded-xl bg-green-600 px-4 py-1 text-white hover:bg-green-700"
-						href="/admin/forms/{applicationForm.id}/edit"
+						href="/admin/form-drafts/{applicationForm.id}/edit"
 					>
 						Edit
 					</a>
@@ -56,6 +56,9 @@
 						</Tooltip>
 					</form>
 				</div>
+				{#if form?.error}
+					<p class="text-center font-bold text-red-700">Error: {form.error}</p>
+				{/if}
 			</div>
 
 			<div class="mb-8 rounded-md border border-gray-200 bg-white p-6 shadow-sm">
