@@ -20,9 +20,26 @@
 				<h2 class="text-center text-lg font-bold">Sections</h2>
 				<div class="space-y-2">
 					{#each draftForm.sections as section}
-						<button class="w-full rounded px-3 py-2 text-left hover:bg-blue-100">
-							{section.name}
-						</button>
+						<div class="flex flex-row justify-between">
+							<button class="w-full rounded px-3 py-2 text-left hover:bg-blue-100">
+								{section.name}
+							</button>
+							<form
+								method="POST"
+								action="?/deleteSection"
+								use:enhance={() => {
+									return async ({ result, update }) => {
+										if (result.type === 'success' && result.data) {
+											draftForm.sections = draftForm.sections.filter((s) => s.id !== section.id);
+											update();
+										}
+									};
+								}}
+							>
+								<input type="hidden" name="sectionId" value={section.id} />
+								<button class="hover:bg-button0 rounded px-3 py-2 text-left"> X </button>
+							</form>
+						</div>
 					{/each}
 				</div>
 				<div class="mt-4 flex flex-col gap-2">

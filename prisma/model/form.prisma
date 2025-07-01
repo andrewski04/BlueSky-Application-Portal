@@ -119,7 +119,7 @@ model QuestionDraft {
   maxFileSizeBytes Int?
 
   options           QuestionOptionDraft[]
-  QuestionLinkDraft QuestionLinkDraft[]
+  QuestionLink      QuestionLinkDraft?      
 }
 
 model QuestionOptionDraft {
@@ -137,8 +137,8 @@ model QuestionLinkDraft {
   sectionId String
   section   FormSectionDraft @relation(fields: [sectionId], references: [id], onDelete: Cascade)
 
-  questionDraftId String?
-  questionDraft   QuestionDraft? @relation(fields: [questionDraftId], references: [id], onDelete: Cascade)
+  questionDraftId   String  @unique
+  questionDraft     QuestionDraft      @relation(fields: [questionDraftId], references: [id], onDelete: Cascade)
 
   questionVersionId String?
   questionVersion   QuestionVersion? @relation(fields: [questionVersionId], references: [id])

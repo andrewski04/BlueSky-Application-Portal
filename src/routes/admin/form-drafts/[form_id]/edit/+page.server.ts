@@ -58,5 +58,27 @@ export const actions = {
 		});
 
 		return { section, success: true };
+	},
+	deleteSection: async ({ request, locals }) => {
+		requireRole(locals, 'ADMIN');
+
+		const data = await request.formData();
+		const sectionId = data.get('sectionId') as string;
+
+		if (!sectionId) {
+			return { error: 'Section ID is required' };
+		}
+
+		// combine these to one call
+		const section = await prisma.formSectionDraft.delete({
+			where: {
+				id: sectionId
+			},
+			include: {
+				questions: true
+			}
+		});
+
+		return { section, success: true };
 	}
 } satisfies Actions;
