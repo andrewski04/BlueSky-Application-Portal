@@ -1,44 +1,66 @@
 <script lang="ts">
+	import { enhance } from '$app/forms';
 	import type { PageProps } from './$types';
 	import AdminNavBar from '$lib/components/dashboard/AdminNavBar.svelte';
 	import Tooltip from '$lib/components/util/Tooltip.svelte';
 	import { QuestionTypeMap } from '$lib/utils/QuestionTypeMap';
+	import type { FormSectionDraft } from '@prisma/client';
 
 	let { data }: PageProps = $props();
-	let { applicationForm } = data;
+	let draftForm = $state(data.draftForm);
 </script>
 
-{#if applicationForm}
+{#if draftForm}
 	<div class="bg-secondary flex h-screen flex-col">
-		<AdminNavBar message={`Editing Draft: ${applicationForm.name}`} />
+		<AdminNavBar message={`Editing Draft: ${draftForm.name}`} />
 
 		<div class="flex min-h-0 flex-1 overflow-hidden">
 			<!-- Left Sidebar (section navigation)-->
 			<div class="w-1/6 overflow-y-auto border-r bg-gray-100 p-4">
 				<h2 class="text-center text-lg font-bold">Sections</h2>
 				<div class="space-y-2">
-					{#each applicationForm.sections as section}
+					{#each draftForm.sections as section}
 						<button class="w-full rounded px-3 py-2 text-left hover:bg-blue-100">
 							{section.name}
 						</button>
 					{/each}
 				</div>
 				<div class="mt-4 flex flex-col gap-2">
-					<button class="rounded bg-green-500 px-3 py-2 text-white hover:bg-green-600">
-						Add Section
-					</button>
+					<form
+						method="POST"
+						action="?/createSection"
+						use:enhance={() => {
+							return async ({ result, update }) => {
+								if (result.type === 'success' && result.data) {
+									draftForm.sections = [
+										...draftForm.sections,
+										{
+											...(result.data.section as FormSectionDraft),
+											questions: []
+										}
+									];
+									update();
+								}
+							};
+						}}
+					>
+						<input type="text" name="name" placeholder="Untitled section" />
+						<button class="rounded bg-green-500 px-3 py-2 text-white hover:bg-green-600">
+							Add Section
+						</button>
+					</form>
 				</div>
 			</div>
 
 			<!-- Main content (center preview) -->
 			<div class="flex-1 overflow-y-auto p-6">
-				{#if applicationForm.sections.length == 0}
+				{#if draftForm.sections.length == 0}
 					<p class="mt-5 text-center font-bold text-red-600">
 						This form currently has no sections or questions.
 					</p>
 				{/if}
 
-				{#each applicationForm.sections as section}
+				{#each draftForm.sections as section}
 					<div class="mb-4 rounded-md bg-white p-4">
 						<p class="mb-1 text-2xl font-bold">{section.name}</p>
 						<p class="text-md">
@@ -147,7 +169,7 @@
 	</div>
 {/if}
 
-{#if !applicationForm}
+{#if !draftForm}
 	<div class="bg-secondary min-h-screen">
 		<AdminNavBar message="Form draft not found" />
 
