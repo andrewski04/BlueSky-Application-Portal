@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { FormQuestion, FormQuestionOption } from '@prisma/client';
+	import type { QuestionVersion, QuestionOption } from '@prisma/client';
 
 	let {
 		question,
@@ -8,7 +8,7 @@
 		onchange,
 		readonly = false
 	}: {
-		question: FormQuestion & { options: FormQuestionOption[] };
+		question: QuestionVersion & { options: QuestionOption[]; required: boolean };
 		existingAnswer: string | null | undefined;
 		value?: string | null | undefined;
 		onchange?: (value: string | null | undefined) => void;

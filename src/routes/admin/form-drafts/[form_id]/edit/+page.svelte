@@ -2,9 +2,9 @@
 	import { enhance } from '$app/forms';
 	import type { PageProps } from './$types';
 	import AdminNavBar from '$lib/components/dashboard/AdminNavBar.svelte';
-	import Tooltip from '$lib/components/util/Tooltip.svelte';
-	import { QuestionTypeMap } from '$lib/utils/QuestionTypeMap';
+	import DraftSectionOverview from '$lib/components/form/DraftSectionOverview.svelte';
 	import type { FormSectionDraft } from '@prisma/client';
+	import nProgress from 'nprogress';
 
 	let { data }: PageProps = $props();
 	let draftForm = $state(data.draftForm);
@@ -17,36 +17,13 @@
 		<div class="flex min-h-0 flex-1 overflow-hidden">
 			<!-- Left Sidebar (section navigation)-->
 			<div class="w-1/6 overflow-y-auto border-r bg-gray-100 p-4">
-				<h2 class="text-center text-lg font-bold">Sections</h2>
-				<div class="space-y-2">
-					{#each draftForm.sections as section}
-						<div class="flex flex-row justify-between">
-							<button class="w-full rounded px-3 py-2 text-left hover:bg-blue-100">
-								{section.name}
-							</button>
-							<form
-								method="POST"
-								action="?/deleteSection"
-								use:enhance={() => {
-									return async ({ result, update }) => {
-										if (result.type === 'success' && result.data) {
-											draftForm.sections = draftForm.sections.filter((s) => s.id !== section.id);
-											update();
-										}
-									};
-								}}
-							>
-								<input type="hidden" name="sectionId" value={section.id} />
-								<button class="hover:bg-button0 rounded px-3 py-2 text-left"> X </button>
-							</form>
-						</div>
-					{/each}
-				</div>
-				<div class="mt-4 flex flex-col gap-2">
+				<div class="flex flex-col items-center justify-center gap-4">
 					<form
 						method="POST"
 						action="?/createSection"
+						class="flex w-full max-w-md flex-col items-center gap-3"
 						use:enhance={() => {
+							nProgress.start();
 							return async ({ result, update }) => {
 								if (result.type === 'success' && result.data) {
 									draftForm.sections = [
@@ -57,15 +34,58 @@
 										}
 									];
 									update();
+									nProgress.done();
 								}
 							};
 						}}
 					>
-						<input type="text" name="name" placeholder="Untitled section" />
-						<button class="rounded bg-green-500 px-3 py-2 text-white hover:bg-green-600">
+						<input
+							type="text"
+							name="name"
+							placeholder="Untitled section"
+							class="w-full rounded-md border border-gray-300 px-4 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+						/>
+						<button
+							class="rounded bg-green-500 px-4 py-2 text-white transition duration-150 ease-in-out hover:bg-green-600"
+						>
 							Add Section
 						</button>
 					</form>
+				</div>
+
+				<hr class="my-4 bg-gray-700" />
+
+				<h2 class="mb-2 text-center text-lg font-bold">Sections</h2>
+				<div class="space-y-2">
+					{#each draftForm.sections as section}
+						<div class="flex flex-row justify-between">
+							<button class="w-full rounded px-3 py-2 text-left hover:bg-blue-100">
+								{section.name}
+							</button>
+							<form
+								method="POST"
+								action="?/deleteSection"
+								use:enhance={() => {
+									nProgress.start();
+									return async ({ result, update }) => {
+										if (result.type === 'success' && result.data) {
+											draftForm.sections = draftForm.sections.filter((s) => s.id !== section.id);
+											update();
+											nProgress.done();
+										}
+									};
+								}}
+							>
+								<input type="hidden" name="sectionId" value={section.id} />
+								<button
+									aria-label="Delete section"
+									class="h-full rounded px-3 py-2 text-left hover:bg-red-400"
+								>
+									<img alt="Delete section" src="/icons/delete.svg" width="30" height="30" />
+								</button>
+							</form>
+						</div>
+					{/each}
 				</div>
 			</div>
 
@@ -78,56 +98,7 @@
 				{/if}
 
 				{#each draftForm.sections as section}
-					<div class="mb-4 rounded-md bg-white p-4">
-						<p class="mb-1 text-2xl font-bold">{section.name}</p>
-						<p class="text-md">
-							{section.description ? section.description : 'No description provided'}
-						</p>
-						{#each section.questions as question}
-							{#if question.questionDraft}
-								<p class="mt-4 font-bold">
-									{question.questionDraft.prompt}
-									<Tooltip tip="Required" top>
-										<span class="text-red-600">{question.required ? '*' : ''}</span>
-									</Tooltip>
-								</p>
-
-								<p class="text-sm">
-									{QuestionTypeMap[question.questionDraft.type]}
-								</p>
-
-								{#if question.questionDraft.options.length > 0}
-									<p class="mt-2 text-sm font-bold underline">Options</p>
-									{#each question.questionDraft.options as option}
-										<p class="text-sm">{option.text}</p>
-									{/each}
-								{/if}
-							{:else if question.questionVersion}
-								<p class="mt-4 font-bold">
-									{question.questionVersion.prompt}
-									<Tooltip tip="Required" top>
-										<span class="text-red-600">{question.required ? '*' : ''}</span>
-									</Tooltip>
-								</p>
-								<Tooltip
-									tip="Library questions cannot be edited directly within a form. See Question Library page for more information."
-									right
-								>
-									<p class="text-sm text-gray-700">Library Question ⓘ</p>
-								</Tooltip>
-								<p class="text-sm">
-									{QuestionTypeMap[question.questionVersion.type]}
-								</p>
-
-								{#if question.questionVersion.options.length > 0}
-									<p class="mt-2 text-sm font-bold underline">Options</p>
-									{#each question.questionVersion.options as option}
-										<p class="text-sm">{option.text}</p>
-									{/each}
-								{/if}
-							{/if}
-						{/each}
-					</div>
+					<DraftSectionOverview {section} />
 				{/each}
 			</div>
 

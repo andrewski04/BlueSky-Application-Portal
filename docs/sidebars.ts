@@ -20,6 +20,11 @@ const sidebars: SidebarsConfig = {
 			label: 'Home'
 		},
 		{
+			type: 'doc',
+			id: 'mvp',
+			label: 'Minimal Viable Product'
+		},
+		{
 			type: 'category',
 			label: 'Getting Started',
 			collapsible: false,

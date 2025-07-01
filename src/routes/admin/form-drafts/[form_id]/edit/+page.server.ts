@@ -38,12 +38,11 @@ export const actions = {
 		requireRole(locals, 'ADMIN');
 
 		const data = await request.formData();
-		const name = data.get('name') as string;
+		let name = data.get('name') as string;
 
-		if (!name) {
-			return { error: 'Section name is required' };
+		if (!name || name.trim() === '') {
+			name = 'Untitled Section';
 		}
-
 		if (!params.form_id) {
 			return { error: 'Form ID is required' };
 		}
@@ -57,9 +56,18 @@ export const actions = {
 			}
 		});
 
+		prisma.applicationFormDraft.update({
+			where: {
+				id: params.form_id
+			},
+			data: {
+				updatedAt: new Date()
+			}
+		});
+
 		return { section, success: true };
 	},
-	deleteSection: async ({ request, locals }) => {
+	deleteSection: async ({ request, locals, params }) => {
 		requireRole(locals, 'ADMIN');
 
 		const data = await request.formData();
@@ -76,6 +84,15 @@ export const actions = {
 			},
 			include: {
 				questions: true
+			}
+		});
+
+		await prisma.applicationFormDraft.update({
+			where: {
+				id: params.form_id
+			},
+			data: {
+				updatedAt: new Date()
 			}
 		});
 

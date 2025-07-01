@@ -22,7 +22,8 @@
 			</div>
 
 			<div class="mb-6 rounded-md border border-gray-200 bg-white p-6 shadow-sm">
-				<p><b>Description:</b> {applicationForm.description}</p>
+				<p><b>Description:</b> {applicationForm.description || 'No description provided'}</p>
+				<p><b>ID:</b> {applicationForm.id}</p>
 				<p><b>Created At:</b> {applicationForm.createdAt.toLocaleString()}</p>
 				<p><b>Last Updated:</b> {applicationForm.updatedAt.toLocaleString()}</p>
 
@@ -49,7 +50,8 @@
 						>
 							<button
 								type="submit"
-								class="rounded-xl bg-blue-600 px-4 py-1 text-white hover:bg-blue-700"
+								disabled={applicationForm?.sections.length === 0}
+								class="rounded-xl bg-blue-600 px-4 py-1 text-white hover:bg-blue-700 disabled:opacity-50"
 							>
 								Publish
 							</button>

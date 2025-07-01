@@ -96,6 +96,11 @@ export async function publishFormFromDraft(
 			}
 		});
 
+		// checks draft form has atleast one section
+		if (draft.sections.length === 0) {
+			return err(new AppError('Form draft must have atleast one section'));
+		}
+
 		// transaction to create published form
 		const result = await prisma.$transaction(async (tx) => {
 			// create published form header

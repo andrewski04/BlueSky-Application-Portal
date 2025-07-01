@@ -18,6 +18,9 @@ export const load = (async ({ locals }) => {
 				description: true,
 				createdAt: true,
 				updatedAt: true
+			},
+			orderBy: {
+				updatedAt: 'desc'
 			}
 		})
 	);
