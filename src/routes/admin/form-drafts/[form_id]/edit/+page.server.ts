@@ -77,7 +77,6 @@ export const actions = {
 			return { error: 'Section ID is required' };
 		}
 
-		// combine these to one call
 		const section = await prisma.formSectionDraft.delete({
 			where: {
 				id: sectionId
@@ -97,5 +96,31 @@ export const actions = {
 		});
 
 		return { section, success: true };
+	},
+	updateSection: async ({ request, locals, params }) => {
+		requireRole(locals, 'ADMIN');
+		const data = await request.formData();
+		const name = data.get('name') as string;
+		const description = data.get('description') as string;
+		const id = data.get('id') as string;
+
+		if (!name || !description || !id) {
+			return { error: 'Name, description, and ID are required' };
+		}
+
+		const updatedSection = await prisma.formSectionDraft.update({
+			where: { id: id },
+			data: { name, description }
+		});
+		await prisma.applicationFormDraft.update({
+			where: {
+				id: params.form_id
+			},
+			data: {
+				updatedAt: new Date()
+			}
+		});
+
+		return { section: updatedSection };
 	}
 } satisfies Actions;

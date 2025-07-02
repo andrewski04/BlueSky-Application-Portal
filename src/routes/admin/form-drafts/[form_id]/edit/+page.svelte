@@ -2,12 +2,31 @@
 	import { enhance } from '$app/forms';
 	import type { PageProps } from './$types';
 	import AdminNavBar from '$lib/components/dashboard/AdminNavBar.svelte';
-	import DraftSectionOverview from '$lib/components/form/DraftSectionOverview.svelte';
+	import DraftQuestionOverview from '$lib/components/form/DraftQuestionOverview.svelte';
 	import type { FormSectionDraft } from '@prisma/client';
 	import nProgress from 'nprogress';
 
 	let { data }: PageProps = $props();
 	let draftForm = $state(data.draftForm);
+	let error = $state(data.error);
+
+	let currentSection = $state(draftForm?.sections[0]);
+
+	async function updateSection() {
+		const formData = new FormData();
+		formData.append('name', currentSection?.name || '');
+		formData.append('description', currentSection?.description || '');
+		formData.append('id', currentSection?.id || '');
+		const response = await fetch('?/updateSection', {
+			method: 'POST',
+			body: formData
+		});
+
+		if (response.type === 'error') {
+			error = 'Error updating section, please refresh the page.';
+			console.error(error);
+		}
+	}
 </script>
 
 {#if draftForm}
@@ -33,6 +52,7 @@
 											questions: []
 										}
 									];
+									currentSection = draftForm.sections[draftForm.sections.length - 1];
 									update();
 									nProgress.done();
 								}
@@ -59,7 +79,12 @@
 				<div class="space-y-2">
 					{#each draftForm.sections as section}
 						<div class="flex flex-row justify-between">
-							<button class="w-full rounded px-3 py-2 text-left hover:bg-blue-100">
+							<button
+								onclick={() => (currentSection = section)}
+								class="w-full rounded {currentSection?.id === section.id
+									? 'bg-blue-100'
+									: ''} px-3 py-2 text-left hover:bg-blue-100"
+							>
 								{section.name}
 							</button>
 							<form
@@ -67,11 +92,18 @@
 								action="?/deleteSection"
 								use:enhance={() => {
 									nProgress.start();
+									let isCurrent = false;
+									if (currentSection?.id === section.id) {
+										isCurrent = true;
+									}
 									return async ({ result, update }) => {
 										if (result.type === 'success' && result.data) {
 											draftForm.sections = draftForm.sections.filter((s) => s.id !== section.id);
 											update();
 											nProgress.done();
+											if (isCurrent) {
+												currentSection = draftForm.sections[0];
+											}
 										}
 									};
 								}}
@@ -91,15 +123,37 @@
 
 			<!-- Main content (center preview) -->
 			<div class="flex-1 overflow-y-auto p-6">
-				{#if draftForm.sections.length == 0}
-					<p class="mt-5 text-center font-bold text-red-600">
-						This form currently has no sections or questions.
-					</p>
-				{/if}
+				<div class="mb-4 rounded-md bg-white p-4">
+					{#if currentSection == undefined}
+						<p class="my-2 text-center text-xl font-bold">
+							Select or create a section to get started.
+						</p>
+					{:else}
+						<input
+							type="text"
+							class="mb-1 w-full text-2xl font-bold"
+							bind:value={currentSection.name}
+							oninput={updateSection}
+							placeholder="Enter section title"
+						/>
 
-				{#each draftForm.sections as section}
-					<DraftSectionOverview {section} />
-				{/each}
+						<textarea
+							class="text-md w-full resize-none"
+							bind:value={currentSection.description}
+							oninput={updateSection}
+							placeholder="Enter section description"
+						>
+						</textarea>
+
+						{#if error}
+							<p class="text-red-500">{error}</p>
+						{/if}
+
+						{#each currentSection.questions as question}
+							<DraftQuestionOverview {question} />
+						{/each}
+					{/if}
+				</div>
 			</div>
 
 			<!-- Right Sidebar (question editor) -->
