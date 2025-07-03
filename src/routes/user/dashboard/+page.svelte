@@ -66,4 +66,5 @@
 	<div class="fixed right-0 bottom-0 m-4 rounded bg-gray-200 px-4 py-2 text-black shadow-lg">
 		Chat
 	</div>
+	<a href="/auth/logout" class="btn btn-danger p-2 py-0">Logout</a>
 </main>
