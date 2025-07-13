@@ -3,27 +3,436 @@
 	import type { PageProps } from './$types';
 	import AdminNavBar from '$lib/components/dashboard/AdminNavBar.svelte';
 	import DraftQuestionOverview from '$lib/components/form/DraftQuestionOverview.svelte';
-	import type { FormSectionDraft } from '@prisma/client';
+	import type { Prisma } from '@prisma/client';
+	import { QuestionTypeMap } from '$lib/utils/QuestionTypeMap';
+	import { slugify } from '$lib/utils/slugify';
+	import { onMount } from 'svelte';
+	import { deserialize } from '$app/forms';
+
+	type FormSectionWithQuestions = Prisma.FormSectionDraftGetPayload<{
+		include: {
+			questions: {
+				include: {
+					questionDraft: { include: { options: true } };
+					questionVersion: { include: { options: true } };
+				};
+			};
+		};
+	}>;
+
 	import nProgress from 'nprogress';
 
 	let { data }: PageProps = $props();
 	let draftForm = $state(data.draftForm);
 	let error = $state(data.error);
 
-	let currentSection = $state(draftForm?.sections[0]);
+	// Mutable local copy of the current section
+	let currentSectionCopy = $state<FormSectionWithQuestions | null>(null);
+	let isSectionSaved = $state(true);
+	let questionsCount = $state(0);
 
-	async function updateSection() {
+	// Question form state
+	let questionType = $state('TEXT');
+	let questionPrompt = $state('');
+	let questionRequired = $state(false);
+	let questionOptions = $state<string[]>(['', '']);
+	let questionMinLength = $state<number | null>(null);
+	let questionMaxLength = $state<number | null>(null);
+	let questionMinValue = $state<number | null>(null);
+	let questionMaxValue = $state<number | null>(null);
+	let questionMinDate = $state<string>('');
+	let questionMaxDate = $state<string>('');
+	let questionAcceptedTypes = $state('');
+	let questionMaxFileSize = $state<number | null>(null);
+
+	// Question selection and edit state
+	let selectedQuestion = $state<FormSectionWithQuestions['questions'][0] | null>(null);
+	let isEditingQuestion = $state(false);
+
+	// Initialize with first section
+	onMount(() => {
+		if (draftForm?.sections[0]) {
+			setCurrentSection(draftForm.sections[0]);
+		}
+	});
+
+	function setCurrentSection(section: FormSectionWithQuestions | null) {
+		if (!section) {
+			currentSectionCopy = null;
+			questionsCount = 0;
+			isSectionSaved = true;
+			return;
+		}
+
+		// Deep clone the section to create a mutable copy
+		currentSectionCopy = JSON.parse(JSON.stringify(section));
+		questionsCount = currentSectionCopy!.questions.length;
+		isSectionSaved = true;
+	}
+
+	function checkForChanges() {
+		if (!currentSectionCopy || !draftForm) return;
+
+		const sectionIndex = draftForm.sections.findIndex((s) => s.id === currentSectionCopy!.id);
+		if (sectionIndex === -1) return;
+
+		const currentStr = JSON.stringify(currentSectionCopy);
+		const originalStr = JSON.stringify(draftForm.sections[sectionIndex]);
+		isSectionSaved = currentStr === originalStr;
+	}
+
+	// Watch for changes in the current section copy
+	$effect(() => {
+		if (currentSectionCopy) {
+			checkForChanges();
+		}
+	});
+
+	async function saveSection() {
+		if (!currentSectionCopy || !draftForm) return;
+
 		const formData = new FormData();
-		formData.append('name', currentSection?.name || '');
-		formData.append('description', currentSection?.description || '');
-		formData.append('id', currentSection?.id || '');
+		formData.append('section', JSON.stringify(currentSectionCopy));
+
 		const response = await fetch('?/updateSection', {
 			method: 'POST',
 			body: formData
 		});
 
-		if (response.type === 'error') {
+		if (response.ok) {
+			const result = await response.json();
+			if (result.type === 'success') {
+				// Update the original section in the form
+				const sectionIndex = draftForm.sections.findIndex((s) => s.id === currentSectionCopy!.id);
+				if (sectionIndex !== -1) {
+					draftForm.sections[sectionIndex] = JSON.parse(JSON.stringify(currentSectionCopy));
+				}
+				isSectionSaved = true;
+				error = '';
+			} else {
+				error = result.error || 'Error updating section';
+			}
+		} else {
 			error = 'Error updating section, please refresh the page.';
+			console.error(error);
+		}
+	}
+
+	// Helper functions for question form
+	function needsOptions(type: string): boolean {
+		return ['MULTIPLE_CHOICE', 'DROPDOWN', 'CHECKBOX'].includes(type);
+	}
+
+	function needsLengthValidation(type: string): boolean {
+		return ['TEXT', 'PARAGRAPH'].includes(type);
+	}
+
+	function needsNumberValidation(type: string): boolean {
+		return type === 'NUMBER';
+	}
+
+	function needsDateValidation(type: string): boolean {
+		return type === 'DATE';
+	}
+
+	function needsFileValidation(type: string): boolean {
+		return type === 'FILE_UPLOAD';
+	}
+
+	function addOption() {
+		questionOptions = [...questionOptions, ''];
+	}
+
+	function removeOption(index: number) {
+		if (questionOptions.length > 2) {
+			questionOptions = questionOptions.filter((_, i) => i !== index);
+		}
+	}
+
+	function updateOption(index: number, value: string) {
+		questionOptions[index] = value;
+		questionOptions = [...questionOptions]; // Trigger reactivity
+	}
+
+	function resetQuestionForm() {
+		// Reset all form fields
+		questionType = 'TEXT';
+		questionPrompt = '';
+		questionRequired = false;
+		questionOptions = ['', ''];
+		questionMinLength = null;
+		questionMaxLength = null;
+		questionMinValue = null;
+		questionMaxValue = null;
+		questionMinDate = '';
+		questionMaxDate = '';
+		questionAcceptedTypes = '';
+		questionMaxFileSize = null;
+		selectedQuestion = null;
+		isEditingQuestion = false;
+	}
+
+	function selectQuestion(question: FormSectionWithQuestions['questions'][0]) {
+		selectedQuestion = question;
+		isEditingQuestion = true;
+
+		// Populate form with question data
+		const questionData = question.questionDraft || question.questionVersion;
+		if (questionData) {
+			questionType = questionData.type;
+			questionPrompt = questionData.prompt;
+			questionRequired = question.required;
+
+			// Reset validation fields
+			questionMinLength = questionData.minLength;
+			questionMaxLength = questionData.maxLength;
+			questionMinValue = questionData.minValue;
+			questionMaxValue = questionData.maxValue;
+			questionMinDate = questionData.minDate
+				? new Date(questionData.minDate).toISOString().split('T')[0]
+				: '';
+			questionMaxDate = questionData.maxDate
+				? new Date(questionData.maxDate).toISOString().split('T')[0]
+				: '';
+			questionAcceptedTypes = questionData.acceptedTypes || '';
+			questionMaxFileSize = questionData.maxFileSizeBytes
+				? Math.floor(questionData.maxFileSizeBytes / (1024 * 1024))
+				: null;
+
+			// Handle options
+			if (questionData.options && questionData.options.length > 0) {
+				questionOptions = questionData.options.map((opt: any) => opt.text);
+			} else {
+				questionOptions = ['', ''];
+			}
+		}
+	}
+
+	function cancelEdit() {
+		resetQuestionForm();
+	}
+
+	async function updateQuestion() {
+		if (!selectedQuestion || !currentSectionCopy || !questionPrompt.trim()) return;
+
+		const formData = new FormData();
+		formData.append('questionId', selectedQuestion!.questionDraftId);
+		formData.append('type', questionType);
+		formData.append('prompt', questionPrompt.trim());
+		formData.append('required', questionRequired.toString());
+		formData.append('slug', slugify(questionPrompt));
+
+		// Add validation fields if applicable
+		if (needsLengthValidation(questionType)) {
+			if (questionMinLength !== null) formData.append('minLength', questionMinLength.toString());
+			if (questionMaxLength !== null) formData.append('maxLength', questionMaxLength.toString());
+		}
+
+		if (needsNumberValidation(questionType)) {
+			if (questionMinValue !== null) formData.append('minValue', questionMinValue.toString());
+			if (questionMaxValue !== null) formData.append('maxValue', questionMaxValue.toString());
+		}
+
+		if (needsDateValidation(questionType)) {
+			if (questionMinDate) formData.append('minDate', questionMinDate);
+			if (questionMaxDate) formData.append('maxDate', questionMaxDate);
+		}
+
+		if (needsFileValidation(questionType)) {
+			if (questionAcceptedTypes) formData.append('acceptedTypes', questionAcceptedTypes);
+			if (questionMaxFileSize !== null)
+				formData.append('maxFileSizeBytes', questionMaxFileSize.toString());
+		}
+
+		// Add options if applicable
+		if (needsOptions(questionType)) {
+			const validOptions = questionOptions.filter((opt) => opt.trim() !== '');
+			formData.append('options', JSON.stringify(validOptions));
+		}
+
+		const response = await fetch('?/updateQuestion', {
+			method: 'POST',
+			body: formData,
+			headers: {
+				'x-sveltekit-action': 'true'
+			}
+		});
+
+		if (response.ok) {
+			const result = deserialize(await response.text());
+
+			if (result.type === 'success' && result.data) {
+				console.log(result.data.question);
+				// Update the question in the current section
+				if (currentSectionCopy && result.data.question && selectedQuestion) {
+					const questionIndex = currentSectionCopy.questions.findIndex(
+						(q: any) => q.questionDraftId === selectedQuestion!.questionDraftId
+					);
+
+					if (questionIndex !== -1) {
+						currentSectionCopy.questions[questionIndex] = result.data
+							.question as FormSectionWithQuestions['questions'][0];
+					}
+				}
+
+				// Also update the original section in the form to keep it in sync
+				if (draftForm && selectedQuestion) {
+					const sectionIndex = draftForm.sections.findIndex((s) => s.id === currentSectionCopy!.id);
+					if (sectionIndex !== -1) {
+						const questionIndex = draftForm.sections[sectionIndex].questions.findIndex(
+							(q: any) => q.questionDraftId === selectedQuestion!.questionDraftId
+						);
+						if (questionIndex !== -1) {
+							draftForm.sections[sectionIndex].questions[questionIndex] = result.data
+								.question as FormSectionWithQuestions['questions'][0];
+						}
+					}
+				}
+
+				checkForChanges();
+				resetQuestionForm();
+				error = '';
+			} else {
+				error = 'Error updating question';
+			}
+		} else {
+			error = 'Error updating question, please try again.';
+			console.error(error);
+		}
+	}
+
+	async function deleteQuestion(question: any) {
+		if (!question || !currentSectionCopy) return;
+
+		const formData = new FormData();
+		formData.append('questionId', question.questionDraftId);
+
+		const response = await fetch('?/deleteQuestion', {
+			method: 'POST',
+			body: formData,
+			headers: {
+				'x-sveltekit-action': 'true'
+			}
+		});
+
+		if (response.ok) {
+			const result = deserialize(await response.text());
+
+			if (result.type === 'success') {
+				// Remove the question from the current section
+				if (currentSectionCopy) {
+					currentSectionCopy.questions = currentSectionCopy.questions.filter(
+						(q: any) => q.questionDraftId !== question.questionDraftId
+					);
+					questionsCount = currentSectionCopy.questions.length;
+				}
+
+				// Also remove from the original section in the form
+				if (draftForm) {
+					const sectionIndex = draftForm.sections.findIndex((s) => s.id === currentSectionCopy!.id);
+					if (sectionIndex !== -1) {
+						draftForm.sections[sectionIndex].questions = draftForm.sections[
+							sectionIndex
+						].questions.filter((q: any) => q.questionDraftId !== question.questionDraftId);
+					}
+				}
+
+				// If we were editing this question, reset the form
+				if (selectedQuestion && selectedQuestion.questionDraftId === question.questionDraftId) {
+					resetQuestionForm();
+				}
+
+				checkForChanges();
+				error = '';
+			} else {
+				error = 'Error deleting question';
+			}
+		} else {
+			error = 'Error deleting question, please try again.';
+			console.error(error);
+		}
+	}
+
+	async function createQuestion() {
+		if (!currentSectionCopy || !questionPrompt.trim()) return;
+
+		const formData = new FormData();
+		formData.append('sectionId', currentSectionCopy.id);
+		formData.append('type', questionType);
+		formData.append('prompt', questionPrompt.trim());
+		formData.append('required', questionRequired.toString());
+		formData.append('slug', slugify(questionPrompt));
+
+		// Add validation fields if applicable
+		if (needsLengthValidation(questionType)) {
+			if (questionMinLength !== null) formData.append('minLength', questionMinLength.toString());
+			if (questionMaxLength !== null) formData.append('maxLength', questionMaxLength.toString());
+		}
+
+		if (needsNumberValidation(questionType)) {
+			if (questionMinValue !== null) formData.append('minValue', questionMinValue.toString());
+			if (questionMaxValue !== null) formData.append('maxValue', questionMaxValue.toString());
+		}
+
+		if (needsDateValidation(questionType)) {
+			if (questionMinDate) formData.append('minDate', questionMinDate);
+			if (questionMaxDate) formData.append('maxDate', questionMaxDate);
+		}
+
+		if (needsFileValidation(questionType)) {
+			if (questionAcceptedTypes) formData.append('acceptedTypes', questionAcceptedTypes);
+			if (questionMaxFileSize !== null)
+				formData.append('maxFileSizeBytes', questionMaxFileSize.toString());
+		}
+
+		// Add options if applicable
+		if (needsOptions(questionType)) {
+			const validOptions = questionOptions.filter((opt) => opt.trim() !== '');
+			formData.append('options', JSON.stringify(validOptions));
+		}
+
+		const response = await fetch('?/createQuestion', {
+			method: 'POST',
+			body: formData,
+			headers: {
+				'x-sveltekit-action': 'true'
+			}
+		});
+
+		if (response.ok) {
+			const result = deserialize(await response.text());
+
+			if (result.type === 'success' && result.data) {
+				// Add the new question to the current section
+				if (currentSectionCopy && result.data.question) {
+					// Create a completely new section object to trigger reactivity
+					const updatedSection = {
+						...currentSectionCopy,
+						questions: [...currentSectionCopy.questions, result.data.question as any]
+					};
+					currentSectionCopy = updatedSection;
+					questionsCount = currentSectionCopy.questions.length;
+				}
+
+				// Also update the original section in the form to keep it in sync
+				if (draftForm) {
+					const sectionIndex = draftForm.sections.findIndex((s) => s.id === currentSectionCopy!.id);
+					if (sectionIndex !== -1) {
+						draftForm.sections[sectionIndex].questions = [
+							...draftForm.sections[sectionIndex].questions,
+							result.data.question as any
+						];
+					}
+				}
+
+				checkForChanges();
+				resetQuestionForm();
+				error = '';
+			} else {
+				error = 'Error creating question';
+			}
+		} else {
+			error = 'Error creating question, please try again.';
 			console.error(error);
 		}
 	}
@@ -48,11 +457,11 @@
 									draftForm.sections = [
 										...draftForm.sections,
 										{
-											...(result.data.section as FormSectionDraft),
+											...(result.data.section as FormSectionWithQuestions),
 											questions: []
 										}
 									];
-									currentSection = draftForm.sections[draftForm.sections.length - 1];
+									setCurrentSection(draftForm.sections[draftForm.sections.length - 1]);
 									update();
 									nProgress.done();
 								}
@@ -80,8 +489,8 @@
 					{#each draftForm.sections as section}
 						<div class="flex flex-row justify-between">
 							<button
-								onclick={() => (currentSection = section)}
-								class="w-full rounded {currentSection?.id === section.id
+								onclick={() => setCurrentSection(section)}
+								class="w-full rounded {currentSectionCopy?.id === section.id
 									? 'bg-blue-100'
 									: ''} px-3 py-2 text-left hover:bg-blue-100"
 							>
@@ -93,7 +502,7 @@
 								use:enhance={() => {
 									nProgress.start();
 									let isCurrent = false;
-									if (currentSection?.id === section.id) {
+									if (currentSectionCopy?.id === section.id) {
 										isCurrent = true;
 									}
 									return async ({ result, update }) => {
@@ -102,7 +511,11 @@
 											update();
 											nProgress.done();
 											if (isCurrent) {
-												currentSection = draftForm.sections[0];
+												if (draftForm.sections.length > 0) {
+													setCurrentSection(draftForm.sections[0]);
+												} else {
+													setCurrentSection(null);
+												}
 											}
 										}
 									};
@@ -124,23 +537,40 @@
 			<!-- Main content (center preview) -->
 			<div class="flex-1 overflow-y-auto p-6">
 				<div class="mb-4 rounded-md bg-white p-4">
-					{#if currentSection == undefined}
+					{#if currentSectionCopy == undefined}
 						<p class="my-2 text-center text-xl font-bold">
 							Select or create a section to get started.
 						</p>
 					{:else}
+						<!-- Save status and button -->
+						<div class="mb-4 flex items-center justify-between">
+							<div class="flex items-center gap-2">
+								{#if isSectionSaved}
+									<span class="text-sm text-green-600">✓ Saved</span>
+								{:else}
+									<span class="text-sm text-orange-600">● Unsaved changes</span>
+								{/if}
+							</div>
+							{#if !isSectionSaved}
+								<button
+									onclick={saveSection}
+									class="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+								>
+									Save Section
+								</button>
+							{/if}
+						</div>
+
 						<input
 							type="text"
 							class="mb-1 w-full text-2xl font-bold"
-							bind:value={currentSection.name}
-							oninput={updateSection}
+							bind:value={currentSectionCopy.name}
 							placeholder="Enter section title"
 						/>
 
 						<textarea
 							class="text-md w-full resize-none"
-							bind:value={currentSection.description}
-							oninput={updateSection}
+							bind:value={currentSectionCopy.description}
 							placeholder="Enter section description"
 						>
 						</textarea>
@@ -149,8 +579,15 @@
 							<p class="text-red-500">{error}</p>
 						{/if}
 
-						{#each currentSection.questions as question}
-							<DraftQuestionOverview {question} />
+						{#each currentSectionCopy.questions as question}
+							{#if question}
+								<DraftQuestionOverview
+									{question}
+									isSelected={selectedQuestion?.questionDraftId === question.questionDraftId}
+									onSelect={selectQuestion}
+									onDelete={deleteQuestion}
+								/>
+							{/if}
 						{/each}
 					{/if}
 				</div>
@@ -158,54 +595,187 @@
 
 			<!-- Right Sidebar (question editor) -->
 			<div class="w-1/4 overflow-y-auto border-l bg-gray-50 p-4">
-				<h2 class="text-lg font-semibold">Add/Edit Question</h2>
+				{#if currentSectionCopy}
+					<div class="mb-4 flex items-center justify-between">
+						<h2 class="text-lg font-semibold">
+							{isEditingQuestion ? 'Edit Question' : 'Add Question'}
+						</h2>
+						{#if isEditingQuestion}
+							<button onclick={cancelEdit} class="text-sm text-gray-600 hover:text-gray-800">
+								Cancel
+							</button>
+						{/if}
+					</div>
 
-				<label class="mt-2 block">
-					<span class="block text-sm font-medium">Question Type</span>
-					<select class="mt-1 w-full rounded border p-2">
-						<option>Text</option>
-						<option>Paragraph</option>
-						<option>Multiple Choice</option>
-						<option>Dropdown</option>
-						<option>Checkbox</option>
-						<option>File Upload</option>
-						<option>Date</option>
-						<option>Number</option>
-					</select>
-				</label>
+					<label class="mt-2 block">
+						<span class="block text-sm font-medium">Question Type</span>
+						<select bind:value={questionType} class="mt-1 w-full rounded border p-2">
+							{#each Object.entries(QuestionTypeMap) as [key, label]}
+								<option value={key}>{label}</option>
+							{/each}
+						</select>
+					</label>
 
-				<label class="mt-2 block">
-					<span class="block text-sm font-medium">Prompt</span>
-					<input
-						type="text"
-						class="mt-1 w-full rounded border p-2"
-						placeholder="Enter question prompt..."
-					/>
-				</label>
+					<label class="mt-2 block">
+						<span class="block text-sm font-medium">Prompt</span>
+						<input
+							type="text"
+							bind:value={questionPrompt}
+							class="mt-1 w-full rounded border p-2"
+							placeholder="Enter question prompt..."
+						/>
+					</label>
 
-				<!-- Placeholder for options if question type supports it -->
-				<div class="mt-2">
-					<span class="block text-sm font-medium">Options</span>
-					<input type="text" class="mt-1 mb-1 w-full rounded border p-2" placeholder="Option 1" />
-					<input type="text" class="mt-1 mb-1 w-full rounded border p-2" placeholder="Option 2" />
-					<button class="mt-2 text-sm text-blue-600 hover:underline">+ Add another option</button>
-				</div>
+					<!-- Options for multiple choice, dropdown, checkbox -->
+					{#if needsOptions(questionType)}
+						<div class="mt-2">
+							<span class="block text-sm font-medium">Options</span>
+							{#each questionOptions as option, index}
+								<div class="mb-1 flex gap-2">
+									<input
+										type="text"
+										value={option}
+										oninput={(e) => updateOption(index, (e.target as HTMLInputElement).value)}
+										class="flex-1 rounded border p-2"
+										placeholder="Option {index + 1}"
+									/>
+									{#if questionOptions.length > 2}
+										<button
+											type="button"
+											onclick={() => removeOption(index)}
+											class="rounded px-2 py-1 text-red-600 hover:bg-red-100"
+										>
+											×
+										</button>
+									{/if}
+								</div>
+							{/each}
+							<button
+								type="button"
+								onclick={addOption}
+								class="mt-2 text-sm text-blue-600 hover:underline"
+							>
+								+ Add another option
+							</button>
+						</div>
+					{/if}
 
-				<!-- Placeholder for other settings -->
-				<label class="mt-2 block">
-					<input type="checkbox" class="mr-2" />
-					Required
-				</label>
+					<!-- Length validation for text/paragraph -->
+					{#if needsLengthValidation(questionType)}
+						<div class="mt-2 grid grid-cols-2 gap-2">
+							<label class="block">
+								<span class="block text-sm font-medium">Min Length</span>
+								<input
+									type="number"
+									bind:value={questionMinLength}
+									class="mt-1 w-full rounded border p-2"
+									placeholder="Optional"
+								/>
+							</label>
+							<label class="block">
+								<span class="block text-sm font-medium">Max Length</span>
+								<input
+									type="number"
+									bind:value={questionMaxLength}
+									class="mt-1 w-full rounded border p-2"
+									placeholder="Optional"
+								/>
+							</label>
+						</div>
+					{/if}
 
-				<button class="mt-2 w-full rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">
-					Add Question
-				</button>
+					<!-- Number validation -->
+					{#if needsNumberValidation(questionType)}
+						<div class="mt-2 grid grid-cols-2 gap-2">
+							<label class="block">
+								<span class="block text-sm font-medium">Min Value</span>
+								<input
+									type="number"
+									bind:value={questionMinValue}
+									class="mt-1 w-full rounded border p-2"
+									placeholder="Optional"
+								/>
+							</label>
+							<label class="block">
+								<span class="block text-sm font-medium">Max Value</span>
+								<input
+									type="number"
+									bind:value={questionMaxValue}
+									class="mt-1 w-full rounded border p-2"
+									placeholder="Optional"
+								/>
+							</label>
+						</div>
+					{/if}
 
-				<hr />
+					<!-- Date validation -->
+					{#if needsDateValidation(questionType)}
+						<div class="mt-2 grid grid-cols-2 gap-2">
+							<label class="block">
+								<span class="block text-sm font-medium">Min Date</span>
+								<input
+									type="date"
+									bind:value={questionMinDate}
+									class="mt-1 w-full rounded border p-2"
+								/>
+							</label>
+							<label class="block">
+								<span class="block text-sm font-medium">Max Date</span>
+								<input
+									type="date"
+									bind:value={questionMaxDate}
+									class="mt-1 w-full rounded border p-2"
+								/>
+							</label>
+						</div>
+					{/if}
 
-				<button class="mt-2 w-full text-center text-blue-500 hover:underline">
-					Open Question Library
-				</button>
+					<!-- File validation -->
+					{#if needsFileValidation(questionType)}
+						<div class="mt-2 space-y-2">
+							<label class="block">
+								<span class="block text-sm font-medium">Accepted File Types</span>
+								<input
+									type="text"
+									bind:value={questionAcceptedTypes}
+									class="mt-1 w-full rounded border p-2"
+									placeholder="e.g., .pdf,.doc,.docx"
+								/>
+							</label>
+							<label class="block">
+								<span class="block text-sm font-medium">Max File Size (MB)</span>
+								<input
+									type="number"
+									bind:value={questionMaxFileSize}
+									class="mt-1 w-full rounded border p-2"
+									placeholder="Optional"
+								/>
+							</label>
+						</div>
+					{/if}
+
+					<!-- Required setting -->
+					<label class="mt-2 block">
+						<input type="checkbox" bind:checked={questionRequired} class="mr-2" />
+						Required
+					</label>
+
+					<button
+						onclick={isEditingQuestion ? updateQuestion : createQuestion}
+						disabled={!questionPrompt.trim()}
+						class="mt-2 w-full rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-400"
+					>
+						{isEditingQuestion ? 'Update Question' : 'Add Question'}
+					</button>
+
+					<hr class="my-4" />
+
+					<button class="mt-2 w-full text-center text-blue-500 hover:underline">
+						Open Question Library
+					</button>
+				{:else}
+					<p class="text-center text-gray-500">Select a section to add questions</p>
+				{/if}
 			</div>
 		</div>
 	</div>
