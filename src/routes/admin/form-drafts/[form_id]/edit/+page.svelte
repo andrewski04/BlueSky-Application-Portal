@@ -49,6 +49,66 @@
 	let selectedQuestion = $state<FormSectionWithQuestions['questions'][0] | null>(null);
 	let isEditingQuestion = $state(false);
 
+	// Add a reactive variable for the new section name input
+	let newSectionName = $state('');
+	let sectionNameError = $state('');
+	let editSectionNameError = $state('');
+
+	// Helper to check if a section name already exists
+	function sectionNameExists(name: string): boolean {
+		if (!draftForm || !draftForm.sections) return false;
+		return draftForm.sections.some(
+			(s: any) => s.name.trim().toLowerCase() === name.trim().toLowerCase()
+		);
+	}
+
+	// Watch for changes in newSectionName and validate
+	$effect(() => {
+		if (newSectionName.trim() && sectionNameExists(newSectionName)) {
+			sectionNameError = 'A section with this name already exists.';
+		} else {
+			sectionNameError = '';
+		}
+	});
+
+	// Watch for changes in currentSectionCopy?.name and validate for edit
+	$effect(() => {
+		if (
+			currentSectionCopy &&
+			currentSectionCopy.name &&
+			draftForm &&
+			draftForm.sections.some(
+				(s: any) =>
+					s.name.trim().toLowerCase() === currentSectionCopy?.name.trim().toLowerCase() &&
+					s.id !== currentSectionCopy?.id
+			)
+		) {
+			editSectionNameError = 'A section with this name already exists.';
+		} else {
+			editSectionNameError = '';
+		}
+	});
+
+	// Helper to generate the next untitled section name
+	function getNextUntitledSectionName() {
+		const base = 'Untitled Section';
+		if (!draftForm || !draftForm.sections) return base;
+		const names = draftForm.sections.map((s: any) => s.name);
+		let max = 0;
+		for (const name of names) {
+			if (name === base) {
+				max = Math.max(max, 1);
+			} else {
+				const match = name.match(/^Untitled Section (\d+)$/);
+				if (match) {
+					max = Math.max(max, parseInt(match[1], 10) + 1);
+				}
+			}
+		}
+		if (!names.includes(base)) return base;
+		return `${base} ${max}`;
+	}
+
 	// Initialize with first section
 	onMount(() => {
 		if (draftForm?.sections[0]) {
@@ -206,10 +266,6 @@
 				questionOptions = ['', ''];
 			}
 		}
-	}
-
-	function cancelEdit() {
-		resetQuestionForm();
 	}
 
 	async function updateQuestion() {
@@ -450,8 +506,17 @@
 						method="POST"
 						action="?/createSection"
 						class="flex w-full max-w-md flex-col items-center gap-3"
-						use:enhance={() => {
+						use:enhance={({ formElement, formData }) => {
 							nProgress.start();
+							// If the input is empty or 'Untitled Section', auto-generate the next name
+							const input = formElement.querySelector(
+								'input[name="name"]'
+							) as HTMLInputElement | null;
+							if (input && (!input.value.trim() || input.value.trim() === 'Untitled Section')) {
+								const newName = getNextUntitledSectionName();
+								input.value = newName;
+								formData.set('name', newName); // Ensure the correct name is sent
+							}
 							return async ({ result, update }) => {
 								if (result.type === 'success' && result.data) {
 									draftForm.sections = [
@@ -471,11 +536,16 @@
 						<input
 							type="text"
 							name="name"
-							placeholder="Untitled section"
+							placeholder="Untitled Section"
 							class="w-full rounded-md border border-gray-300 px-4 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+							bind:value={newSectionName}
 						/>
+						{#if sectionNameError}
+							<p class="w-full text-center text-sm text-red-600">{sectionNameError}</p>
+						{/if}
 						<button
 							class="rounded bg-green-500 px-4 py-2 text-white transition duration-150 ease-in-out hover:bg-green-600"
+							disabled={!!sectionNameError}
 						>
 							Add Section
 						</button>
@@ -555,6 +625,7 @@
 								<button
 									onclick={saveSection}
 									class="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+									disabled={!!editSectionNameError}
 								>
 									Save Section
 								</button>
@@ -567,6 +638,9 @@
 							bind:value={currentSectionCopy.name}
 							placeholder="Enter section title"
 						/>
+						{#if editSectionNameError}
+							<p class="w-full text-center text-sm text-red-600">{editSectionNameError}</p>
+						{/if}
 
 						<textarea
 							class="text-md w-full resize-none"
@@ -601,7 +675,10 @@
 							{isEditingQuestion ? 'Edit Question' : 'Add Question'}
 						</h2>
 						{#if isEditingQuestion}
-							<button onclick={cancelEdit} class="text-sm text-gray-600 hover:text-gray-800">
+							<button
+								onclick={() => resetQuestionForm()}
+								class="text-sm text-gray-600 hover:text-gray-800"
+							>
 								Cancel
 							</button>
 						{/if}

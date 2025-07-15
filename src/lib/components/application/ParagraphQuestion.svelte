@@ -21,6 +21,16 @@
 		if (onchange) {
 			onchange(value);
 		}
+
+		// Validation logic
+		error = null;
+		if (value !== '' && !readonly) {
+			if (question.minLength != null && value.length < question.minLength) {
+				error = `Must be at least ${question.minLength} characters.`;
+			} else if (question.maxLength != null && value.length > question.maxLength) {
+				error = `Must be at most ${question.maxLength} characters.`;
+			}
+		}
 	});
 </script>
 
@@ -52,9 +62,17 @@
 		<p class="mt-1 text-sm text-red-600">{error}</p>
 	{/if}
 
-	{#if question.maxLength !== null}
+	{#if question.minLength !== null || question.maxLength !== null}
 		<div class="mt-1 text-xs text-gray-500">
-			{value.length}/{question.maxLength} characters
+			{#if question.minLength !== null}
+				Min: {question.minLength} characters
+			{/if}
+			{#if question.minLength !== null && question.maxLength !== null}
+				|
+			{/if}
+			{#if question.maxLength !== null}
+				{value.length}/{question.maxLength} characters
+			{/if}
 		</div>
 	{/if}
 </div>

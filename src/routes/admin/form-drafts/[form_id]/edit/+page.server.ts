@@ -116,6 +116,9 @@ export const actions = {
 		try {
 			const section = JSON.parse(sectionJson);
 
+			// Always update the slug to match the new name
+			section.slug = slugify(section.name);
+
 			// Update the section with all its data
 			const updatedSection = await prisma.formSectionDraft.update({
 				where: { id: section.id },

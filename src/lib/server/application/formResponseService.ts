@@ -70,6 +70,14 @@ export async function getSectionWithNavAndAnswers(applicationId: string, section
 						required: ql.required,
 						displayOrder: ql.displayOrder,
 						options: ql.questionVersion.options,
+						minLength: ql.questionVersion.minLength,
+						maxLength: ql.questionVersion.maxLength,
+						minValue: ql.questionVersion.minValue,
+						maxValue: ql.questionVersion.maxValue,
+						minDate: ql.questionVersion.minDate,
+						maxDate: ql.questionVersion.maxDate,
+						acceptedTypes: ql.questionVersion.acceptedTypes,
+						maxFileSizeBytes: ql.questionVersion.maxFileSizeBytes,
 						answer: ans
 							? {
 									id: ans.id,
