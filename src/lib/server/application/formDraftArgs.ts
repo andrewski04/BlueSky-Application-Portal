@@ -17,3 +17,20 @@ export const FormDraftWithSectionsWithQuestionsWithOptions =
 			}
 		}
 	});
+
+export const FormPublishedWithSectionsWithQuestionsWithOptions =
+	Prisma.validator<Prisma.ApplicationFormPublishedFindManyArgs>()({
+		include: {
+			sections: {
+				orderBy: { displayOrder: 'asc' },
+				include: {
+					questions: {
+						orderBy: { displayOrder: 'asc' },
+						include: {
+							questionVersion: { include: { options: true } }
+						}
+					}
+				}
+			}
+		}
+	});
