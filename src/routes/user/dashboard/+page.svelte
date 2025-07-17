@@ -64,7 +64,11 @@
 								>
 									Description
 								</th>
-
+								<th
+									class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
+								>
+									Status
+								</th>
 								<th
 									class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
 								>
@@ -77,13 +81,27 @@
 								<tr class="hover:bg-gray-100">
 									<td class="px-6 py-4 text-sm whitespace-nowrap text-gray-900">{form.name}</td>
 									<td class="px-6 py-4 text-sm text-gray-900">{form.description ?? 'N/A'}</td>
-
+									<td class="px-6 py-4 text-sm text-gray-900">
+										{#if !form.responses[0]}
+											<span class="text-red-600">Not Started</span>
+										{:else if form.responses[0].status == 'DRAFT'}
+											<span class="text-yellow-600">Draft</span>
+										{:else}
+											<span class="text-green-600">Submitted</span>
+										{/if}
+									</td>
 									<td class="flex space-x-2 px-6 py-4 text-sm whitespace-nowrap text-gray-900">
 										<a
 											href="/application/{form.id}/{form.sections[0].slug}"
 											class="rounded bg-green-600 px-3 py-1 text-xs font-bold text-white hover:bg-green-700"
 										>
-											Start Form
+											{#if !form.responses[0]}
+												Start Form
+											{:else if form.responses[0].status == 'DRAFT'}
+												Resume Form
+											{:else}
+												View Submission
+											{/if}
 										</a>
 									</td>
 								</tr>

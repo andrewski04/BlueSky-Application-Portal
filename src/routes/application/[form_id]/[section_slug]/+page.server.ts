@@ -1,10 +1,11 @@
 import { requireAuth } from '$lib/server/auth/guard.js';
 import {
 	getSectionWithNavAndAnswers,
-	saveApplicationSection
+	saveApplicationSection,
+	submitApplication
 } from '$lib/server/application/formResponseService';
 import { prisma, prismaResult } from '$lib/server/prisma';
-import { error } from '@sveltejs/kit';
+import { error, redirect } from '@sveltejs/kit';
 
 export async function load({ locals, params }) {
 	const { user } = requireAuth(locals);
@@ -14,7 +15,7 @@ export async function load({ locals, params }) {
 	const userId = user.id;
 
 	// find or create application response
-	const applicationIdResult = await prismaResult(
+	const applicationResult = await prismaResult(
 		prisma.applicationResponse.upsert({
 			where: {
 				userId_formId: {
@@ -28,14 +29,15 @@ export async function load({ locals, params }) {
 			},
 			update: {},
 			select: {
-				id: true
+				id: true,
+				status: true
 			}
 		})
 	);
-	if (applicationIdResult.isErr()) {
-		throw error(500, `Error fetching application id: ${applicationIdResult.error.message}`);
+	if (applicationResult.isErr()) {
+		throw error(500, `Error fetching application id: ${applicationResult.error.message}`);
 	}
-	const applicationId = applicationIdResult.value;
+	const applicationId = applicationResult.value;
 	if (!applicationId) {
 		throw error(404, 'Application not found');
 	}
@@ -50,6 +52,7 @@ export async function load({ locals, params }) {
 	}
 
 	return {
+		applicationStatus: applicationResult.value.status,
 		sectionWithAnswers: sectionWithAnswersResult.value
 	};
 }
@@ -84,5 +87,18 @@ export const actions = {
 		}
 
 		return { success: true };
+	},
+	submitApplication: async ({ params, locals }) => {
+		const { user } = requireAuth(locals);
+		const userId = user.id;
+		const formId = params.form_id;
+
+		const submitResult = await submitApplication(userId, formId);
+
+		if (submitResult.isErr()) {
+			throw error(500, `Error submitting application: ${submitResult.error.message}`);
+		}
+
+		return redirect(302, '/user/dashboard');
 	}
 };

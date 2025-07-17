@@ -65,6 +65,10 @@ export async function getSectionWithNavAndAnswers(applicationId: string, section
 					const ans = ql.Answer[0]; // 0 | 1 rows
 					return {
 						id: ql.questionVersion.id,
+						createdAt: ql.questionVersion.createdAt,
+						slug: ql.questionVersion.slug,
+						templateId: ql.questionVersion.templateId,
+						version: ql.questionVersion.version,
 						prompt: ql.questionVersion.prompt,
 						type: ql.questionVersion.type,
 						required: ql.required,
@@ -313,6 +317,19 @@ export async function getApplicationFormWithAnswers(applicationId: string) {
 					})
 				}))
 			};
+		})
+	);
+}
+
+export async function submitApplication(userId: string, formId: string) {
+	// add validation here!!
+	return prismaResult(
+		prisma.$transaction(async (tx) => {
+			// update application response status
+			await tx.applicationResponse.update({
+				where: { userId_formId: { userId, formId } },
+				data: { status: 'SUBMITTED' }
+			});
 		})
 	);
 }

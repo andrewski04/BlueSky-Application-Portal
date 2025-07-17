@@ -15,13 +15,15 @@
 
 	const { data }: { data: PageData } = $props();
 
-	const { sectionWithAnswers } = data;
+	const { sectionWithAnswers, applicationStatus } = data;
 
 	let saveStatus: 'Saved' | 'Saving' | 'Unsaved' = $state('Saved');
 
 	let isInitialLoad = true;
 	let form: HTMLFormElement;
 	let activeElement: Element | null = null;
+
+	const isReadOnly = applicationStatus !== 'DRAFT';
 
 	// debounce form submission; wait 1 second after last input before submitting
 	const debouncedSubmit = debounce(() => {
@@ -58,97 +60,111 @@
 	<title>Application - {sectionWithAnswers.name}</title>
 </svelte:head>
 
-<form
-	bind:this={form}
-	method="POST"
-	action="?/saveSection"
-	use:enhance={() => {
-		saveStatus = 'Saving';
-		activeElement = document.activeElement;
+{#if sectionWithAnswers}
+	<div class="min-h-screen space-y-6 bg-gray-100 p-6">
+		<form
+			bind:this={form}
+			method="POST"
+			action="?/saveSection"
+			use:enhance={() => {
+				saveStatus = 'Saving';
+				activeElement = document.activeElement;
 
-		return async ({ update }) => {
-			await update({ reset: false });
-			saveStatus = 'Saved';
-			if (activeElement && activeElement instanceof HTMLElement) {
-				activeElement.focus();
-			}
-		};
-	}}
-	class="h-screen space-y-6 bg-gray-100 p-6"
->
-	{#if sectionWithAnswers}
-		<div class="flex items-center justify-between">
-			<h2 class="mb-4 text-2xl font-bold">{sectionWithAnswers.name}</h2>
-			<div
-				class="rounded p-2 text-sm font-semibold"
-				class:bg-green-200={saveStatus === 'Saved'}
-				class:text-green-800={saveStatus === 'Saved'}
-				class:bg-yellow-200={saveStatus === 'Saving'}
-				class:text-yellow-800={saveStatus === 'Saving'}
-				class:bg-red-200={saveStatus === 'Unsaved'}
-				class:text-red-800={saveStatus === 'Unsaved'}
+				return async ({ update }) => {
+					await update({ reset: false });
+					saveStatus = 'Saved';
+					if (activeElement && activeElement instanceof HTMLElement) {
+						activeElement.focus();
+					}
+				};
+			}}
+		>
+			<div class="flex items-center justify-between">
+				<h2 class="mb-4 text-2xl font-bold">{sectionWithAnswers.name}</h2>
+				<div
+					class="rounded p-2 text-sm font-semibold"
+					class:bg-green-200={saveStatus === 'Saved'}
+					class:text-green-800={saveStatus === 'Saved'}
+					class:bg-yellow-200={saveStatus === 'Saving'}
+					class:text-yellow-800={saveStatus === 'Saving'}
+					class:bg-red-200={saveStatus === 'Unsaved'}
+					class:text-red-800={saveStatus === 'Unsaved'}
+				>
+					{saveStatus}
+				</div>
+			</div>
+			{#if sectionWithAnswers.description}
+				<p class="mb-6 text-gray-700">{sectionWithAnswers.description}</p>
+			{/if}
+
+			{#each sectionWithAnswers.questions as question}
+				<div class="rounded-md border border-gray-200 bg-white p-4 shadow-sm">
+					{#if question.type === 'TEXT'}
+						<TextQuestion
+							onchange={handleInputChange}
+							{question}
+							existingAnswer={question.answer?.valueText}
+							readonly={isReadOnly}
+						/>
+					{:else if question.type === 'PARAGRAPH'}
+						<ParagraphQuestion
+							onchange={handleInputChange}
+							{question}
+							existingAnswer={question.answer?.valueText}
+							readonly={isReadOnly}
+						/>
+					{:else if question.type === 'NUMBER'}
+						<NumberQuestion
+							onchange={handleInputChange}
+							{question}
+							existingAnswer={question.answer?.valueNumber}
+							readonly={isReadOnly}
+						/>
+					{:else if question.type === 'DATE'}
+						<DateQuestion
+							onchange={handleInputChange}
+							{question}
+							existingAnswer={question.answer?.valueDate}
+							readonly={isReadOnly}
+						/>
+					{:else if question.type === 'CHECKBOX'}
+						<CheckboxQuestion
+							onchange={handleInputChange}
+							{question}
+							existingAnswer={question.answer?.selections.map((opt) => opt.id)}
+							readonly={isReadOnly}
+						/>
+					{:else if question.type === 'MULTIPLE_CHOICE'}
+						<MultipleChoiceQuestion
+							onchange={handleInputChange}
+							{question}
+							existingAnswer={question.answer?.selections[0]?.id}
+							readonly={isReadOnly}
+						/>
+					{:else if question.type === 'DROPDOWN'}
+						<DropdownQuestion
+							{question}
+							onchange={handleInputChange}
+							existingAnswer={question.answer?.selections[0]?.id}
+							readonly={isReadOnly}
+						/>
+					{:else if question.type === 'FILE_UPLOAD'}
+						<FileUploadQuestion
+							onchange={handleInputChange}
+							{question}
+							existingAnswer={question.answer?.file?.filename}
+							readonly={isReadOnly}
+						/>
+					{/if}
+				</div>
+			{/each}
+			<button
+				type="submit"
+				class="hidden rounded-md bg-green-600 px-6 py-2 text-white shadow hover:bg-green-700"
+				disabled={isReadOnly}
+				style:display={isReadOnly ? 'none' : undefined}>Save Section</button
 			>
-				{saveStatus}
-			</div>
-		</div>
-		{#if sectionWithAnswers.description}
-			<p class="mb-6 text-gray-700">{sectionWithAnswers.description}</p>
-		{/if}
-
-		{#each sectionWithAnswers.questions as question}
-			<div class="rounded-md border border-gray-200 bg-white p-4 shadow-sm">
-				{#if question.type === 'TEXT'}
-					<TextQuestion
-						onchange={handleInputChange}
-						{question}
-						existingAnswer={question.answer?.valueText}
-					/>
-				{:else if question.type === 'PARAGRAPH'}
-					<ParagraphQuestion
-						onchange={handleInputChange}
-						{question}
-						existingAnswer={question.answer?.valueText}
-					/>
-				{:else if question.type === 'NUMBER'}
-					<NumberQuestion
-						onchange={handleInputChange}
-						{question}
-						existingAnswer={question.answer?.valueNumber}
-					/>
-				{:else if question.type === 'DATE'}
-					<DateQuestion
-						onchange={handleInputChange}
-						{question}
-						existingAnswer={question.answer?.valueDate}
-					/>
-				{:else if question.type === 'CHECKBOX'}
-					<CheckboxQuestion
-						onchange={handleInputChange}
-						{question}
-						existingAnswer={question.answer?.selections.map((opt) => opt.id)}
-					/>
-				{:else if question.type === 'MULTIPLE_CHOICE'}
-					<MultipleChoiceQuestion
-						onchange={handleInputChange}
-						{question}
-						existingAnswer={question.answer?.selections[0]?.id}
-					/>
-				{:else if question.type === 'DROPDOWN'}
-					<DropdownQuestion
-						{question}
-						onchange={handleInputChange}
-						existingAnswer={question.answer?.selections[0]?.id}
-					/>
-				{:else if question.type === 'FILE_UPLOAD'}
-					<FileUploadQuestion
-						onchange={handleInputChange}
-						{question}
-						existingAnswer={question.answer?.file?.filename}
-					/>
-				{/if}
-			</div>
-		{/each}
-
+		</form>
 		<div class="flex justify-end">
 			<a
 				href="/user/dashboard"
@@ -163,11 +179,7 @@
 					>Previous Section</a
 				>
 			{/if}
-			<button
-				type="submit"
-				class="hidden rounded-md bg-green-600 px-6 py-2 text-white shadow hover:bg-green-700"
-				>Save Section</button
-			>
+
 			{#if sectionWithAnswers.nextSlug}
 				<a
 					data-sveltekit-reload
@@ -175,9 +187,17 @@
 					class="ml-2 rounded-md bg-blue-600 px-6 py-2 text-white shadow hover:bg-blue-700"
 					>Next Section</a
 				>
+			{:else if !isReadOnly}
+				<form method="POST" action="?/submitApplication">
+					<button
+						type="submit"
+						class="ml-2 rounded-md bg-green-600 px-6 py-2 text-white shadow hover:bg-green-700"
+						>Submit Application</button
+					>
+				</form>
 			{/if}
 		</div>
-	{:else}
-		<p>Section not found.</p>
-	{/if}
-</form>
+	</div>
+{:else}
+	<p>Section not found.</p>
+{/if}
