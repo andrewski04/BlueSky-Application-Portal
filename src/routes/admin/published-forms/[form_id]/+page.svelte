@@ -26,6 +26,18 @@
 				<p><b>ID:</b> {applicationForm.id}</p>
 				<p><b>Published At:</b> {applicationForm.publishedAt.toLocaleString()}</p>
 				<p><b>Active:</b> {applicationForm.active ? 'Yes' : 'No'}</p>
+				<p>
+					<b>Draft Responses:</b>
+					{applicationForm.responses.filter((r) => r.status === 'DRAFT').length}
+				</p>
+				<p>
+					<b>Submitted Responses:</b>
+					{applicationForm.responses.filter((r) => r.status !== 'DRAFT').length}
+				</p>
+				<p>
+					<b>Group:</b>
+					{applicationForm.group?.name || 'No group'}
+				</p>
 
 				<div class="mt-4 flex items-center gap-2">
 					{#if applicationForm.active}
@@ -49,6 +61,7 @@
 						</form>
 					{/if}
 				</div>
+
 				{#if form?.error}
 					<p class="text-center font-bold text-red-700">Error: {form.error}</p>
 				{/if}

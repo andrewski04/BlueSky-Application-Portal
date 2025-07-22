@@ -21,6 +21,7 @@ export const FormDraftWithSectionsWithQuestionsWithOptions =
 export const FormPublishedWithSectionsWithQuestionsWithOptions =
 	Prisma.validator<Prisma.ApplicationFormPublishedFindManyArgs>()({
 		include: {
+			group: true,
 			sections: {
 				orderBy: { displayOrder: 'asc' },
 				include: {
@@ -31,6 +32,7 @@ export const FormPublishedWithSectionsWithQuestionsWithOptions =
 						}
 					}
 				}
-			}
+			},
+			responses: true
 		}
 	});

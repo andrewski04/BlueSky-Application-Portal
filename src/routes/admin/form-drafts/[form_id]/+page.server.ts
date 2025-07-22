@@ -36,7 +36,7 @@ export const load = (async ({ locals, params }) => {
 export const actions = {
 	publishDraft: async ({ locals, params }) => {
 		requireRole(locals, 'ADMIN');
-		const publishRes = await publishFormFromDraft(params.form_id);
+		const publishRes = await publishFormFromDraft(params.form_id, { active: false });
 		if (publishRes.isErr()) {
 			return { success: false, error: publishRes.error.message };
 		}

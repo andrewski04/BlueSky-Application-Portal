@@ -17,6 +17,7 @@ export const load = (async ({ locals, params }) => {
 			...FormPublishedWithSectionsWithQuestionsWithOptions
 		})
 	);
+
 	if (applicationForm.isErr()) {
 		log.error('Error getting application form by ID', applicationForm.error);
 		return { error: applicationForm.error.message, user };
@@ -25,9 +26,24 @@ export const load = (async ({ locals, params }) => {
 		return { error: 'Application form not found', user };
 	}
 
+	const groupResult = await prismaResult(
+		prisma.applicationFormGroup.findMany({
+			select: {
+				id: true,
+				name: true,
+				forms: { select: { id: true } }
+			}
+		})
+	);
+	if (groupResult.isErr()) {
+		log.error('Error getting application form groups', groupResult.error);
+		return { error: groupResult.error.message, user };
+	}
+
 	return {
 		user,
-		applicationForm: applicationForm.value
+		applicationForm: applicationForm.value,
+		groups: groupResult.value.map((g) => ({ ...g, formCount: g.forms.length }))
 	};
 }) satisfies PageServerLoad;
 

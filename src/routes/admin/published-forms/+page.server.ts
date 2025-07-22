@@ -7,7 +7,10 @@ export const load = (async ({ locals }) => {
 
 	const publishedForms = await prismaResult(
 		prisma.applicationFormPublished.findMany({
-			orderBy: { publishedAt: 'desc' }
+			orderBy: { publishedAt: 'desc' },
+			include: {
+				responses: true
+			}
 		})
 	);
 	if (publishedForms.isErr()) {

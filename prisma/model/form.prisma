@@ -154,11 +154,22 @@ model QuestionLinkDraft {
 /// PUBLISHED (IMMUTABLE) FORMS
 /// ─────────────────────────────────────────────────────────────────────────────
 
+model ApplicationFormGroup {
+  id          String                 @id @default(cuid(2))
+  name        String
+  description String?
+  forms       ApplicationFormPublished[]
+}
+
 model ApplicationFormPublished {
   id          String                 @id @default(cuid(2))
   name        String
   description String?
   active      Boolean                @default(true) /// hide/show to students
+  groupId     String?
+  group       ApplicationFormGroup?  @relation(fields: [groupId], references: [id])
+  openDate    DateTime?
+  closeDate   DateTime?
   publishedAt DateTime               @default(now())
   sections    FormSectionPublished[]
   responses   ApplicationResponse[]
