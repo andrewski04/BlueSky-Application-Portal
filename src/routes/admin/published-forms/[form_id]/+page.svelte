@@ -4,8 +4,19 @@
 	import Tooltip from '$lib/components/util/Tooltip.svelte';
 	import { QuestionTypeMap } from '$lib/utils/QuestionTypeMap';
 
+	let showDateRange = $state(false);
+
 	let { data, form }: PageProps = $props();
 	let { applicationForm, user } = data;
+
+	// Converts a UTC date to a string suitable for <input type="datetime-local"> (local time, no timezone info)
+	function toLocalDatetimeValue(date: Date | string | null | undefined): string {
+		if (!date) return '';
+		const d = new Date(date);
+		// Adjust for local timezone offset
+		d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+		return d.toISOString().slice(0, 16);
+	}
 </script>
 
 <svelte:head>
@@ -16,16 +27,24 @@
 	<div class="bg-secondary min-h-screen">
 		<AdminNavBar message={`Viewing Published Form: ${applicationForm?.name}`} />
 		<div class="container mx-auto p-6">
-			<div class="mb-4 flex items-center justify-between">
-				<h1 class="text-3xl font-bold">Published Form: {applicationForm?.name}</h1>
-				<a href="/admin/published-forms" class="btn btn-danger px-3 py-1">Back</a>
-			</div>
-
 			<div class="mb-6 rounded-md border border-gray-200 bg-white p-6 shadow-sm">
+				<div class="mb-2 flex items-center justify-between">
+					<h1 class="text-3xl font-bold">Published Form: {applicationForm?.name}</h1>
+					<a href="/admin/published-forms" class="btn btn-danger px-3 py-1">Back</a>
+				</div>
+
 				<p><b>Description:</b> {applicationForm.description || 'No description provided'}</p>
 				<p><b>ID:</b> {applicationForm.id}</p>
-				<p><b>Published At:</b> {applicationForm.publishedAt.toLocaleString()}</p>
+				<p>
+					<b>Published At:</b>
+					{applicationForm.publishedAt.toLocaleString('en-US', { timeZoneName: 'short' })}
+				</p>
 				<p><b>Active:</b> {applicationForm.active ? 'Yes' : 'No'}</p>
+				<p>
+					<b>Date Range:</b>
+					{applicationForm.openDate?.toLocaleString('en-US', { timeZoneName: 'short' }) || 'N/A'} -
+					{applicationForm.closeDate?.toLocaleString('en-US', { timeZoneName: 'short' }) || 'N/A'}
+				</p>
 				<p>
 					<b>Draft Responses:</b>
 					{applicationForm.responses.filter((r) => r.status === 'DRAFT').length}
@@ -49,8 +68,7 @@
 								Disable
 							</button>
 						</form>
-					{/if}
-					{#if !applicationForm.active}
+					{:else}
 						<form action="?/enablePublishedForm" method="post">
 							<button
 								type="submit"
@@ -60,6 +78,13 @@
 							</button>
 						</form>
 					{/if}
+
+					<button
+						class="rounded-xl bg-blue-600 px-4 py-1 text-white hover:bg-blue-700"
+						onclick={() => (showDateRange = true)}
+					>
+						Date Range
+					</button>
 				</div>
 
 				{#if form?.error}
@@ -108,6 +133,52 @@
 					<hr class="my-6 text-gray-400" />
 				{/each}
 			</div>
+
+			{#if showDateRange}
+				<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+					<div class="relative w-full max-w-xl rounded-lg bg-white p-6 shadow-2xl">
+						<h2 class="mb-2 text-center text-2xl font-bold">Edit Date Range</h2>
+						<p class="text-center text-sm text-gray-500">
+							Timezone: {Intl.DateTimeFormat().resolvedOptions().timeZone} (Local)
+						</p>
+						<form class="flex flex-col gap-6" method="POST" action="?/updateFormDateRange">
+							<input type="hidden" name="timezone" value={new Date().getTimezoneOffset()} />
+							<div class="form-group flex flex-col gap-2">
+								<label for="openDate" class="font-semibold">Open Date</label>
+								<input
+									type="datetime-local"
+									id="openDate"
+									name="openDate"
+									class="form-control rounded border-1 border-blue-500 px-4 py-2 text-lg focus:ring-2 focus:ring-blue-300 focus:outline-none"
+									value={toLocalDatetimeValue(applicationForm.openDate)}
+								/>
+							</div>
+							<div class="form-group flex flex-col gap-2">
+								<label for="closeDate" class="font-semibold">Close Date</label>
+								<input
+									type="datetime-local"
+									id="closeDate"
+									name="closeDate"
+									class="form-control rounded border-1 border-blue-500 px-4 py-2 text-lg focus:ring-2 focus:ring-blue-300 focus:outline-none"
+									value={toLocalDatetimeValue(applicationForm.closeDate)}
+								/>
+							</div>
+							<div class="mt-2 flex justify-end gap-4">
+								<button
+									type="button"
+									class="btn btn-danger rounded-xl px-3 py-1"
+									onclick={() => (showDateRange = false)}
+								>
+									Cancel
+								</button>
+								<button type="submit" class="btn btn-primary rounded-xl px-3 py-1">Save</button>
+							</div>
+						</form>
+						<!-- Click outside to close -->
+						<div class="absolute inset-0 -z-10" onclick={() => (showDateRange = false)}></div>
+					</div>
+				</div>
+			{/if}
 		</div>
 	</div>
 {:else}

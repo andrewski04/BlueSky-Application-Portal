@@ -95,5 +95,59 @@ export const actions = {
 		}
 
 		return { success: true };
+	},
+	updateFormDateRange: async ({ locals, params, request }) => {
+		requireRole(locals, 'ADMIN');
+
+		if (!params.form_id) {
+			return { success: false, error: 'Form ID is required' };
+		}
+
+		const formData = await request.formData();
+		const openDateRaw = formData.get('openDate') as string | null;
+		const closeDateRaw = formData.get('closeDate') as string | null;
+		const timezoneOffset = parseInt(formData.get('timezone') as string) || 0;
+
+		function localToISOString(
+			dateStr: string | null,
+			timezoneOffsetMinutes: number
+		): string | null {
+			if (!dateStr) return null;
+
+			// Parse the local datetime string into components
+			const [datePart, timePart] = dateStr.split('T');
+			if (!datePart || !timePart) return null;
+
+			const [year, month, day] = datePart.split('-').map(Number);
+			const [hour, minute] = timePart.split(':').map(Number);
+
+			// Construct a Date object using local time
+			const localDate = new Date(year, month - 1, day, hour, minute);
+
+			// Convert to UTC by subtracting the local timezone offset
+			const utcDate = new Date(localDate.getTime() - timezoneOffsetMinutes * 60 * 1000);
+
+			// Return ISO string (with Z suffix for UTC)
+			return utcDate.toISOString();
+		}
+
+		const openDateUTC = localToISOString(openDateRaw, timezoneOffset);
+		const closeDateUTC = localToISOString(closeDateRaw, timezoneOffset);
+
+		const result = await prismaResult(
+			prisma.applicationFormPublished.update({
+				where: { id: params.form_id },
+				data: {
+					openDate: openDateUTC,
+					closeDate: closeDateUTC
+				}
+			})
+		);
+
+		if (result.isErr()) {
+			return { success: false, error: result.error.message };
+		}
+
+		return { success: true };
 	}
 } satisfies Actions;

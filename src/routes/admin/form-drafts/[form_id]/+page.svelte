@@ -36,8 +36,14 @@
 				</div>
 				<p><b>Description:</b> {applicationForm.description || 'No description provided'}</p>
 				<p><b>ID:</b> {applicationForm.id}</p>
-				<p><b>Created At:</b> {applicationForm.createdAt.toLocaleString()}</p>
-				<p><b>Last Updated:</b> {applicationForm.updatedAt.toLocaleString()}</p>
+				<p>
+					<b>Created At:</b>
+					{applicationForm.createdAt.toLocaleString('en-US', { timeZoneName: 'short' })}
+				</p>
+				<p>
+					<b>Last Updated:</b>
+					{applicationForm.updatedAt.toLocaleString('en-US', { timeZoneName: 'short' })}
+				</p>
 
 				<div class="mt-4 flex items-center gap-2">
 					<a

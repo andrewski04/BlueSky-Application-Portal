@@ -67,7 +67,9 @@
 										>{response.user.lastName}, {response.user.firstName}</td
 									>
 									<td class="px-6 py-4 text-sm text-gray-900"
-										>{response.updatedAt.toLocaleString() ?? response.createdAt ?? 'N/A'}</td
+										>{response.updatedAt.toLocaleString('en-US', { timeZoneName: 'short' }) ??
+											response.createdAt ??
+											'N/A'}</td
 									>
 									<td class="px-6 py-4 text-sm whitespace-nowrap text-gray-900">
 										{response.status}
