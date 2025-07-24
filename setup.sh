@@ -31,7 +31,7 @@ if ! command -v code &> /dev/null; then
 fi
 
 # Check if Docker is running
-if ! sudo docker info &> /dev/null; then
+if ! docker info &> /dev/null; then
   echo "Docker is not running. Please start Docker first."
   exit 1
 fi
@@ -61,7 +61,7 @@ npm install || { echo "Failed to install npm packages"; exit 1; }
 if [[ $docker_remove -eq 1 ]]; then
   echo
   echo "Resetting Docker volumes..."
-  sudo docker compose down -v
+  docker compose down -v
 else
   echo
   echo "Skipping Docker volume reset"
@@ -70,12 +70,12 @@ fi
 # Start Docker services
 echo
 echo "Starting Docker services..."
-sudo docker compose up -d || { echo "Failed to start Docker services"; exit 1; }
+docker compose up -d || { echo "Failed to start Docker services"; exit 1; }
 
 # Wait for PostgreSQL to be ready
 echo
 echo "Waiting for PostgreSQL to start..."
-while ! sudo docker exec -i postgres pg_isready -U postgres &> /dev/null; do
+while ! docker exec -i postgres pg_isready -U postgres &> /dev/null; do
   sleep 3
 done
 echo "PostgreSQL is ready!"

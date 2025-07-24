@@ -4,6 +4,8 @@
 	import Tooltip from '$lib/components/util/Tooltip.svelte';
 	import { QuestionTypeMap } from '$lib/utils/QuestionTypeMap';
 
+	let editFormPopup = $state(false);
+
 	let { data, form }: PageProps = $props();
 	let { applicationForm, user } = data;
 </script>
@@ -16,12 +18,22 @@
 	<div class="bg-secondary min-h-screen">
 		<AdminNavBar message={`Viewing Draft: ${applicationForm?.name}`} />
 		<div class="container mx-auto p-6">
-			<div class="mb-4 flex items-center justify-between">
-				<h1 class="text-3xl font-bold">Form Draft: {applicationForm?.name}</h1>
-				<a href="/admin/form-drafts" class="btn btn-danger px-3 py-1">Back</a>
-			</div>
-
 			<div class="mb-6 rounded-md border border-gray-200 bg-white p-6 shadow-sm">
+				<div class="mb-2 flex items-center justify-between">
+					<div class="flex items-center gap-2">
+						<h1 class="text-3xl font-bold">Form Draft: {applicationForm?.name}</h1>
+						<button
+							class="inline-block align-middle"
+							aria-label="Edit form draft"
+							onclick={() => {
+								editFormPopup = true;
+							}}
+						>
+							<img src="/icons/edit.svg" alt="Edit" class="h-6 w-6" />
+						</button>
+					</div>
+					<a href="/admin/form-drafts" class="btn btn-danger px-3 py-1">Back</a>
+				</div>
 				<p><b>Description:</b> {applicationForm.description || 'No description provided'}</p>
 				<p><b>ID:</b> {applicationForm.id}</p>
 				<p><b>Created At:</b> {applicationForm.createdAt.toLocaleString()}</p>
@@ -124,6 +136,45 @@
 			</div>
 		</div>
 	</div>
+
+	{#if editFormPopup}
+		<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+			<div class="w-full max-w-xl rounded-lg bg-white p-6 shadow-2xl">
+				<h2 class="mb-2 text-center text-2xl font-bold">Edit Form Draft</h2>
+				<form class="flex flex-col gap-6" method="POST" action="?/updateDraft">
+					<div class="form-group flex flex-col gap-2">
+						<label for="name" class="font-semibold">Name</label>
+						<input
+							type="text"
+							id="name"
+							name="name"
+							class="form-control rounded border-1 border-blue-500 px-4 py-2 text-lg focus:ring-2 focus:ring-blue-300 focus:outline-none"
+							value={applicationForm.name}
+						/>
+					</div>
+					<div class="description flex flex-col gap-2">
+						<label for="description" class="font-semibold">Description</label>
+						<textarea
+							id="description"
+							name="description"
+							class="form-control min-h-[100px] resize-y rounded border-1 border-blue-500 px-4 py-2 text-lg focus:ring-2 focus:ring-blue-300 focus:outline-none"
+							value={applicationForm.description}
+						></textarea>
+					</div>
+					<div class="mt-2 flex justify-end gap-4">
+						<button
+							type="button"
+							class="btn btn-danger rounded-xl px-3 py-1"
+							onclick={() => (editFormPopup = false)}
+						>
+							Cancel
+						</button>
+						<button type="submit" class="btn btn-primary rounded-xl px-3 py-1">Save</button>
+					</div>
+				</form>
+			</div>
+		</div>
+	{/if}
 {:else}
 	<div class="bg-secondary min-h-screen">
 		<AdminNavBar message={`Viewing Form: Form Not Found`} />

@@ -4,6 +4,7 @@ import { sha256 } from '@oslojs/crypto/sha2';
 import type { User, Session } from '@prisma/client';
 import type { RequestEvent } from '@sveltejs/kit';
 import { err, ok, AppError, type Result } from '$lib/utils/error';
+import { prismaResult } from '$lib/server/prisma';
 
 // API to manage user session tokens
 // Session tokens are stored in cookies to authenticate users,
@@ -59,18 +60,20 @@ export async function validateSessionToken(
 	token: string
 ): Promise<{ session: Session | null; user: User | null }> {
 	const hashedToken = encodeHexLowerCase(sha256(new TextEncoder().encode(token)));
-	const result = await prisma.session.findUnique({
-		where: {
-			hashedToken
-		},
-		include: {
-			user: true
-		}
-	});
-	if (result === null) {
+	const result = await prismaResult(
+		prisma.session.findUnique({
+			where: {
+				hashedToken
+			},
+			include: {
+				user: true
+			}
+		})
+	);
+	if (result.isErr() || result.value === null) {
 		return { session: null, user: null };
 	}
-	const { user, ...session } = result;
+	const { user, ...session } = result.value;
 	if (Date.now() >= session.expiresAt.getTime()) {
 		await prisma.session.delete({ where: { hashedToken } });
 		return { session: null, user: null };

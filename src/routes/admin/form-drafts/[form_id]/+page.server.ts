@@ -63,5 +63,25 @@ export const actions = {
 		}
 
 		return redirect(302, '/admin/form-drafts');
+	},
+	updateDraft: async ({ locals, params, request }) => {
+		requireRole(locals, 'ADMIN');
+		const form = await request.formData();
+		const name = form.get('name');
+		const description = form.get('description');
+		console.log(name + ' ' + description);
+		if (!name || typeof name !== 'string' || !description || typeof description !== 'string') {
+			return { success: false, error: 'Name and description are required' };
+		}
+		const result = await prismaResult(
+			prisma.applicationFormDraft.update({
+				where: { id: params.form_id },
+				data: { name: name.trim(), description: description.trim() }
+			})
+		);
+		if (result.isErr()) {
+			return { success: false, error: result.error.message };
+		}
+		return redirect(302, `/admin/form-drafts/${params.form_id}`);
 	}
 } satisfies Actions;
