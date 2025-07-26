@@ -15,15 +15,13 @@
 
 	const { data }: { data: PageData } = $props();
 
-	const { sectionWithAnswers, applicationStatus } = data;
+	const { sectionWithAnswers, isReadOnly, readOnlyMessage } = data;
 
 	let saveStatus: 'Saved' | 'Saving' | 'Unsaved' = $state('Saved');
 
 	let isInitialLoad = true;
 	let form: HTMLFormElement;
 	let activeElement: Element | null = null;
-
-	const isReadOnly = applicationStatus !== 'DRAFT';
 
 	// debounce form submission; wait 1 second after last input before submitting
 	const debouncedSubmit = debounce(() => {
@@ -62,6 +60,9 @@
 
 {#if sectionWithAnswers}
 	<div class="min-h-screen space-y-6 bg-gray-100 p-6">
+		{#if isReadOnly}
+			<p class="text-center text-2xl font-bold">{readOnlyMessage}</p>
+		{/if}
 		<form
 			bind:this={form}
 			method="POST"

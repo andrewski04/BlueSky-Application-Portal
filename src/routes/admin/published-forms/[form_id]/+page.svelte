@@ -8,15 +8,6 @@
 
 	let { data, form }: PageProps = $props();
 	let { applicationForm, user } = data;
-
-	// Converts a UTC date to a string suitable for <input type="datetime-local"> (local time, no timezone info)
-	function toLocalDatetimeValue(date: Date | string | null | undefined): string {
-		if (!date) return '';
-		const d = new Date(date);
-		// Adjust for local timezone offset
-		d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-		return d.toISOString().slice(0, 16);
-	}
 </script>
 
 <svelte:head>
@@ -37,13 +28,13 @@
 				<p><b>ID:</b> {applicationForm.id}</p>
 				<p>
 					<b>Published At:</b>
-					{applicationForm.publishedAt.toLocaleString('en-US', { timeZoneName: 'short' })}
+					{applicationForm.publishedAt.toLocaleString('en-US', { timeZoneName: 'shortGeneric' })}
 				</p>
 				<p><b>Active:</b> {applicationForm.active ? 'Yes' : 'No'}</p>
 				<p>
 					<b>Date Range:</b>
-					{applicationForm.openDate?.toLocaleString('en-US', { timeZoneName: 'short' }) || 'N/A'} -
-					{applicationForm.closeDate?.toLocaleString('en-US', { timeZoneName: 'short' }) || 'N/A'}
+					{applicationForm.openDate?.toLocaleString('en-US', { timeZoneName: 'shortGeneric' })} -
+					{applicationForm.closeDate?.toLocaleString('en-US', { timeZoneName: 'shortGeneric' })}
 				</p>
 				<p>
 					<b>Draft Responses:</b>
@@ -139,10 +130,14 @@
 					<div class="relative w-full max-w-xl rounded-lg bg-white p-6 shadow-2xl">
 						<h2 class="mb-2 text-center text-2xl font-bold">Edit Date Range</h2>
 						<p class="text-center text-sm text-gray-500">
-							Timezone: {Intl.DateTimeFormat().resolvedOptions().timeZone} (Local)
+							If enabled, the form will be available between the selected dates.
 						</p>
 						<form class="flex flex-col gap-6" method="POST" action="?/updateFormDateRange">
-							<input type="hidden" name="timezone" value={new Date().getTimezoneOffset()} />
+							<input
+								type="hidden"
+								name="timezoneOffset"
+								value={applicationForm.openDate?.getTimezoneOffset()}
+							/>
 							<div class="form-group flex flex-col gap-2">
 								<label for="openDate" class="font-semibold">Open Date</label>
 								<input
@@ -150,7 +145,14 @@
 									id="openDate"
 									name="openDate"
 									class="form-control rounded border-1 border-blue-500 px-4 py-2 text-lg focus:ring-2 focus:ring-blue-300 focus:outline-none"
-									value={toLocalDatetimeValue(applicationForm.openDate)}
+									value={applicationForm.openDate
+										? new Date(
+												applicationForm.openDate.getTime() -
+													applicationForm.openDate.getTimezoneOffset() * 60000
+											)
+												.toISOString()
+												.slice(0, 16)
+										: ''}
 								/>
 							</div>
 							<div class="form-group flex flex-col gap-2">
@@ -160,7 +162,14 @@
 									id="closeDate"
 									name="closeDate"
 									class="form-control rounded border-1 border-blue-500 px-4 py-2 text-lg focus:ring-2 focus:ring-blue-300 focus:outline-none"
-									value={toLocalDatetimeValue(applicationForm.closeDate)}
+									value={applicationForm.closeDate
+										? new Date(
+												applicationForm.closeDate.getTime() -
+													applicationForm.closeDate.getTimezoneOffset() * 60000
+											)
+												.toISOString()
+												.slice(0, 16)
+										: ''}
 								/>
 							</div>
 							<div class="mt-2 flex justify-end gap-4">
@@ -174,8 +183,6 @@
 								<button type="submit" class="btn btn-primary rounded-xl px-3 py-1">Save</button>
 							</div>
 						</form>
-						<!-- Click outside to close -->
-						<div class="absolute inset-0 -z-10" onclick={() => (showDateRange = false)}></div>
 					</div>
 				</div>
 			{/if}

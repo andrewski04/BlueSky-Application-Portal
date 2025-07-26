@@ -38,11 +38,11 @@
 				<p><b>ID:</b> {applicationForm.id}</p>
 				<p>
 					<b>Created At:</b>
-					{applicationForm.createdAt.toLocaleString('en-US', { timeZoneName: 'short' })}
+					{applicationForm.createdAt.toLocaleString('en-US', { timeZoneName: 'shortGeneric' })}
 				</p>
 				<p>
 					<b>Last Updated:</b>
-					{applicationForm.updatedAt.toLocaleString('en-US', { timeZoneName: 'short' })}
+					{applicationForm.updatedAt.toLocaleString('en-US', { timeZoneName: 'shortGeneric' })}
 				</p>
 
 				<div class="mt-4 flex items-center gap-2">

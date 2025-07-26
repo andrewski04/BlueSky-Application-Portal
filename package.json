@@ -7,9 +7,9 @@
 		"schema": "./prisma"
 	},
 	"scripts": {
-		"dev": "vite dev",
-		"build": "vite build",
-		"preview": "vite preview",
+		"dev": "TZ=UTC vite dev",
+		"build": "TZ=UTC vite build",
+		"preview": "TZ=UTC vite preview",
 		"prepare": "svelte-kit sync || echo ''",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",

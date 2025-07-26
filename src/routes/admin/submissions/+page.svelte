@@ -67,7 +67,9 @@
 										>{response.user.lastName}, {response.user.firstName}</td
 									>
 									<td class="px-6 py-4 text-sm text-gray-900"
-										>{response.updatedAt.toLocaleString('en-US', { timeZoneName: 'short' }) ??
+										>{response.updatedAt.toLocaleString('en-US', {
+											timeZoneName: 'shortGeneric'
+										}) ??
 											response.createdAt ??
 											'N/A'}</td
 									>

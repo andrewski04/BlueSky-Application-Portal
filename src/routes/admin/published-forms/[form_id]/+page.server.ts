@@ -106,40 +106,28 @@ export const actions = {
 		const formData = await request.formData();
 		const openDateRaw = formData.get('openDate') as string | null;
 		const closeDateRaw = formData.get('closeDate') as string | null;
-		const timezoneOffset = parseInt(formData.get('timezone') as string) || 0;
+		const timezoneOffset = formData.get('timezoneOffset') as string | null;
 
-		function localToISOString(
-			dateStr: string | null,
-			timezoneOffsetMinutes: number
-		): string | null {
-			if (!dateStr) return null;
-
-			// Parse the local datetime string into components
-			const [datePart, timePart] = dateStr.split('T');
-			if (!datePart || !timePart) return null;
-
-			const [year, month, day] = datePart.split('-').map(Number);
-			const [hour, minute] = timePart.split(':').map(Number);
-
-			// Construct a Date object using local time
-			const localDate = new Date(year, month - 1, day, hour, minute);
-
-			// Convert to UTC by subtracting the local timezone offset
-			const utcDate = new Date(localDate.getTime() - timezoneOffsetMinutes * 60 * 1000);
-
-			// Return ISO string (with Z suffix for UTC)
-			return utcDate.toISOString();
+		if (!timezoneOffset) {
+			return { success: false, error: 'Timezone offset is required' };
 		}
 
-		const openDateUTC = localToISOString(openDateRaw, timezoneOffset);
-		const closeDateUTC = localToISOString(closeDateRaw, timezoneOffset);
+		const offsetMinutes = parseInt(timezoneOffset, 10);
+
+		function localToUTC(dateStr: string | null, offset: number): Date | null {
+			if (!dateStr) return null;
+			return new Date(new Date(dateStr).getTime() + offset * 60000);
+		}
+
+		const openDate = localToUTC(openDateRaw, offsetMinutes);
+		const closeDate = localToUTC(closeDateRaw, offsetMinutes);
 
 		const result = await prismaResult(
 			prisma.applicationFormPublished.update({
 				where: { id: params.form_id },
 				data: {
-					openDate: openDateUTC,
-					closeDate: closeDateUTC
+					openDate: openDate,
+					closeDate: closeDate
 				}
 			})
 		);

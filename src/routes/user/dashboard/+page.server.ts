@@ -9,7 +9,13 @@ export const load = (async ({ locals }) => {
 	const applicationFormsResult = await prismaResult(
 		prisma.applicationFormPublished.findMany({
 			where: {
-				active: true
+				active: true,
+				openDate: {
+					lte: new Date()
+				},
+				closeDate: {
+					gte: new Date()
+				}
 			},
 			include: {
 				sections: {

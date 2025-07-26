@@ -72,6 +72,11 @@
 								<th
 									class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
 								>
+									Due Date
+								</th>
+								<th
+									class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
+								>
 									Actions
 								</th>
 							</tr>
@@ -88,6 +93,19 @@
 											<span class="text-yellow-600">Draft</span>
 										{:else}
 											<span class="text-green-600">Submitted</span>
+										{/if}
+									</td>
+									<td class="px-6 py-4 text-sm text-gray-900">
+										{#if form.closeDate}
+											{new Date(form.closeDate).toLocaleString('en-US', {
+												month: 'short',
+												day: 'numeric',
+												year: 'numeric',
+												hour: '2-digit',
+												minute: '2-digit'
+											})}
+										{:else}
+											No due date
 										{/if}
 									</td>
 									<td class="flex space-x-2 px-6 py-4 text-sm whitespace-nowrap text-gray-900">

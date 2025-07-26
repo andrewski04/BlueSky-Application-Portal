@@ -30,7 +30,13 @@ export async function load({ locals, params }) {
 			update: {},
 			select: {
 				id: true,
-				status: true
+				status: true,
+				form: {
+					select: {
+						closeDate: true,
+						openDate: true
+					}
+				}
 			}
 		})
 	);
@@ -51,8 +57,25 @@ export async function load({ locals, params }) {
 		);
 	}
 
+	let isReadOnly = applicationResult.value.status !== 'DRAFT';
+	let readOnlyMessage = 'This form has been submitted and is no longer editable.';
+
+	if (
+		applicationResult.value.form.closeDate &&
+		applicationResult.value.form.closeDate < new Date() &&
+		applicationResult.value.status === 'DRAFT'
+	) {
+		isReadOnly = true;
+		readOnlyMessage = 'This form is no longer available.';
+	}
+
+	if (applicationResult.value.form.openDate && applicationResult.value.form.openDate > new Date()) {
+		throw error(403, 'This form is not yet available.');
+	}
+
 	return {
-		applicationStatus: applicationResult.value.status,
+		isReadOnly,
+		readOnlyMessage,
 		sectionWithAnswers: sectionWithAnswersResult.value
 	};
 }
@@ -65,6 +88,52 @@ export const actions = {
 
 		const { user } = requireAuth(locals);
 		const userId = user.id;
+
+		// Validate form availability and submission status
+		const applicationResult = await prismaResult(
+			prisma.applicationResponse.findUnique({
+				where: {
+					userId_formId: {
+						userId,
+						formId
+					}
+				},
+				select: {
+					id: true,
+					status: true,
+					form: {
+						select: {
+							closeDate: true,
+							openDate: true
+						}
+					}
+				}
+			})
+		);
+
+		if (applicationResult.isErr()) {
+			throw error(500, `Error fetching application: ${applicationResult.error.message}`);
+		}
+
+		const application = applicationResult.value;
+		if (!application) {
+			throw error(404, 'Application not found');
+		}
+
+		// Check if form is already submitted
+		if (application.status !== 'DRAFT') {
+			throw error(403, 'This form has been submitted and is no longer editable.');
+		}
+
+		// Check if form is closed
+		if (application.form.closeDate && application.form.closeDate < new Date()) {
+			throw error(403, 'This form is no longer available.');
+		}
+
+		// Check if form is not yet open
+		if (application.form.openDate && application.form.openDate > new Date()) {
+			throw error(403, 'This form is not yet available.');
+		}
 
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const responses: Record<string, any> = {};
@@ -92,6 +161,52 @@ export const actions = {
 		const { user } = requireAuth(locals);
 		const userId = user.id;
 		const formId = params.form_id;
+
+		// Validate form availability and submission status
+		const applicationResult = await prismaResult(
+			prisma.applicationResponse.findUnique({
+				where: {
+					userId_formId: {
+						userId,
+						formId
+					}
+				},
+				select: {
+					id: true,
+					status: true,
+					form: {
+						select: {
+							closeDate: true,
+							openDate: true
+						}
+					}
+				}
+			})
+		);
+
+		if (applicationResult.isErr()) {
+			throw error(500, `Error fetching application: ${applicationResult.error.message}`);
+		}
+
+		const application = applicationResult.value;
+		if (!application) {
+			throw error(404, 'Application not found');
+		}
+
+		// Check if form is already submitted
+		if (application.status !== 'DRAFT') {
+			throw error(403, 'This form has been submitted and is no longer editable.');
+		}
+
+		// Check if form is closed
+		if (application.form.closeDate && application.form.closeDate < new Date()) {
+			throw error(403, 'This form is no longer available.');
+		}
+
+		// Check if form is not yet open
+		if (application.form.openDate && application.form.openDate > new Date()) {
+			throw error(403, 'This form is not yet available.');
+		}
 
 		const submitResult = await submitApplication(userId, formId);
 
