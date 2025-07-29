@@ -117,6 +117,7 @@
 	});
 
 	function setCurrentSection(section: FormSectionWithQuestions | null) {
+		resetQuestionForm();
 		if (!section) {
 			currentSectionCopy = null;
 			questionsCount = 0;

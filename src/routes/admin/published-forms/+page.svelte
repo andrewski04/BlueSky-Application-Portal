@@ -88,7 +88,7 @@
 				/>
 				<select
 					bind:value={statusFilter}
-					class=" rounded border border-gray-300 bg-blue-600 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+					class="rounded border border-gray-300 bg-blue-500 px-3 py-2 text-sm text-white focus:border-blue-500 focus:outline-none"
 				>
 					<option value="all">All</option>
 					<option value="active">Active</option>

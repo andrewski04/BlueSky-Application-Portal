@@ -58,11 +58,10 @@
 						<tbody class="divide-y divide-gray-200 bg-white">
 							{#each applicationResponses as response}
 								<tr class="hover:bg-gray-100">
-									<Tooltip tip={response.id} right>
-										<td class="px-6 py-4 text-sm whitespace-nowrap text-gray-900"
-											>{response.id.slice(0, 6)}...</td
-										>
-									</Tooltip>
+									<td class="px-6 py-4 text-sm whitespace-nowrap text-gray-900"
+										>{response.id.slice(0, 6)}...</td
+									>
+
 									<td class="px-6 py-4 text-sm whitespace-nowrap text-gray-900"
 										>{response.user.lastName}, {response.user.firstName}</td
 									>

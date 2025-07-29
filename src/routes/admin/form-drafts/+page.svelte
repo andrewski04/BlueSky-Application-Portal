@@ -9,6 +9,25 @@
 	let formName = $state('');
 	let formDescription = $state('');
 
+	// Add search state
+	let search = $state('');
+
+	// Filtered forms state
+	let filteredForms = $state(data.applicationForms);
+
+	// Sorting state
+	let sortKey = $state<'id' | 'name' | 'description' | 'createdAt' | 'updatedAt'>('updatedAt');
+	let sortDirection = $state<'asc' | 'desc'>('desc');
+
+	function setSort(key: typeof sortKey) {
+		if (sortKey === key) {
+			sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+		} else {
+			sortKey = key;
+			sortDirection = 'asc';
+		}
+	}
+
 	function openFormCreationPopup() {
 		showFormCreationPopup = true;
 		formName = '';
@@ -22,6 +41,35 @@
 	}
 
 	let { user, applicationForms, error } = data;
+
+	$effect(() => {
+		let forms = applicationForms;
+		if (search) {
+			const q = search.toLowerCase();
+			forms = forms.filter((form) => {
+				return (
+					form.name?.toLowerCase().includes(q) ||
+					form.id?.toLowerCase().includes(q) ||
+					form.description?.toLowerCase().includes(q)
+				);
+			});
+		}
+		// Sorting
+		forms = [...forms].sort((a, b) => {
+			let aVal: any = a[sortKey];
+			let bVal: any = b[sortKey];
+			if (sortKey === 'createdAt' || sortKey === 'updatedAt') {
+				aVal = aVal ? aVal.getTime() : 0;
+				bVal = bVal ? bVal.getTime() : 0;
+			}
+			if (aVal == null) return 1;
+			if (bVal == null) return -1;
+			if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
+			if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
+			return 0;
+		});
+		filteredForms = forms;
+	});
 </script>
 
 <svelte:head>
@@ -58,6 +106,17 @@
 					</button>
 				</form>
 			</div>
+
+			<!-- Search bar -->
+			<div class="mb-4">
+				<input
+					type="text"
+					placeholder="Search by name, id, or description..."
+					bind:value={search}
+					class="w-full max-w-xs rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+				/>
+			</div>
+
 			{#if error}
 				<p class="mb-4 text-center text-red-500">{error}</p>
 			{/if}
@@ -65,7 +124,7 @@
 				<p class="mb-4 text-center text-red-500">{form.error}</p>
 			{/if}
 
-			{#if applicationForms.length === 0}
+			{#if !filteredForms || filteredForms.length === 0}
 				<p class="text-center text-gray-500">No application forms found</p>
 			{:else}
 				<div class="overflow-x-auto">
@@ -73,29 +132,38 @@
 						<thead>
 							<tr>
 								<th
-									class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
+									class="cursor-pointer px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase select-none"
+									onclick={() => setSort('id')}
 								>
-									ID
+									ID {sortKey === 'id' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
 								</th>
 								<th
-									class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
+									class="cursor-pointer px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase select-none"
+									onclick={() => setSort('name')}
 								>
-									Name
+									Name {sortKey === 'name' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
 								</th>
 								<th
-									class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
+									class="cursor-pointer px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase select-none"
+									onclick={() => setSort('description')}
 								>
-									Description
+									Description {sortKey === 'description'
+										? sortDirection === 'asc'
+											? '▲'
+											: '▼'
+										: ''}
 								</th>
 								<th
-									class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
+									class="cursor-pointer px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase select-none"
+									onclick={() => setSort('createdAt')}
 								>
-									Created
+									Created {sortKey === 'createdAt' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
 								</th>
 								<th
-									class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
+									class="cursor-pointer px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase select-none"
+									onclick={() => setSort('updatedAt')}
 								>
-									Updated
+									Updated {sortKey === 'updatedAt' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
 								</th>
 								<th
 									class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
@@ -105,13 +173,12 @@
 							</tr>
 						</thead>
 						<tbody class="divide-y divide-gray-200 bg-white">
-							{#each applicationForms as form}
+							{#each filteredForms as form}
 								<tr class="hover:bg-gray-100">
-									<Tooltip tip={form.id} right>
-										<td class="px-6 py-4 text-sm whitespace-nowrap text-gray-900"
-											>{form.id.slice(0, 6)}...</td
-										>
-									</Tooltip>
+									<td class="px-6 py-4 text-sm whitespace-nowrap text-gray-900"
+										>{form.id.slice(0, 6)}...</td
+									>
+
 									<td class="px-6 py-4 text-sm whitespace-nowrap text-gray-900">{form.name}</td>
 									<td class="px-6 py-4 text-sm text-gray-900">{form.description ?? 'N/A'}</td>
 									<td class="px-6 py-4 text-sm whitespace-nowrap text-gray-900"
