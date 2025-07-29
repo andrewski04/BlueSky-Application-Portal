@@ -31,6 +31,7 @@ export const load = (async ({ locals, params }) => {
 			select: {
 				id: true,
 				name: true,
+				description: true,
 				forms: { select: { id: true } }
 			}
 		})
@@ -129,6 +130,134 @@ export const actions = {
 					openDate: openDate,
 					closeDate: closeDate
 				}
+			})
+		);
+
+		if (result.isErr()) {
+			return { success: false, error: result.error.message };
+		}
+
+		return { success: true };
+	},
+	updateFormGroup: async ({ locals, params, request }) => {
+		requireRole(locals, 'ADMIN');
+
+		if (!params.form_id) {
+			return { success: false, error: 'Form ID is required' };
+		}
+
+		const formData = await request.formData();
+		const groupId = formData.get('group') as string | null;
+
+		const result = await prismaResult(
+			prisma.applicationFormPublished.update({
+				where: { id: params.form_id },
+				data: {
+					groupId: groupId || null
+				}
+			})
+		);
+
+		if (result.isErr()) {
+			return { success: false, error: result.error.message };
+		}
+
+		return { success: true };
+	},
+	createGroup: async ({ locals, request }) => {
+		requireRole(locals, 'ADMIN');
+
+		const formData = await request.formData();
+		const name = formData.get('name') as string | null;
+		const description = formData.get('description') as string | null;
+
+		if (!name) {
+			return { success: false, error: 'Group name is required' };
+		}
+
+		const result = await prismaResult(
+			prisma.applicationFormGroup.create({
+				data: {
+					name,
+					description
+				}
+			})
+		);
+
+		if (result.isErr()) {
+			return { success: false, error: result.error.message };
+		}
+
+		return { success: true };
+	},
+	updateGroup: async ({ locals, request }) => {
+		requireRole(locals, 'ADMIN');
+
+		const formData = await request.formData();
+		const groupId = formData.get('groupId') as string | null;
+		const name = formData.get('name') as string | null;
+		const description = formData.get('description') as string | null;
+
+		if (!groupId || !name) {
+			return { success: false, error: 'Group ID and name are required' };
+		}
+
+		const result = await prismaResult(
+			prisma.applicationFormGroup.update({
+				where: { id: groupId },
+				data: {
+					name,
+					description
+				}
+			})
+		);
+
+		if (result.isErr()) {
+			return { success: false, error: result.error.message };
+		}
+
+		return { success: true };
+	},
+	deleteGroup: async ({ locals, request }) => {
+		requireRole(locals, 'ADMIN');
+
+		const formData = await request.formData();
+		const groupId = formData.get('groupId') as string | null;
+
+		if (!groupId) {
+			return { success: false, error: 'Group ID is required' };
+		}
+
+		// Check if group has any forms or submissions
+		const groupWithRelations = await prismaResult(
+			prisma.applicationFormGroup.findUnique({
+				where: { id: groupId },
+				include: {
+					forms: { select: { id: true } },
+					submissions: { select: { id: true } }
+				}
+			})
+		);
+
+		if (groupWithRelations.isErr()) {
+			return { success: false, error: groupWithRelations.error.message };
+		}
+
+		if (!groupWithRelations.value) {
+			return { success: false, error: 'Group not found' };
+		}
+
+		if (groupWithRelations.value.forms.length > 0) {
+			return { success: false, error: 'Cannot delete group that has forms assigned to it' };
+		}
+
+		if (groupWithRelations.value.submissions.length > 0) {
+			return { success: false, error: 'Cannot delete group that has submissions' };
+		}
+
+		const result = await prismaResult(
+			prisma.applicationFormGroup.delete({
+				where: { id: groupId }
 			})
 		);
 

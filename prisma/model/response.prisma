@@ -15,6 +15,9 @@ model ApplicationResponse {
 
   answers Answer[]
 
+  formGroupId String?
+  formGroup ApplicationFormGroup? @relation(fields: [formGroupId], references: [id])
+
   @@unique([userId, formId])
   @@index([formId])
 }

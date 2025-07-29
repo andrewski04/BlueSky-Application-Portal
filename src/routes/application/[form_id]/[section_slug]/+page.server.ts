@@ -177,7 +177,8 @@ export const actions = {
 					form: {
 						select: {
 							closeDate: true,
-							openDate: true
+							openDate: true,
+							groupId: true
 						}
 					}
 				}
@@ -208,7 +209,7 @@ export const actions = {
 			throw error(403, 'This form is not yet available.');
 		}
 
-		const submitResult = await submitApplication(userId, formId);
+		const submitResult = await submitApplication(userId, formId, application.form.groupId);
 
 		if (submitResult.isErr()) {
 			throw error(500, `Error submitting application: ${submitResult.error.message}`);

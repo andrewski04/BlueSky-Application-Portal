@@ -3,11 +3,36 @@
 	import AdminNavBar from '$lib/components/dashboard/AdminNavBar.svelte';
 	import Tooltip from '$lib/components/util/Tooltip.svelte';
 	import { QuestionTypeMap } from '$lib/utils/QuestionTypeMap';
+	import { enhance } from '$app/forms';
 
 	let showDateRange = $state(false);
+	let showGroup = $state(false);
+	let activeTab = $state('assign'); // 'assign', 'manage'
+	let editingGroup = $state<{ id: string; name: string; description: string } | null>(null);
+	let newGroup = $state({ name: '', description: '' });
 
 	let { data, form }: PageProps = $props();
-	let { applicationForm, user } = data;
+	let { applicationForm, user, groups } = data;
+
+	// Local state for groups to apply changes immediately
+	let localGroups = $state(groups ? [...groups] : []);
+
+	function resetGroupForms() {
+		editingGroup = null;
+		newGroup = { name: '', description: '' };
+	}
+
+	function handleEditGroup(group: any) {
+		editingGroup = { id: group.id, name: group.name, description: group.description || '' };
+		activeTab = 'manage';
+	}
+
+	// Update local groups when server data changes
+	$effect(() => {
+		if (groups) {
+			localGroups = [...groups];
+		}
+	});
 </script>
 
 <svelte:head>
@@ -50,8 +75,18 @@
 				</p>
 
 				<div class="mt-4 flex items-center gap-2">
-					{#if applicationForm.active}
-						<form action="?/disablePublishedForm" method="post">
+					{#if applicationForm?.active}
+						<form
+							action="?/disablePublishedForm"
+							method="post"
+							use:enhance={() => {
+								return async ({ result }) => {
+									if (result.type === 'success' && applicationForm) {
+										applicationForm.active = false;
+									}
+								};
+							}}
+						>
 							<button
 								type="submit"
 								class="rounded-xl bg-red-600 px-4 py-1 text-white hover:bg-red-700"
@@ -60,7 +95,17 @@
 							</button>
 						</form>
 					{:else}
-						<form action="?/enablePublishedForm" method="post">
+						<form
+							action="?/enablePublishedForm"
+							method="post"
+							use:enhance={() => {
+								return async ({ result }) => {
+									if (result.type === 'success' && applicationForm) {
+										applicationForm.active = true;
+									}
+								};
+							}}
+						>
 							<button
 								type="submit"
 								class="rounded-xl bg-green-600 px-4 py-1 text-white hover:bg-green-700"
@@ -75,6 +120,13 @@
 						onclick={() => (showDateRange = true)}
 					>
 						Date Range
+					</button>
+
+					<button
+						class="rounded-xl bg-blue-600 px-4 py-1 text-white hover:bg-blue-700"
+						onclick={() => (showGroup = true)}
+					>
+						Group
 					</button>
 				</div>
 
@@ -125,6 +177,289 @@
 				{/each}
 			</div>
 
+			{#if showGroup && groups}
+				<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+					<div class="relative w-full max-w-4xl rounded-lg bg-white p-6 shadow-2xl">
+						<div class="mb-4 flex items-center justify-between">
+							<h2 class="text-2xl font-bold">Group Management</h2>
+							<button
+								type="button"
+								class="text-gray-500 hover:text-gray-700"
+								onclick={() => {
+									showGroup = false;
+									resetGroupForms();
+								}}
+							>
+								✕
+							</button>
+						</div>
+
+						<!-- Tab Navigation -->
+						<div class="mb-6 border-b border-gray-200">
+							<nav class="-mb-px flex space-x-8">
+								<button
+									class="border-b-2 px-1 py-2 text-sm font-medium {activeTab === 'assign'
+										? 'border-blue-500 text-blue-600'
+										: 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'}"
+									onclick={() => (activeTab = 'assign')}
+								>
+									Assign Group
+								</button>
+								<button
+									class="border-b-2 px-1 py-2 text-sm font-medium {activeTab === 'manage'
+										? 'border-blue-500 text-blue-600'
+										: 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'}"
+									onclick={() => (activeTab = 'manage')}
+								>
+									Manage Groups
+								</button>
+							</nav>
+						</div>
+
+						<!-- Assign Group Tab -->
+						{#if activeTab === 'assign'}
+							<form class="flex flex-col gap-6" method="POST" action="?/updateFormGroup">
+								<div class="form-group flex flex-col gap-2">
+									<p class=" text-gray-700">
+										When a user submits a form, the submissions will be added to the selected group. <br
+										/>
+										This allows you to organize submissions between forms.
+									</p>
+									<label for="group" class="font-semibold">Group</label>
+									<select
+										id="group"
+										name="group"
+										class="form-control rounded border-1 border-blue-500 bg-gray-200 px-4 py-2 text-lg text-black focus:ring-2 focus:ring-blue-300 focus:outline-none"
+									>
+										<option value="">No group</option>
+										{#each localGroups as group}
+											<option value={group.id} selected={applicationForm?.group?.id === group.id}>
+												{group.name} ({group.formCount} forms)
+											</option>
+										{/each}
+									</select>
+								</div>
+								<div class="mt-2 flex justify-end gap-4">
+									<button
+										type="button"
+										class="btn btn-danger rounded-xl px-3 py-1"
+										onclick={() => {
+											showGroup = false;
+											resetGroupForms();
+										}}
+									>
+										Cancel
+									</button>
+									<button type="submit" class="btn btn-primary rounded-xl px-3 py-1">Save</button>
+								</div>
+							</form>
+						{/if}
+
+						<!-- Manage Groups Tab -->
+						{#if activeTab === 'manage'}
+							<div class="space-y-6">
+								<!-- Create New Group -->
+								<div class="rounded-lg border border-gray-200 p-4">
+									<h3 class="mb-3 text-lg font-semibold">Create New Group</h3>
+									<form
+										class="flex flex-col gap-4"
+										method="POST"
+										action="?/createGroup"
+										use:enhance={({ formData }) => {
+											return async ({ result }) => {
+												if (result.type === 'success') {
+													// Add new group to local state immediately
+													const name = formData.get('name') as string;
+													const description = formData.get('description') as string;
+													const newGroupData = {
+														id: `temp-${Date.now()}`, // Temporary ID until server responds
+														name,
+														description,
+														formCount: 0,
+														forms: []
+													};
+													localGroups = [...localGroups, newGroupData];
+
+													// Reset form
+													newGroup.name = '';
+													newGroup.description = '';
+												}
+											};
+										}}
+									>
+										<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+											<div class="flex flex-col gap-2">
+												<label for="newGroupName" class="font-semibold">Name (required)</label>
+												<input
+													type="text"
+													id="newGroupName"
+													name="name"
+													bind:value={newGroup.name}
+													class="rounded border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
+													required
+												/>
+											</div>
+											<div class="flex flex-col gap-2">
+												<label for="newGroupDescription" class="font-semibold">Description</label>
+												<input
+													type="text"
+													id="newGroupDescription"
+													name="description"
+													bind:value={newGroup.description}
+													class="rounded border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
+												/>
+											</div>
+										</div>
+										<div class="flex justify-end">
+											<button type="submit" class="btn btn-primary rounded-xl px-4 py-2"
+												>Create Group</button
+											>
+										</div>
+									</form>
+								</div>
+
+								<!-- Edit Existing Group -->
+								{#if editingGroup}
+									<div class="rounded-lg border border-gray-200 p-4">
+										<h3 class="mb-3 text-lg font-semibold">Edit Group</h3>
+										<form
+											class="flex flex-col gap-4"
+											method="POST"
+											action="?/updateGroup"
+											use:enhance={({ formData }) => {
+												return async ({ result }) => {
+													if (result.type === 'success') {
+														// Update group in local state immediately
+														const groupId = formData.get('groupId') as string;
+														const name = formData.get('name') as string;
+														const description = formData.get('description') as string;
+
+														localGroups = localGroups.map((g) =>
+															g.id === groupId ? { ...g, name, description } : g
+														);
+
+														// Clear editing state
+														editingGroup = null;
+													}
+												};
+											}}
+										>
+											<input type="hidden" name="groupId" value={editingGroup.id} />
+											<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+												<div class="flex flex-col gap-2">
+													<label for="editGroupName" class="font-semibold">Name</label>
+													<input
+														type="text"
+														id="editGroupName"
+														name="name"
+														bind:value={editingGroup.name}
+														class="rounded border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
+														required
+													/>
+												</div>
+												<div class="flex flex-col gap-2">
+													<label for="editGroupDescription" class="font-semibold">Description</label
+													>
+													<input
+														type="text"
+														id="editGroupDescription"
+														name="description"
+														bind:value={editingGroup.description}
+														class="rounded border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
+													/>
+												</div>
+											</div>
+											<div class="flex justify-end gap-2">
+												<button
+													type="button"
+													class="btn btn-secondary rounded-xl px-4 py-2"
+													onclick={() => (editingGroup = null)}
+												>
+													Cancel
+												</button>
+												<button type="submit" class="btn btn-primary rounded-xl px-4 py-2"
+													>Update Group</button
+												>
+											</div>
+										</form>
+									</div>
+								{/if}
+
+								<!-- Existing Groups List -->
+								<div class="rounded-lg border border-gray-200 p-4">
+									<h3 class="mb-3 text-lg font-semibold">Existing Groups</h3>
+									{#if localGroups.length === 0}
+										<p class="text-gray-500">No groups created yet.</p>
+									{:else}
+										<div class="space-y-3">
+											{#each localGroups as group}
+												<div
+													class="flex items-center justify-between rounded border border-gray-200 p-3"
+												>
+													<div class="flex-1">
+														<h4 class="font-semibold">{group.name}</h4>
+														{#if group.description}
+															<p class="text-sm text-gray-600">{group.description}</p>
+														{/if}
+														<p class="text-xs text-gray-500">{group.formCount} forms assigned</p>
+													</div>
+													<div class="flex gap-2">
+														<button
+															type="button"
+															class="btn btn-secondary rounded px-2 py-1 text-sm"
+															onclick={() => handleEditGroup(group)}
+														>
+															Edit
+														</button>
+														<form
+															method="POST"
+															action="?/deleteGroup"
+															style="display: inline;"
+															use:enhance={({ formData }) => {
+																return async ({ result }) => {
+																	if (result.type === 'success') {
+																		// Remove from local state after successful server response
+																		const groupId = formData.get('groupId') as string;
+																		localGroups = localGroups.filter((g) => g.id !== groupId);
+
+																		// If the current form was in this group, clear it
+																		if (applicationForm?.group?.id === groupId) {
+																			applicationForm.group = null;
+																		}
+																	}
+																};
+															}}
+														>
+															<input type="hidden" name="groupId" value={group.id} />
+															<button
+																type="submit"
+																class="btn btn-danger rounded px-2 py-1 text-sm"
+																disabled={group.formCount > 0}
+																onclick={(e) => {
+																	if (
+																		!confirm(
+																			'Are you sure you want to delete this group? This action cannot be undone.'
+																		)
+																	) {
+																		e.preventDefault();
+																	}
+																}}
+															>
+																Delete
+															</button>
+														</form>
+													</div>
+												</div>
+											{/each}
+										</div>
+									{/if}
+								</div>
+							</div>
+						{/if}
+					</div>
+				</div>
+			{/if}
+
 			{#if showDateRange}
 				<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
 					<div class="relative w-full max-w-xl rounded-lg bg-white p-6 shadow-2xl">
@@ -132,11 +467,23 @@
 						<p class="text-center text-sm text-gray-500">
 							If enabled, the form will be available between the selected dates.
 						</p>
-						<form class="flex flex-col gap-6" method="POST" action="?/updateFormDateRange">
+						<form
+							class="flex flex-col gap-6"
+							method="POST"
+							action="?/updateFormDateRange"
+							use:enhance={() => {
+								return async ({ result }) => {
+									if (result.type === 'success') {
+										// Close modal on success
+										showDateRange = false;
+									}
+								};
+							}}
+						>
 							<input
 								type="hidden"
 								name="timezoneOffset"
-								value={applicationForm.openDate?.getTimezoneOffset()}
+								value={applicationForm?.openDate?.getTimezoneOffset()}
 							/>
 							<div class="form-group flex flex-col gap-2">
 								<label for="openDate" class="font-semibold">Open Date</label>
@@ -145,7 +492,7 @@
 									id="openDate"
 									name="openDate"
 									class="form-control rounded border-1 border-blue-500 px-4 py-2 text-lg focus:ring-2 focus:ring-blue-300 focus:outline-none"
-									value={applicationForm.openDate
+									value={applicationForm?.openDate
 										? new Date(
 												applicationForm.openDate.getTime() -
 													applicationForm.openDate.getTimezoneOffset() * 60000
@@ -162,7 +509,7 @@
 									id="closeDate"
 									name="closeDate"
 									class="form-control rounded border-1 border-blue-500 px-4 py-2 text-lg focus:ring-2 focus:ring-blue-300 focus:outline-none"
-									value={applicationForm.closeDate
+									value={applicationForm?.closeDate
 										? new Date(
 												applicationForm.closeDate.getTime() -
 													applicationForm.closeDate.getTimezoneOffset() * 60000

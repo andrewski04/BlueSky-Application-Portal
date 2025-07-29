@@ -321,7 +321,11 @@ export async function getApplicationFormWithAnswers(applicationId: string) {
 	);
 }
 
-export async function submitApplication(userId: string, formId: string) {
+export async function submitApplication(
+	userId: string,
+	formId: string,
+	formGroupId: string | null
+) {
 	// add validation here!!
 	return prismaResult(
 		prisma.$transaction(async (tx) => {
@@ -329,6 +333,12 @@ export async function submitApplication(userId: string, formId: string) {
 			await tx.applicationResponse.update({
 				where: { userId_formId: { userId, formId } },
 				data: { status: 'SUBMITTED' }
+			});
+
+			// update submission group to form group
+			await tx.applicationResponse.update({
+				where: { userId_formId: { userId, formId } },
+				data: { formGroupId }
 			});
 		})
 	);

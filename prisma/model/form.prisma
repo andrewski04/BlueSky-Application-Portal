@@ -159,6 +159,7 @@ model ApplicationFormGroup {
   name        String
   description String?
   forms       ApplicationFormPublished[]
+  submissions ApplicationResponse[]
 }
 
 model ApplicationFormPublished {
