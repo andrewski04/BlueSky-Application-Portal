@@ -89,6 +89,7 @@ export async function getSectionWithNavAndAnswers(applicationId: string, section
 									valueNumber: ans.valueNumber,
 									valueBool: ans.valueBool,
 									valueDate: ans.valueDate,
+									fileUploadId: ans.fileUploadId,
 									file: ans.FileUpload ?? null,
 									selections: ans.selectedOptions.map((sel) => ({
 										id: sel.option.id,
@@ -305,6 +306,7 @@ export async function getApplicationFormWithAnswers(applicationId: string) {
 										valueNumber: ans.valueNumber,
 										valueBool: ans.valueBool,
 										valueDate: ans.valueDate,
+										fileUploadId: ans.fileUploadId,
 										file: ans.FileUpload ?? null,
 										selections: ans.selectedOptions.map((sel) => ({
 											id: sel.option.id,

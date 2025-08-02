@@ -108,6 +108,8 @@ export const actions = {
 		const openDateRaw = formData.get('openDate') as string | null;
 		const closeDateRaw = formData.get('closeDate') as string | null;
 		const timezoneOffset = formData.get('timezoneOffset') as string | null;
+		const noOpenDate = formData.get('noOpenDate') === 'true';
+		const noCloseDate = formData.get('noCloseDate') === 'true';
 
 		if (!timezoneOffset) {
 			return { success: false, error: 'Timezone offset is required' };
@@ -117,11 +119,25 @@ export const actions = {
 
 		function localToUTC(dateStr: string | null, offset: number): Date | null {
 			if (!dateStr) return null;
-			return new Date(new Date(dateStr).getTime() + offset * 60000);
+
+			// The datetime-local input provides the date in the user's local timezone
+			// We need to convert this to UTC for storage
+			const localDate = new Date(dateStr);
+
+			// Convert to UTC by adding the timezone offset
+			const utcTime = localDate.getTime() + offset * 60000;
+
+			return new Date(utcTime);
 		}
 
-		const openDate = localToUTC(openDateRaw, offsetMinutes);
-		const closeDate = localToUTC(closeDateRaw, offsetMinutes);
+		// Convert dates to UTC, or set to null if checkbox is checked
+		const openDate = noOpenDate ? null : localToUTC(openDateRaw, offsetMinutes);
+		const closeDate = noCloseDate ? null : localToUTC(closeDateRaw, offsetMinutes);
+
+		// Validate that open date is before close date (only if both dates are set)
+		if (openDate && closeDate && openDate >= closeDate) {
+			return { success: false, error: 'Open date must be before close date' };
+		}
 
 		const result = await prismaResult(
 			prisma.applicationFormPublished.update({
@@ -129,6 +145,10 @@ export const actions = {
 				data: {
 					openDate: openDate,
 					closeDate: closeDate
+				},
+				select: {
+					openDate: true,
+					closeDate: true
 				}
 			})
 		);
@@ -137,7 +157,11 @@ export const actions = {
 			return { success: false, error: result.error.message };
 		}
 
-		return { success: true };
+		return {
+			success: true,
+			openDate: result.value.openDate,
+			closeDate: result.value.closeDate
+		};
 	},
 	updateFormGroup: async ({ locals, params, request }) => {
 		requireRole(locals, 'ADMIN');

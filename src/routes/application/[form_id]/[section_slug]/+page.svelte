@@ -20,7 +20,7 @@
 	let saveStatus: 'Saved' | 'Saving' | 'Unsaved' = $state('Saved');
 
 	let isInitialLoad = true;
-	let form: HTMLFormElement;
+	let form: HTMLFormElement | null = $state(null);
 	let activeElement: Element | null = null;
 
 	// debounce form submission; wait 1 second after last input before submitting
@@ -153,7 +153,7 @@
 						<FileUploadQuestion
 							onchange={handleInputChange}
 							{question}
-							existingAnswer={question.answer?.file?.filename}
+							existingAnswer={question.answer?.fileUploadId}
 							readonly={isReadOnly}
 						/>
 					{/if}
@@ -161,7 +161,7 @@
 			{/each}
 			<button
 				type="submit"
-				class="hidden rounded-md bg-green-600 px-6 py-2 text-white shadow hover:bg-green-700"
+				class="rounded-md bg-green-600 px-6 py-2 text-white shadow hover:bg-green-700"
 				disabled={isReadOnly}
 				style:display={isReadOnly ? 'none' : undefined}>Save Section</button
 			>

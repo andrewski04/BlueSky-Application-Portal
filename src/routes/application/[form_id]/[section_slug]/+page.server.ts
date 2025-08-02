@@ -60,6 +60,7 @@ export async function load({ locals, params }) {
 	let isReadOnly = applicationResult.value.status !== 'DRAFT';
 	let readOnlyMessage = 'This form has been submitted and is no longer editable.';
 
+	// Check if form is closed (only if closeDate is set)
 	if (
 		applicationResult.value.form.closeDate &&
 		applicationResult.value.form.closeDate < new Date() &&
@@ -69,6 +70,7 @@ export async function load({ locals, params }) {
 		readOnlyMessage = 'This form is no longer available.';
 	}
 
+	// Check if form is not yet open (only if openDate is set)
 	if (applicationResult.value.form.openDate && applicationResult.value.form.openDate > new Date()) {
 		throw error(403, 'This form is not yet available.');
 	}
@@ -125,12 +127,12 @@ export const actions = {
 			throw error(403, 'This form has been submitted and is no longer editable.');
 		}
 
-		// Check if form is closed
+		// Check if form is closed (only if closeDate is set)
 		if (application.form.closeDate && application.form.closeDate < new Date()) {
 			throw error(403, 'This form is no longer available.');
 		}
 
-		// Check if form is not yet open
+		// Check if form is not yet open (only if openDate is set)
 		if (application.form.openDate && application.form.openDate > new Date()) {
 			throw error(403, 'This form is not yet available.');
 		}
@@ -199,12 +201,12 @@ export const actions = {
 			throw error(403, 'This form has been submitted and is no longer editable.');
 		}
 
-		// Check if form is closed
+		// Check if form is closed (only if closeDate is set)
 		if (application.form.closeDate && application.form.closeDate < new Date()) {
 			throw error(403, 'This form is no longer available.');
 		}
 
-		// Check if form is not yet open
+		// Check if form is not yet open (only if openDate is set)
 		if (application.form.openDate && application.form.openDate > new Date()) {
 			throw error(403, 'This form is not yet available.');
 		}

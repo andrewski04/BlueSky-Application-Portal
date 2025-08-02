@@ -85,7 +85,9 @@
 							{#each applicationForms as form}
 								<tr class="hover:bg-gray-100">
 									<td class="px-6 py-4 text-sm whitespace-nowrap text-gray-900">{form.name}</td>
-									<td class="px-6 py-4 text-sm text-gray-900">{form.description ?? 'N/A'}</td>
+									<td class="px-6 py-4 text-sm text-gray-900"
+										>{form.description || 'No description'}</td
+									>
 									<td class="px-6 py-4 text-sm text-gray-900">
 										{#if !form.responses[0]}
 											<span class="text-red-600">Not Started</span>

@@ -20,7 +20,9 @@
 		"test:coverage": "vitest run --coverage",
 		"postinstall": "cd docs && npm install",
 		"docs": "npm --prefix docs start",
-		"docs:build": "npm --prefix docs run build"
+		"docs:build": "npm --prefix docs run build",
+		"init-minio": "node scripts/init-minio.js",
+		"cleanup-files": "node scripts/cleanup-orphaned-files.js"
 	},
 	"devDependencies": {
 		"@eslint/compat": "^1.2.5",
@@ -51,6 +53,8 @@
 		"vitest": "^3.0.8"
 	},
 	"dependencies": {
+		"@aws-sdk/client-s3": "^3.859.0",
+		"@aws-sdk/s3-request-presigner": "^3.859.0",
 		"@oslojs/crypto": "^1.0.1",
 		"@oslojs/encoding": "^1.1.0",
 		"@prisma/client": "^6.12.0",

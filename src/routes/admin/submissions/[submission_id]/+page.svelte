@@ -96,7 +96,7 @@
 						{:else if question.type === 'FILE_UPLOAD'}
 							<FileUploadQuestion
 								{question}
-								existingAnswer={question.answer?.file?.filename}
+								existingAnswer={question.answer?.fileUploadId}
 								readonly={true}
 							/>
 						{/if}

@@ -11,8 +11,18 @@
 	let editingGroup = $state<{ id: string; name: string; description: string } | null>(null);
 	let newGroup = $state({ name: '', description: '' });
 
+	// Date range validation state
+	let dateRangeError = $state('');
+
 	let { data, form }: PageProps = $props();
-	let { applicationForm, user, groups } = data;
+	let { applicationForm: initialApplicationForm, user, groups } = data;
+
+	// Local state for application form to apply changes immediately
+	let applicationForm = $state(initialApplicationForm);
+
+	// Date range checkbox states
+	let noOpenDate = $state(!applicationForm?.openDate);
+	let noCloseDate = $state(!applicationForm?.closeDate);
 
 	// Local state for groups to apply changes immediately
 	let localGroups = $state(groups ? [...groups] : []);
@@ -21,6 +31,54 @@
 		editingGroup = null;
 		newGroup = { name: '', description: '' };
 	}
+
+	function validateDateRange(openDate: string | null, closeDate: string | null): boolean {
+		if (!openDate || !closeDate) return true; // Allow empty dates
+
+		const open = new Date(openDate);
+		const close = new Date(closeDate);
+
+		if (open >= close) {
+			dateRangeError = 'Open date must be before close date';
+			return false;
+		}
+
+		dateRangeError = '';
+		return true;
+	}
+
+	function handleOpenDateChange(value: string) {
+		if (value) {
+			noOpenDate = false;
+		}
+		validateDateRange(value, (document.getElementById('closeDate') as HTMLInputElement)?.value);
+	}
+
+	function handleCloseDateChange(value: string) {
+		if (value) {
+			noCloseDate = false;
+		}
+		validateDateRange((document.getElementById('openDate') as HTMLInputElement)?.value, value);
+	}
+
+	// Clear input values when checkboxes are checked
+	$effect(() => {
+		if (noOpenDate) {
+			const openDateInput = document.getElementById('openDate') as HTMLInputElement;
+			if (openDateInput) {
+				openDateInput.value = '';
+			}
+		}
+	});
+
+	$effect(() => {
+		if (noCloseDate) {
+			const closeDateInput = document.getElementById('closeDate') as HTMLInputElement;
+			if (closeDateInput) {
+				closeDateInput.value = '';
+			}
+		}
+	});
 
 	function handleEditGroup(group: any) {
 		editingGroup = { id: group.id, name: group.name, description: group.description || '' };
@@ -32,6 +90,12 @@
 		if (groups) {
 			localGroups = [...groups];
 		}
+	});
+
+	// Update checkbox states when applicationForm changes
+	$effect(() => {
+		noOpenDate = !applicationForm?.openDate;
+		noCloseDate = !applicationForm?.closeDate;
 	});
 </script>
 
@@ -56,11 +120,15 @@
 					{applicationForm.publishedAt.toLocaleString('en-US', { timeZoneName: 'shortGeneric' })}
 				</p>
 				<p><b>Active:</b> {applicationForm.active ? 'Yes' : 'No'}</p>
-				<p>
-					<b>Date Range:</b>
-					{applicationForm.openDate?.toLocaleString('en-US', { timeZoneName: 'shortGeneric' })} -
-					{applicationForm.closeDate?.toLocaleString('en-US', { timeZoneName: 'shortGeneric' })}
-				</p>
+				{#if applicationForm.openDate || applicationForm.closeDate}
+					<p>
+						<b>Date Range:</b>
+						{applicationForm.openDate?.toLocaleString('en-US', { timeZoneName: 'shortGeneric' })} -
+						{applicationForm.closeDate?.toLocaleString('en-US', { timeZoneName: 'shortGeneric' })}
+					</p>
+				{:else}
+					<p><b>Date Range:</b> No date range</p>
+				{/if}
 				<p>
 					<b>Draft Responses:</b>
 					{applicationForm.responses.filter((r) => r.status === 'DRAFT').length}
@@ -76,17 +144,7 @@
 
 				<div class="mt-4 flex items-center gap-2">
 					{#if applicationForm?.active}
-						<form
-							action="?/disablePublishedForm"
-							method="post"
-							use:enhance={() => {
-								return async ({ result }) => {
-									if (result.type === 'success' && applicationForm) {
-										applicationForm.active = false;
-									}
-								};
-							}}
-						>
+						<form action="?/disablePublishedForm" method="post">
 							<button
 								type="submit"
 								class="rounded-xl bg-red-600 px-4 py-1 text-white hover:bg-red-700"
@@ -95,17 +153,7 @@
 							</button>
 						</form>
 					{:else}
-						<form
-							action="?/enablePublishedForm"
-							method="post"
-							use:enhance={() => {
-								return async ({ result }) => {
-									if (result.type === 'success' && applicationForm) {
-										applicationForm.active = true;
-									}
-								};
-							}}
-						>
+						<form action="?/enablePublishedForm" method="post">
 							<button
 								type="submit"
 								class="rounded-xl bg-green-600 px-4 py-1 text-white hover:bg-green-700"
@@ -471,27 +519,66 @@
 							class="flex flex-col gap-6"
 							method="POST"
 							action="?/updateFormDateRange"
-							use:enhance={() => {
+							onsubmit={(e) => {
+								const formData = new FormData(e.currentTarget);
+								let openDate = formData.get('openDate') as string | null;
+								let closeDate = formData.get('closeDate') as string | null;
+
+								// If checkbox is checked, set date to null
+								if (noOpenDate) {
+									openDate = null;
+								}
+								if (noCloseDate) {
+									closeDate = null;
+								}
+
+								if (!validateDateRange(openDate, closeDate)) {
+									e.preventDefault();
+									return false;
+								}
+							}}
+							use:enhance={({ formData }) => {
 								return async ({ result }) => {
 									if (result.type === 'success') {
+										// Update local state with the server response data
+										// This ensures we have the correct UTC dates without double conversion
+										const responseData = result.data as
+											| { openDate?: string; closeDate?: string }
+											| undefined;
+
+										if (responseData?.openDate) {
+											applicationForm.openDate = new Date(responseData.openDate);
+											noOpenDate = false;
+										} else {
+											applicationForm.openDate = null;
+											noOpenDate = true;
+										}
+
+										if (responseData?.closeDate) {
+											applicationForm.closeDate = new Date(responseData.closeDate);
+											noCloseDate = false;
+										} else {
+											applicationForm.closeDate = null;
+											noCloseDate = true;
+										}
+
 										// Close modal on success
 										showDateRange = false;
 									}
 								};
 							}}
 						>
-							<input
-								type="hidden"
-								name="timezoneOffset"
-								value={applicationForm?.openDate?.getTimezoneOffset()}
-							/>
+							<input type="hidden" name="timezoneOffset" value={new Date().getTimezoneOffset()} />
+							<input type="hidden" name="noOpenDate" value={noOpenDate ? 'true' : 'false'} />
+							<input type="hidden" name="noCloseDate" value={noCloseDate ? 'true' : 'false'} />
 							<div class="form-group flex flex-col gap-2">
 								<label for="openDate" class="font-semibold">Open Date</label>
 								<input
 									type="datetime-local"
 									id="openDate"
 									name="openDate"
-									class="form-control rounded border-1 border-blue-500 px-4 py-2 text-lg focus:ring-2 focus:ring-blue-300 focus:outline-none"
+									disabled={noOpenDate}
+									class="form-control rounded border-1 border-blue-500 px-4 py-2 text-lg focus:ring-2 focus:ring-blue-300 focus:outline-none disabled:cursor-not-allowed disabled:bg-gray-100"
 									value={applicationForm?.openDate
 										? new Date(
 												applicationForm.openDate.getTime() -
@@ -500,7 +587,20 @@
 												.toISOString()
 												.slice(0, 16)
 										: ''}
+									oninput={(e) => {
+										const openDate = e.currentTarget.value;
+										handleOpenDateChange(openDate);
+									}}
 								/>
+								<div class="mb-2 flex items-center gap-2">
+									<input
+										type="checkbox"
+										id="noOpenDate"
+										bind:checked={noOpenDate}
+										class="rounded border-gray-300"
+									/>
+									<label for="noOpenDate" class="font-semibold">No Open Date</label>
+								</div>
 							</div>
 							<div class="form-group flex flex-col gap-2">
 								<label for="closeDate" class="font-semibold">Close Date</label>
@@ -508,7 +608,8 @@
 									type="datetime-local"
 									id="closeDate"
 									name="closeDate"
-									class="form-control rounded border-1 border-blue-500 px-4 py-2 text-lg focus:ring-2 focus:ring-blue-300 focus:outline-none"
+									disabled={noCloseDate}
+									class="form-control rounded border-1 border-blue-500 px-4 py-2 text-lg focus:ring-2 focus:ring-blue-300 focus:outline-none disabled:cursor-not-allowed disabled:bg-gray-100"
 									value={applicationForm?.closeDate
 										? new Date(
 												applicationForm.closeDate.getTime() -
@@ -517,8 +618,25 @@
 												.toISOString()
 												.slice(0, 16)
 										: ''}
+									oninput={(e) => {
+										const closeDate = e.currentTarget.value;
+										handleCloseDateChange(closeDate);
+									}}
 								/>
+								<div class="mb-2 flex items-center gap-2">
+									<input
+										type="checkbox"
+										id="noCloseDate"
+										bind:checked={noCloseDate}
+										class="rounded border-gray-300"
+									/>
+									<label for="noCloseDate" class="font-semibold">No Close Date</label>
+								</div>
 							</div>
+
+							{#if dateRangeError}
+								<div class="text-sm font-medium text-red-600">{dateRangeError}</div>
+							{/if}
 							<div class="mt-2 flex justify-end gap-4">
 								<button
 									type="button"

@@ -80,6 +80,19 @@ while ! docker exec -i postgres pg_isready -U postgres &> /dev/null; do
 done
 echo "PostgreSQL is ready!"
 
+# Wait for MinIO to be ready
+echo
+echo "Waiting for MinIO to start..."
+while ! curl -f http://localhost:9000/minio/health/live &> /dev/null; do
+  sleep 3
+done
+echo "MinIO is ready!"
+
+# Initialize MinIO bucket
+echo
+echo "Initializing MinIO bucket..."
+node scripts/init-minio.js || { echo "Failed to initialize MinIO bucket"; exit 1; }
+
 # Run Prisma migrations
 echo
 echo "Setting up database..."
@@ -112,6 +125,7 @@ echo
 echo "Domains:"
 echo "- Development server: http://localhost:5173 (start server first)"
 echo "- pgAdmin: http://localhost:5050 (email: admin@example.com, password: admin)"
+echo "- MinIO Console: http://localhost:9001 (login: minioadmin / minioadmin)"
 echo "- MailDev: http://localhost:8080"
 echo "- Docs: http://localhost:3000"
 echo

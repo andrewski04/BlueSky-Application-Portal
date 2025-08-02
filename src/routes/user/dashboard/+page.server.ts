@@ -10,12 +10,36 @@ export const load = (async ({ locals }) => {
 		prisma.applicationFormPublished.findMany({
 			where: {
 				active: true,
-				openDate: {
-					lte: new Date()
-				},
-				closeDate: {
-					gte: new Date()
-				}
+				OR: [
+					// Forms with no date constraints
+					{
+						openDate: null,
+						closeDate: null
+					},
+					// Forms with only open date that has passed
+					{
+						openDate: {
+							lte: new Date()
+						},
+						closeDate: null
+					},
+					// Forms with only close date that hasn't passed
+					{
+						openDate: null,
+						closeDate: {
+							gte: new Date()
+						}
+					},
+					// Forms with both dates that are currently valid
+					{
+						openDate: {
+							lte: new Date()
+						},
+						closeDate: {
+							gte: new Date()
+						}
+					}
+				]
 			},
 			include: {
 				sections: {
