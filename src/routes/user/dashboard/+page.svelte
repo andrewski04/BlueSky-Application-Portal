@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { PageData } from './$types';
-	import NavBar from '$lib/components/dashboard/NavBar.svelte';
+	import UserNavBar from '$lib/components/dashboard/UserNavBar.svelte';
 
 	let { data }: { data: PageData } = $props();
 	let { user, error, applicationForms, announcements } = data;
@@ -11,10 +11,7 @@
 </svelte:head>
 
 <div class="bg-secondary min-h-screen">
-	<NavBar message={`Welcome, ${user.firstName}!`}>
-		<a href="/user/dashboard" class="underline hover:font-bold">Applications</a>
-		<a href="/user/settings" class="hover:font-bold">Settings</a>
-	</NavBar>
+	<UserNavBar message={`Welcome, ${user.firstName}!`} />
 
 	<div class="flex flex-col items-center p-4">
 		<div class="mb-6 w-full max-w-5xl rounded-lg bg-white p-6 shadow-md">

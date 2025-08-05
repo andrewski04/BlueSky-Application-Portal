@@ -17,7 +17,10 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			id: user.id,
 			email: user.email,
 			firstName: user.firstName || '',
-			lastName: user.lastName || ''
+			lastName: user.lastName || '',
+			etsuApplicationComplete: user.etsuApplicationComplete || false,
+			etsuEmail: user.etsuEmail || '',
+			etsuENumber: user.etsuENumber || ''
 		}
 	};
 };
@@ -27,6 +30,9 @@ export const actions: Actions = {
 		const formData = await request.formData();
 		const firstName = formData.get('firstName') as string;
 		const lastName = formData.get('lastName') as string;
+		const etsuApplicationComplete = formData.get('etsuApplicationComplete') === 'on';
+		const etsuEmail = formData.get('etsuEmail') as string;
+		const etsuENumber = formData.get('etsuENumber') as string;
 		const userId = formData.get('userId') as string;
 		const redirectTo = url.searchParams.get('redirect');
 
@@ -40,14 +46,24 @@ export const actions: Actions = {
 			return { success: false, error: 'Invalid session' };
 		}
 
-		const result = await userSetupByUserId(userId, firstName, lastName);
+		const result = await userSetupByUserId(
+			userId,
+			firstName,
+			lastName,
+			etsuApplicationComplete,
+			etsuEmail,
+			etsuENumber
+		);
 
 		if (result.isErr()) {
 			return {
 				success: false,
 				error: result.error.message,
 				firstName,
-				lastName
+				lastName,
+				etsuApplicationComplete,
+				etsuEmail,
+				etsuENumber
 			};
 		}
 

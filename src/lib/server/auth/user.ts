@@ -45,7 +45,10 @@ export async function createUserIfNotExists(email: string): Promise<Result<{ use
 export async function userSetupByUserId(
 	userId: string,
 	firstName: string,
-	lastName: string
+	lastName: string,
+	etsuApplicationComplete: boolean = false,
+	etsuEmail?: string,
+	etsuENumber?: string
 ): Promise<Result<boolean>> {
 	if (!firstName || firstName.trim() === '') {
 		return err(new AppError('First name is required', 'ERR_FIRST_NAME_REQUIRED'));
@@ -61,6 +64,9 @@ export async function userSetupByUserId(
 			data: {
 				firstName: firstName.trim(),
 				lastName: lastName.trim(),
+				etsuApplicationComplete,
+				etsuEmail: etsuEmail?.trim() || null,
+				etsuENumber: etsuENumber?.trim() || null,
 				isSetup: true
 			}
 		});

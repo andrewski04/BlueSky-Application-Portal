@@ -12,6 +12,10 @@ model User {
   email               String                @unique
   firstName           String?
   lastName            String?
+  etsuApplicationComplete Boolean               @default(false)
+  etsuENumber           String?
+  etsuEmail             String?
+  phoneNumber           String?
   role                UserRole              @default(USER)
   sessions            Session[]
   isSetup             Boolean               @default(false)

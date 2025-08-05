@@ -1,45 +1,38 @@
 <script lang="ts">
 	import NavBar from '$lib/components/dashboard/NavBar.svelte';
-	import { page } from '$app/state';
 
 	let { message } = $props();
 
-	function isActive(path: string): boolean {
-		return page.url.pathname.startsWith(path);
-	}
+	const buttons = [
+		{
+			label: 'Dashboard',
+			href: '/admin/dashboard'
+		},
+		{
+			label: 'Form Drafts',
+			href: '/admin/form-drafts'
+		},
+		{
+			label: 'Published Forms',
+			href: '/admin/published-forms'
+		},
+		{
+			label: 'Submissions',
+			href: '/admin/submissions'
+		},
+		{
+			label: 'Announcements',
+			href: '/admin/announcements'
+		},
+		{
+			label: 'Users',
+			href: '/admin/users'
+		},
+		{
+			label: 'Settings',
+			href: '/settings'
+		}
+	];
 </script>
 
-<NavBar {message}>
-	<a
-		href="/admin/dashboard"
-		class="{isActive('/admin/dashboard') ? 'font-bold underline' : ''} hover:font-bold">Dashboard</a
-	>
-	<a
-		href="/admin/form-drafts"
-		class="{isActive('/admin/form-drafts') ? 'font-bold underline' : ''} hover:font-bold"
-		>Form Drafts</a
-	>
-	<a
-		href="/admin/published-forms"
-		class="{isActive('/admin/published-forms') ? 'font-bold underline' : ''} hover:font-bold"
-		>Published Forms</a
-	>
-	<a
-		href="/admin/submissions"
-		class="{isActive('/admin/submissions') ? 'font-bold underline' : ''} hover:font-bold"
-		>Submissions</a
-	>
-	<a
-		href="/admin/announcements"
-		class="{isActive('/admin/announcements') ? 'font-bold underline' : ''} hover:font-bold"
-		>Announcements</a
-	>
-	<a
-		href="/admin/users"
-		class="{isActive('/admin/users') ? 'font-bold underline' : ''} hover:font-bold">Users</a
-	>
-	<a
-		href="/admin/settings"
-		class="{isActive('/admin/settings') ? 'font-bold underline' : ''} hover:font-bold">Settings</a
-	>
-</NavBar>
+<NavBar {message} {buttons} />
