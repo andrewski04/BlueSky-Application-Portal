@@ -445,7 +445,7 @@
 									</td>
 									<td class="text-md px-4 py-2 whitespace-nowrap">
 										<a
-											href="/application/{form.id}/{form.sections[0].slug}"
+											href="/application/{form.id}"
 											class="start-form-button flex items-center justify-center px-4 py-2"
 										>
 											<svg

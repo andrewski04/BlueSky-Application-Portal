@@ -42,11 +42,6 @@ export const load = (async ({ locals }) => {
 				]
 			},
 			include: {
-				sections: {
-					orderBy: {
-						displayOrder: 'asc'
-					}
-				},
 				responses: {
 					where: {
 						userId: user.id
