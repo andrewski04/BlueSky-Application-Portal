@@ -18,6 +18,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			email: user.email,
 			firstName: user.firstName || '',
 			lastName: user.lastName || '',
+			phoneNumber: user.phoneNumber || '',
 			etsuApplicationComplete: user.etsuApplicationComplete || false,
 			etsuEmail: user.etsuEmail || '',
 			etsuENumber: user.etsuENumber || ''
@@ -35,6 +36,18 @@ export const actions: Actions = {
 		const etsuENumber = formData.get('etsuENumber') as string;
 		const userId = formData.get('userId') as string;
 		const redirectTo = url.searchParams.get('redirect');
+		const phoneNumber = formData.get('phoneNumber') as string;
+
+		if (phoneNumber && phoneNumber.trim()) {
+			// Accept E.164 format (+1234567890)
+			const phoneRegex = /^(\+1[0-9]{10}|\([0-9]{3}\)\s[0-9]{3}-[0-9]{4}|\+[0-9]{1,3}[0-9]{6,14})$/;
+			if (!phoneRegex.test(phoneNumber.trim())) {
+				return {
+					success: false,
+					error: 'Please enter a valid phone number'
+				};
+			}
+		}
 
 		const sessionToken = getSessionTokenCookie({ cookies });
 		if (!sessionToken) {
@@ -52,7 +65,8 @@ export const actions: Actions = {
 			lastName,
 			etsuApplicationComplete,
 			etsuEmail,
-			etsuENumber
+			etsuENumber,
+			phoneNumber
 		);
 
 		if (result.isErr()) {

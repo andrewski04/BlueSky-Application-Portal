@@ -110,7 +110,7 @@
 			<div class="mb-6 rounded-md border border-gray-200 bg-white p-6 shadow-sm">
 				<div class="mb-2 flex items-center justify-between">
 					<h1 class="text-3xl font-bold">Published Form: {applicationForm?.name}</h1>
-					<a href="/admin/published-forms" class="btn btn-danger px-3 py-1">Back</a>
+					<a href="/admin/published-forms" class="btn-bluebtn-red px-3 py-1">Back</a>
 				</div>
 
 				<p><b>Description:</b> {applicationForm.description || 'No description provided'}</p>
@@ -290,7 +290,7 @@
 								<div class="mt-2 flex justify-end gap-4">
 									<button
 										type="button"
-										class="btn btn-danger rounded-xl px-3 py-1"
+										class="btn-bluebtn-red rounded-xl px-3 py-1"
 										onclick={() => {
 											showGroup = false;
 											resetGroupForms();
@@ -298,7 +298,9 @@
 									>
 										Cancel
 									</button>
-									<button type="submit" class="btn btn-primary rounded-xl px-3 py-1">Save</button>
+									<button type="submit" class="btn-bluebtn-primary rounded-xl px-3 py-1"
+										>Save</button
+									>
 								</div>
 							</form>
 						{/if}
@@ -359,7 +361,7 @@
 											</div>
 										</div>
 										<div class="flex justify-end">
-											<button type="submit" class="btn btn-primary rounded-xl px-4 py-2"
+											<button type="submit" class="btn-bluebtn-primary rounded-xl px-4 py-2"
 												>Create Group</button
 											>
 										</div>
@@ -420,12 +422,12 @@
 											<div class="flex justify-end gap-2">
 												<button
 													type="button"
-													class="btn btn-secondary rounded-xl px-4 py-2"
+													class="btn-bluebtn-white rounded-xl px-4 py-2"
 													onclick={() => (editingGroup = null)}
 												>
 													Cancel
 												</button>
-												<button type="submit" class="btn btn-primary rounded-xl px-4 py-2"
+												<button type="submit" class="btn-bluebtn-primary rounded-xl px-4 py-2"
 													>Update Group</button
 												>
 											</div>
@@ -454,7 +456,7 @@
 													<div class="flex gap-2">
 														<button
 															type="button"
-															class="btn btn-secondary rounded px-2 py-1 text-sm"
+															class="btn-bluebtn-white rounded px-2 py-1 text-sm"
 															onclick={() => handleEditGroup(group)}
 														>
 															Edit
@@ -481,7 +483,7 @@
 															<input type="hidden" name="groupId" value={group.id} />
 															<button
 																type="submit"
-																class="btn btn-danger rounded px-2 py-1 text-sm"
+																class="btn-bluebtn-red rounded px-2 py-1 text-sm"
 																disabled={group.formCount > 0}
 																onclick={(e) => {
 																	if (
@@ -640,12 +642,12 @@
 							<div class="mt-2 flex justify-end gap-4">
 								<button
 									type="button"
-									class="btn btn-danger rounded-xl px-3 py-1"
+									class="btn-bluebtn-red rounded-xl px-3 py-1"
 									onclick={() => (showDateRange = false)}
 								>
 									Cancel
 								</button>
-								<button type="submit" class="btn btn-primary rounded-xl px-3 py-1">Save</button>
+								<button type="submit" class="btn-bluebtn-primary rounded-xl px-3 py-1">Save</button>
 							</div>
 						</form>
 					</div>
@@ -659,7 +661,7 @@
 		<div class="container mx-auto p-6">
 			<div class="mb-4 flex items-center justify-between">
 				<h1 class="text-3xl font-bold">Form Details</h1>
-				<a href="/admin/forms" class="btn btn-danger px-3 py-1">Back</a>
+				<a href="/admin/forms" class="btn-bluebtn-red px-3 py-1">Back</a>
 			</div>
 			<div
 				class="mb-6 rounded-md border border-gray-200 bg-white p-6 text-center text-red-500 shadow-sm"

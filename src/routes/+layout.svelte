@@ -2,9 +2,9 @@
 	import '../app.css';
 	import 'nprogress/nprogress.css';
 	import NProgress from 'nprogress';
-	import { afterNavigate, beforeNavigate, goto } from '$app/navigation';
+	import { afterNavigate, beforeNavigate } from '$app/navigation';
 
-	NProgress.configure({ showSpinner: false });
+	NProgress.configure({ showSpinner: false, parent: '.nprogressbar' });
 
 	beforeNavigate(async () => {
 		NProgress.start();

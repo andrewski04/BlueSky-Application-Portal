@@ -13,12 +13,18 @@ type AnnouncementWithUser = Prisma.AnnouncementGetPayload<{
 /**
  * Retrieves all announcements from the database.
  *
+ * @param amount - The amount of announcements to retrieve, sorted by createdAt descending.
+ *
  * @returns A promise resolving to a Result containing an array of Announcement objects,
  *          or an error if the retrieval fails.
  */
-export function getAllAnnouncements(): Promise<Result<AnnouncementWithUser[]>> {
+export function getAllAnnouncements(amount: number = -1): Promise<Result<AnnouncementWithUser[]>> {
 	return prisma.announcement
 		.findMany({
+			orderBy: {
+				createdAt: 'desc'
+			},
+			take: amount === -1 ? undefined : amount,
 			include: {
 				user: true
 			}

@@ -279,5 +279,5 @@
 		Chat
 	</div>
 
-	<a href="/auth/logout" class="btn btn-danger p-2 py-0">Logout</a>
+	<a href="/auth/logout" class="btn-bluebtn-red p-2 py-0">Logout</a>
 </main>

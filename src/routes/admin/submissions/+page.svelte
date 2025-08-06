@@ -78,7 +78,7 @@
 									<td class="px-6 py-4 text-sm whitespace-nowrap text-gray-900">
 										<a
 											href="/admin/submissions/{response.id}"
-											class="btn bg-green-500 px-4 py-1 text-white hover:bg-green-700"
+											class="btn-bluebg-green-500 px-4 py-1 text-white hover:bg-green-700"
 										>
 											View
 										</a>

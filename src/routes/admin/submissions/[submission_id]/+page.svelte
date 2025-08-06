@@ -28,7 +28,7 @@
 <div class="container mx-auto p-6">
 	<div class="mb-4 flex items-center justify-between">
 		<h1 class="text-3xl font-bold">Submission Details</h1>
-		<a href="/admin/submissions" class="btn btn-danger px-3 py-1">Back</a>
+		<a href="/admin/submissions" class="btn-bluebtn-red px-3 py-1">Back</a>
 	</div>
 	{#if formWithAnswers}
 		<div class="mb-6 rounded-md border border-gray-200 bg-white p-6 shadow-sm">

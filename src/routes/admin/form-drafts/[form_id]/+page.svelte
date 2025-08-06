@@ -32,7 +32,7 @@
 							<img src="/icons/edit.svg" alt="Edit" class="h-6 w-6" />
 						</button>
 					</div>
-					<a href="/admin/form-drafts" class="btn btn-danger px-3 py-1">Back</a>
+					<a href="/admin/form-drafts" class="btn-bluebtn-red px-3 py-1">Back</a>
 				</div>
 				<p><b>Description:</b> {applicationForm.description || 'No description provided'}</p>
 				<p><b>ID:</b> {applicationForm.id}</p>
@@ -170,12 +170,12 @@
 					<div class="mt-2 flex justify-end gap-4">
 						<button
 							type="button"
-							class="btn btn-danger rounded-xl px-3 py-1"
+							class="btn-bluebtn-red rounded-xl px-3 py-1"
 							onclick={() => (editFormPopup = false)}
 						>
 							Cancel
 						</button>
-						<button type="submit" class="btn btn-primary rounded-xl px-3 py-1">Save</button>
+						<button type="submit" class="btn-bluebtn-primary rounded-xl px-3 py-1">Save</button>
 					</div>
 				</form>
 			</div>
@@ -187,7 +187,7 @@
 		<div class="container mx-auto p-6">
 			<div class="mb-4 flex items-center justify-between">
 				<h1 class="text-3xl font-bold">Form Details</h1>
-				<a href="/admin/forms" class="btn btn-danger px-3 py-1">Back</a>
+				<a href="/admin/forms" class="btn-bluebtn-red px-3 py-1">Back</a>
 			</div>
 			<div
 				class="mb-6 rounded-md border border-gray-200 bg-white p-6 text-center text-red-500 shadow-sm"

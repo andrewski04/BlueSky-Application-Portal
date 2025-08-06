@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import LogoutIcon from '$lib/components/icons/LogoutIcon.svelte';
 
 	let { message, buttons } = $props();
 
@@ -9,18 +10,16 @@
 </script>
 
 <div class="fixed-header">
-	<header class="header-section flex items-center px-3 py-1 text-white">
-		<div
-			class="logo-container mr-3 flex h-6 w-6 items-center justify-center rounded text-xs font-bold md:h-8 md:w-8"
-		>
+	<header class="header-section relative flex items-center px-3 py-1 text-white">
+		<div class="h-10 w-10">
 			<img src="/pictures/BlueSky_logo_wh.png" alt="BlueSky Logo" />
 		</div>
-		<div class="flex-grow text-center">
+		<div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center">
 			<h1 class="main-title text-sm font-bold md:text-base">BlueSky Institute</h1>
 			<p class="text-[10px] text-blue-100 opacity-90 md:text-xs">{message}</p>
 		</div>
 		<button
-			class="inbox-button cursor-pointer rounded px-2 py-1 text-xs font-semibold text-white transition-all duration-300 md:px-3"
+			class="inbox-button ml-auto cursor-pointer rounded px-2 py-1 text-xs font-semibold text-white transition-all duration-300 md:px-3"
 		>
 			<svg
 				class="mr-1 inline h-3 w-3 md:h-4 md:w-4"
@@ -38,6 +37,7 @@
 			Inbox
 		</button>
 	</header>
+	<div class="nav-section h-[4px] w-full"></div>
 	<nav class="nav-section flex justify-center space-x-1 px-1 py-1 text-white md:space-x-2 md:px-3">
 		{#each buttons as button}
 			<a
@@ -54,7 +54,15 @@
 				{button.label}
 			</a>
 		{/each}
+		<a
+			href="/auth/logout"
+			class="logout-link rounded px-1 py-1 text-xs font-medium md:px-3 md:text-sm"
+		>
+			<LogoutIcon class="mr-1 inline h-3 w-3 stroke-white md:h-4 md:w-4" />
+			Logout
+		</a>
 	</nav>
+	<div id="nprogressbar" class="nprogressbar nav-section h-[4px] w-full"></div>
 </div>
 
 <style>
@@ -78,46 +86,9 @@
 		border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 	}
 
-	/* Enhanced logo with blue glow effect - smaller size */
-	.logo-container {
-		background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 50%, #2563eb 100%);
-		box-shadow:
-			0 0 15px rgba(59, 130, 246, 0.6),
-			inset 0 1px 0 rgba(255, 255, 255, 0.2);
-		border: 1px solid rgba(255, 255, 255, 0.2);
-		position: relative;
-		overflow: hidden;
-	}
-
-	.logo-container::before {
-		content: '';
-		position: absolute;
-		top: -50%;
-		left: -50%;
-		width: 200%;
-		height: 200%;
-		background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-		transform: rotate(45deg);
-		animation: logoShine 3s infinite;
-	}
-
-	@keyframes logoShine {
-		0% {
-			transform: translateX(-100%) translateY(-100%) rotate(45deg);
-		}
-		50% {
-			transform: translateX(100%) translateY(100%) rotate(45deg);
-		}
-		100% {
-			transform: translateX(-100%) translateY(-100%) rotate(45deg);
-		}
-	}
-
 	/* Enhanced navigation tabs */
 	.nav-section {
 		background: linear-gradient(135deg, #1e40af 0%, #1d4ed8 50%, #2563eb 100%);
-		border-top: 1px solid rgba(255, 255, 255, 0.1);
-		border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 	}
 
 	.nav-link {
@@ -165,6 +136,40 @@
 		left: 100%;
 	}
 
+	/* Logout button with red theme */
+	.logout-link {
+		position: relative;
+		overflow: hidden;
+		background: linear-gradient(135deg, rgba(239, 68, 68, 0.9) 0%, rgba(220, 38, 38, 0.8) 100%);
+		border: 1px solid rgba(239, 68, 68, 0.6);
+		backdrop-filter: blur(10px);
+		transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+	}
+
+	.logout-link::before {
+		content: '';
+		position: absolute;
+		top: 0;
+		left: -100%;
+		width: 100%;
+		height: 100%;
+		background: linear-gradient(90deg, transparent, rgba(239, 68, 68, 0.5), transparent);
+		transition: left 0.5s ease;
+	}
+
+	.logout-link:hover {
+		background: linear-gradient(135deg, rgba(239, 68, 68, 0.9) 0%, rgba(220, 38, 38, 0.9) 100%);
+		box-shadow:
+			0 4px 16px rgba(239, 68, 68, 0.5),
+			inset 0 1px 0 rgba(255, 255, 255, 0.2);
+		transform: translateY(-1px);
+		border-color: rgba(239, 68, 68, 0.8);
+	}
+
+	.logout-link:hover::before {
+		left: 100%;
+	}
+
 	.inbox-button {
 		background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 50%, #38bdf8 100%);
 		box-shadow:
@@ -174,18 +179,6 @@
 		position: relative;
 		overflow: hidden;
 		transition: all 0.3s ease;
-	}
-
-	.inbox-button::before {
-		content: '';
-		position: absolute;
-		top: -50%;
-		left: -50%;
-		width: 200%;
-		height: 200%;
-		background: radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, transparent 70%);
-		transform: scale(0);
-		transition: transform 0.3s ease;
 	}
 
 	.inbox-button:hover {
@@ -207,14 +200,5 @@
 		background-clip: text;
 		text-shadow: 0 0 30px rgba(255, 255, 255, 0.5);
 		position: relative;
-	}
-
-	@keyframes shimmer {
-		0% {
-			transform: translateX(-100%);
-		}
-		100% {
-			transform: translateX(100%);
-		}
 	}
 </style>

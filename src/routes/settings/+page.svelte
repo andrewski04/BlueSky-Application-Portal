@@ -1,11 +1,34 @@
 <script lang="ts">
-	import type { PageData } from './$types';
-
+	import type { PageProps } from './$types';
+	import type { CountryCode, E164Number } from 'svelte-tel-input/types';
 	import UserNavBar from '$lib/components/dashboard/UserNavBar.svelte';
 	import AdminNavBar from '$lib/components/dashboard/AdminNavBar.svelte';
+	import TelephoneInput from '$lib/components/util/TelephoneInput.svelte';
+	import { enhance, applyAction } from '$app/forms';
+	import NProgress from 'nprogress';
+	import { onMount } from 'svelte';
 
-	let { data }: { data: PageData } = $props();
-	let { user } = data;
+	let { data, form }: PageProps = $props();
+	let user = $state(data.user);
+	let { role } = data;
+
+	let phoneSelectedCountry: CountryCode = $state('US');
+	// svelte-ignore state_referenced_locally - we only need the initial value
+	//let phoneValue: E164Number = $state(user.phoneNumber as E164Number);
+	// svelte-ignore state_referenced_locally - we only need the initial value
+	//let etsuAppComplete = $state(user.etsuApplicationComplete || false);
+	let phoneValid = $state(true);
+
+	onMount(() => {
+		const inputs = document.querySelectorAll('input');
+		inputs.forEach((input) => {
+			input.addEventListener('keydown', (event: KeyboardEvent) => {
+				if (event.key === 'Enter') {
+					event.preventDefault();
+				}
+			});
+		});
+	});
 </script>
 
 <svelte:head>
@@ -18,6 +41,7 @@
 				rgba(219, 234, 254, 0.3) 50%,
 				rgba(147, 197, 253, 0.1) 100%
 			);
+			height: auto;
 		}
 
 		.settings-card {
@@ -43,12 +67,7 @@
 		}
 
 		.settings-section {
-			border-bottom: 1px solid rgba(59, 130, 246, 0.1);
 			padding: 1.5rem;
-		}
-
-		.settings-section:last-child {
-			border-bottom: none;
 		}
 
 		.setting-item {
@@ -56,11 +75,6 @@
 			align-items: center;
 			justify-content: space-between;
 			padding: 1rem 0;
-			border-bottom: 1px solid rgba(59, 130, 246, 0.05);
-		}
-
-		.setting-item:last-child {
-			border-bottom: none;
 		}
 
 		.settings-input {
@@ -125,67 +139,43 @@
 		}
 
 		.logout-button {
-			background: linear-gradient(135deg, #6b7280 0%, #4b5563 50%, #374151 100%);
+			background: linear-gradient(135deg, #ef4444 0%, #dc2626 50%, #b91c1c 100%);
 			box-shadow:
-				0 4px 16px rgba(107, 114, 128, 0.3),
+				0 4px 16px rgba(239, 68, 68, 0.3),
 				inset 0 1px 0 rgba(255, 255, 255, 0.2);
 			border: 1px solid rgba(255, 255, 255, 0.2);
 			color: white;
 			border-radius: 8px;
-			padding: 0.75rem 1.5rem;
+			padding: 0.75rem 2rem;
 			font-weight: 600;
 			transition: all 0.3s ease;
+			position: relative;
+			overflow: hidden;
 			cursor: pointer;
 			border: none;
+		}
+
+		.logout-button::before {
+			content: '';
+			position: absolute;
+			top: 0;
+			left: -100%;
+			width: 100%;
+			height: 100%;
+			background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+			transition: left 0.5s ease;
 		}
 
 		.logout-button:hover {
-			background: linear-gradient(135deg, #9ca3af 0%, #6b7280 50%, #4b5563 100%);
+			background: linear-gradient(135deg, #f87171 0%, #ef4444 50%, #dc2626 100%);
 			box-shadow:
-				0 6px 20px rgba(107, 114, 128, 0.4),
+				0 6px 20px rgba(239, 68, 68, 0.4),
 				inset 0 1px 0 rgba(255, 255, 255, 0.3);
 			transform: translateY(-1px);
 		}
 
-		.change-password-button {
-			background: linear-gradient(135deg, #059669 0%, #047857 50%, #065f46 100%);
-			box-shadow:
-				0 4px 16px rgba(5, 150, 105, 0.3),
-				inset 0 1px 0 rgba(255, 255, 255, 0.2);
-			border: 1px solid rgba(255, 255, 255, 0.2);
-			color: white;
-			border-radius: 8px;
-			padding: 0.75rem 1.5rem;
-			font-weight: 600;
-			transition: all 0.3s ease;
-			cursor: pointer;
-			border: none;
-		}
-
-		.change-password-button:hover {
-			background: linear-gradient(135deg, #10b981 0%, #059669 50%, #047857 100%);
-			box-shadow:
-				0 6px 20px rgba(5, 150, 105, 0.4),
-				inset 0 1px 0 rgba(255, 255, 255, 0.3);
-			transform: translateY(-1px);
-		}
-
-		.password-section {
-			background: linear-gradient(
-				135deg,
-				rgba(255, 255, 255, 0.95) 0%,
-				rgba(248, 250, 252, 0.9) 100%
-			);
-			border: 1px solid rgba(5, 150, 105, 0.1);
-			border-radius: 12px;
-			padding: 1.5rem;
-			margin-top: 1rem;
-			display: none;
-		}
-
-		.password-section.active {
-			display: block;
-			animation: slideDown 0.3s ease-out;
+		.logout-button:hover::before {
+			left: 100%;
 		}
 
 		@keyframes slideDown {
@@ -215,9 +205,9 @@
 		.button-group {
 			display: flex;
 			flex-direction: row;
-			gap: 0.75rem;
+			gap: 1rem;
 			align-items: center;
-			justify-content: center;
+			justify-content: space-between;
 			width: 100%;
 			flex-wrap: wrap;
 		}
@@ -232,33 +222,56 @@
 				flex-direction: column;
 				align-items: center;
 			}
+		}
 
-			.button-group button {
-				width: 200px;
+		@media (max-width: 768px) {
+			.settings-container {
+				padding-bottom: 1rem;
 			}
 		}
 	</style>
 </svelte:head>
 
 <div class="bg-secondary min-h-screen">
-	{#if user.role === 'USER'}
-		<UserNavBar message={`User Settings`} />
+	{#if role === 'USER'}
+		<UserNavBar message={`Your Account Settings`} />
 	{:else}
-		<AdminNavBar message={`Admin Settings`} />
+		<AdminNavBar message={`Admin Account Settings`} />
 	{/if}
 
 	<!-- Settings Content -->
-	<div class="settings-container max-h-screen">
+	<div class="settings-container">
 		<div class="mx-auto max-w-4xl px-4 py-8">
 			<!-- Page Header -->
-			<div class="mb-8 text-center">
-				<h1 class="mb-2 text-3xl font-bold text-gray-800">Account Settings</h1>
-				<p class="text-red-600">NOT IMPLEMENTED!!</p>
+			<div class="mb-6 text-center">
+				<h1 class="mb-4 text-3xl font-bold text-gray-800">Account Settings</h1>
+				{#if form && form.success}
+					<p class="text-green-600">{form.message}</p>
+				{:else if form && form.error}
+					<p class="text-red-600">{form.error}</p>
+				{/if}
 			</div>
 
 			<!-- Account Information Card -->
 			<div class="settings-card mb-6">
-				<div class="settings-section">
+				<form
+					class="settings-section"
+					method="POST"
+					action="?/saveAccountInfo"
+					use:enhance={({ formData }: { formData: FormData }) => {
+						formData.append('etsuApplicationComplete', user.etsuApplicationComplete.toString());
+						formData.append('phoneNumber', user.phoneNumber || '');
+
+						NProgress.start();
+						return async ({ result }) => {
+							if (result.type === 'success' && result.data && result.data.user) {
+								user = result.data.user as typeof user;
+							}
+							applyAction(result);
+							NProgress.done();
+						};
+					}}
+				>
 					<h2 class="mb-4 flex items-center text-xl font-semibold text-gray-800">
 						<svg
 							class="mr-2 h-5 w-5 text-blue-600"
@@ -280,82 +293,117 @@
 					<div class="setting-item">
 						<div class="form-row w-full">
 							<div>
-								<label class="mb-1 block text-sm font-medium text-gray-700">First Name</label>
+								<label class="mb-1 block text-sm font-medium text-gray-700" for="firstName"
+									>First Name</label
+								>
 								<input
 									type="text"
+									name="firstName"
 									class="settings-input w-full"
 									placeholder="Enter your first name"
 									value={user.firstName}
+									required
 								/>
 							</div>
 							<div>
-								<label class="mb-1 block text-sm font-medium text-gray-700">Last Name</label>
+								<label class="mb-1 block text-sm font-medium text-gray-700" for="lastName"
+									>Last Name</label
+								>
 								<input
 									type="text"
+									name="lastName"
 									class="settings-input w-full"
 									placeholder="Enter your last name"
 									value={user.lastName}
+									required
 								/>
 							</div>
 						</div>
 					</div>
 
+					<hr class=" border-[rgb(59,130,246)]/20" />
+
 					<!-- Personal Email and Phone Number Row -->
 					<div class="setting-item">
 						<div class="form-row w-full">
 							<div>
-								<label class="mb-1 block text-sm font-medium text-gray-700"
+								<label class="mb-1 block text-sm font-medium text-gray-700" for="personalEmail"
 									>Personal Email Address</label
 								>
 								<input
 									type="email"
-									class="settings-input w-full"
+									name="email"
+									id="email"
+									class="settings-input w-full disabled:cursor-not-allowed disabled:opacity-50"
 									placeholder="Enter your personal email address"
 									value={user.email}
+									disabled={true}
 								/>
 							</div>
 							<div>
-								<label class="mb-1 block text-sm font-medium text-gray-700">Phone Number</label>
-								<input
-									type="tel"
-									class="settings-input w-full"
-									placeholder="Enter your phone number"
-									value={user.phoneNumber}
+								<label class="mb-1 block text-sm font-medium text-gray-700" for="phoneNumber"
+									>Phone Number</label
+								>
+								<TelephoneInput
+									bind:value={user.phoneNumber as E164Number}
+									bind:valid={phoneValid}
+									bind:selectedCountry={phoneSelectedCountry}
 								/>
 							</div>
 						</div>
+					</div>
+
+					<hr class=" border-[rgb(59,130,246)]/20" />
+
+					<!-- ETSU Application Status -->
+					<div class="mt-4">
+						<label class="flex items-center">
+							<input
+								type="checkbox"
+								name="etsuApplicationComplete"
+								class="mr-2 h-4 w-4"
+								bind:checked={user.etsuApplicationComplete}
+							/>
+							<span class="text-sm font-medium">Have you applied or been accepted to ETSU?</span>
+						</label>
 					</div>
 
 					<!-- ETSU Email and eNumber Row -->
 					<div class="setting-item">
 						<div class="form-row w-full">
 							<div>
-								<label class="mb-1 block text-sm font-medium text-gray-700"
+								<label class="mb-1 block text-sm font-medium text-gray-700" for="etsuEmail"
 									>ETSU Email Address</label
 								>
 								<input
+									disabled={!user.etsuApplicationComplete}
 									type="email"
-									class="settings-input w-full"
+									name="etsuEmail"
+									class="settings-input w-full disabled:cursor-not-allowed disabled:opacity-50"
 									placeholder="Enter your ETSU email address"
 									value={user.etsuEmail}
 								/>
 							</div>
 							<div>
-								<label class="mb-1 block text-sm font-medium text-gray-700">ETSU eNumber</label>
+								<label class="mb-1 block text-sm font-medium text-gray-700" for="etsuENumber"
+									>ETSU eNumber</label
+								>
 								<input
 									type="text"
-									class="settings-input w-full"
+									name="etsuENumber"
+									class="settings-input w-full disabled:cursor-not-allowed disabled:opacity-50"
 									placeholder="Enter your ETSU eNumber"
 									value={user.etsuENumber}
+									disabled={!user.etsuApplicationComplete}
 								/>
 							</div>
 						</div>
 					</div>
 
-					<!-- Action Buttons - Now Stacked Vertically -->
+					<!-- Action Buttons  -->
 					<div class="setting-item">
 						<div class="button-group">
-							<button class="save-button">
+							<button class="save-button" type="submit">
 								<svg
 									class="mr-2 inline h-4 w-4"
 									fill="none"
@@ -371,23 +419,8 @@
 								</svg>
 								Save Changes
 							</button>
-							<button class="change-password-button">
-								<svg
-									class="mr-2 inline h-4 w-4"
-									fill="none"
-									stroke="currentColor"
-									viewBox="0 0 24 24"
-								>
-									<path
-										stroke-linecap="round"
-										stroke-linejoin="round"
-										stroke-width="2"
-										d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-									></path>
-								</svg>
-								Change Password
-							</button>
-							<button class="logout-button">
+
+							<a href="/auth/logout" class="logout-button">
 								<svg
 									class="mr-2 inline h-4 w-4"
 									fill="none"
@@ -402,99 +435,10 @@
 									></path>
 								</svg>
 								Log Out
-							</button>
+							</a>
 						</div>
 					</div>
-
-					<!-- Password Change Section (Hidden by default) -->
-					<div id="passwordSection" class="password-section">
-						<h3 class="mb-4 flex items-center text-lg font-semibold text-gray-800">
-							<svg
-								class="mr-2 h-5 w-5 text-green-600"
-								fill="none"
-								stroke="currentColor"
-								viewBox="0 0 24 24"
-							>
-								<path
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									stroke-width="2"
-									d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-								></path>
-							</svg>
-							Change Password
-						</h3>
-
-						<div class="space-y-4">
-							<div>
-								<label class="mb-1 block text-sm font-medium text-gray-700">Current Password</label>
-								<input
-									type="password"
-									id="currentPassword"
-									class="settings-input w-full max-w-md"
-									placeholder="Enter current password"
-								/>
-							</div>
-
-							<div>
-								<label class="mb-1 block text-sm font-medium text-gray-700">New Password</label>
-								<input
-									type="password"
-									id="newPassword"
-									class="settings-input w-full max-w-md"
-									placeholder="Enter new password"
-								/>
-							</div>
-
-							<div>
-								<label class="mb-1 block text-sm font-medium text-gray-700"
-									>Confirm New Password</label
-								>
-								<input
-									type="password"
-									id="confirmPassword"
-									class="settings-input w-full max-w-md"
-									placeholder="Confirm new password"
-								/>
-							</div>
-
-							<div class="flex gap-3 pt-2">
-								<button class="save-button">
-									<svg
-										class="mr-2 inline h-4 w-4"
-										fill="none"
-										stroke="currentColor"
-										viewBox="0 0 24 24"
-									>
-										<path
-											stroke-linecap="round"
-											stroke-linejoin="round"
-											stroke-width="2"
-											d="M5 13l4 4L19 7"
-										></path>
-									</svg>
-									Update Password
-								</button>
-								<button class="logout-button">
-									<svg
-										class="mr-2 inline h-4 w-4"
-										fill="none"
-										stroke="currentColor"
-										viewBox="0 0 24 24"
-									>
-										<path
-											stroke-linecap="round"
-											stroke-linejoin="round"
-											stroke-width="2"
-											d="M6 18L18 6M6 6l12 12"
-										></path>
-									</svg>
-									Cancel
-								</button>
-							</div>
-						</div>
-					</div>
-				</div>
+				</form>
 			</div>
 		</div>
 	</div>

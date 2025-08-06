@@ -18,3 +18,5 @@ model Announcement {
   message   String
   createdAt DateTime @default(now())
 }
+
+

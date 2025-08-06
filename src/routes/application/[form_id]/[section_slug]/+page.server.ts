@@ -41,7 +41,7 @@ export async function load({ locals, params }) {
 		})
 	);
 	if (applicationResult.isErr()) {
-		throw error(500, `Error fetching application id: ${applicationResult.error.message}`);
+		throw error(500, `Error fetching application ID.`);
 	}
 	const applicationId = applicationResult.value;
 	if (!applicationId) {
@@ -51,10 +51,7 @@ export async function load({ locals, params }) {
 	// fetch existing section answers
 	const sectionWithAnswersResult = await getSectionWithNavAndAnswers(applicationId.id, sectionSlug);
 	if (sectionWithAnswersResult.isErr()) {
-		throw error(
-			500,
-			`Error fetching application section answers: ${sectionWithAnswersResult.error.message}`
-		);
+		throw error(500, `Error fetching application section answers.`);
 	}
 
 	let isReadOnly = applicationResult.value.status !== 'DRAFT';

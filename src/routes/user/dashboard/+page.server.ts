@@ -59,7 +59,7 @@ export const load = (async ({ locals }) => {
 		return { error: applicationFormsResult.error.message, user };
 	}
 
-	const announcementsResult = await getAllAnnouncements();
+	const announcementsResult = await getAllAnnouncements(5);
 	if (announcementsResult.isErr()) {
 		return { error: announcementsResult.error.message, user };
 	}

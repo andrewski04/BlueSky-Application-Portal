@@ -35,39 +35,47 @@
 				class="mb-6"
 			>
 				<div class="mb-4">
-					<label for="title" class="block text-sm font-medium text-gray-700">Title:</label>
+					<label for="title" class="block font-medium text-gray-700">Title</label>
 					<input
 						type="text"
 						id="title"
 						name="title"
-						class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+						maxlength={100}
+						minlength={10}
+						class="mt-1 block w-full rounded-md border-gray-300 px-2 py-1 shadow-sm focus:outline-2 focus:outline-blue-500"
 						required
 					/>
 				</div>
 				<div class="mb-4">
-					<label for="message" class="block text-sm font-medium text-gray-700">Message:</label>
+					<label for="message" class="block font-medium text-gray-700">Message</label>
 					<textarea
 						id="message"
 						name="message"
+						maxlength={800}
+						minlength={10}
 						rows="3"
-						class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+						class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
 						required
 					></textarea>
 				</div>
 				<button
 					type="submit"
-					class="rounded bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-700"
+					class="rounded bg-blue-500 px-4 py-2 font-bold text-white hover:cursor-pointer hover:bg-blue-700"
 				>
 					Add Announcement
 				</button>
 			</form>
 
 			{#if error}
-				<p class="mb-4 text-center text-red-500">{error}</p>
+				<div class="mx-auto mb-4 max-w-sm rounded-2xl bg-red-500 px-4 py-2">
+					<p class="text-center text-white">{error}</p>
+				</div>
 			{/if}
 
 			{#if form?.error}
-				<p class="mb-4 text-center text-red-500">{form.error}</p>
+				<div class="mx-auto mb-4 max-w-sm rounded-2xl bg-red-500 px-4 py-2">
+					<p class="text-center text-white">{form.error}</p>
+				</div>
 			{/if}
 
 			{#if !announcementsList || announcementsList.length === 0}

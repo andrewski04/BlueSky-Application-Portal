@@ -48,7 +48,8 @@ export async function userSetupByUserId(
 	lastName: string,
 	etsuApplicationComplete: boolean = false,
 	etsuEmail?: string,
-	etsuENumber?: string
+	etsuENumber?: string,
+	phoneNumber?: string
 ): Promise<Result<boolean>> {
 	if (!firstName || firstName.trim() === '') {
 		return err(new AppError('First name is required', 'ERR_FIRST_NAME_REQUIRED'));
@@ -67,6 +68,7 @@ export async function userSetupByUserId(
 				etsuApplicationComplete,
 				etsuEmail: etsuEmail?.trim() || null,
 				etsuENumber: etsuENumber?.trim() || null,
+				phoneNumber: phoneNumber?.trim() || null,
 				isSetup: true
 			}
 		});
