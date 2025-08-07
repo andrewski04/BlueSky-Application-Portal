@@ -137,7 +137,7 @@ export const actions = {
 		);
 
 		if (applicationResult.isErr()) {
-			throw error(500, `Error fetching application: ${applicationResult.error.message}`);
+			throw error(500, `Error fetching application.`);
 		}
 
 		const application = applicationResult.value;
@@ -183,7 +183,7 @@ export const actions = {
 		const saveResult = await saveApplicationQuestion(userId, formId, questionVersionId, value);
 
 		if (saveResult.isErr()) {
-			throw error(500, `Error saving question: ${saveResult.error.message}`);
+			throw error(500, `Error saving question.`);
 		}
 
 		return { success: true };
@@ -224,7 +224,7 @@ export const actions = {
 		);
 
 		if (applicationResult.isErr()) {
-			throw error(500, `Error fetching application: ${applicationResult.error.message}`);
+			throw error(500, `Error fetching application.`);
 		}
 
 		const application = applicationResult.value;
@@ -240,7 +240,7 @@ export const actions = {
 		const submitResult = await submitApplication(userId, formId, application.form.groupId);
 
 		if (submitResult.isErr()) {
-			throw error(500, `Error submitting application: ${submitResult.error.message}`);
+			throw error(500, `Error submitting application.`);
 		}
 
 		return redirect(302, '/user/dashboard');

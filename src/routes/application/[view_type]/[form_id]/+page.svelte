@@ -24,7 +24,9 @@
 
 	// Central state to hold the current value of each answer
 	let answers: Record<string, any> = $state({});
-	let questionSaveStatus: Record<string, 'Saved' | 'Saving' | 'Unsaved'> = $state({});
+	let questionSaveStatus: Record<string, 'Saved' | 'Saving' | 'Unsaved' | 'Unanswered'> = $state(
+		{}
+	);
 	let isInitialLoad = true;
 
 	onMount(() => {
@@ -57,6 +59,15 @@
 						break;
 				}
 				initialAnswers[question.id] = existingAnswer ?? (question.type === 'CHECKBOX' ? [] : null);
+
+				// Set initial save status based on whether question has an answer
+				const hasAnswer =
+					existingAnswer !== null &&
+					existingAnswer !== undefined &&
+					(existingAnswer !== '' || question.type === 'CHECKBOX') &&
+					(question.type !== 'CHECKBOX' || existingAnswer.length > 0);
+
+				questionSaveStatus[question.id] = hasAnswer ? 'Saved' : 'Unanswered';
 			});
 		});
 
@@ -94,12 +105,16 @@
 			} else {
 				questionSaveStatus[questionVersionId] = 'Unsaved';
 				console.error('Failed to save question:', questionVersionId);
-				addNotif('Failed to save question', 'error');
+				if (user.role === 'ADMIN') {
+					addNotif('Admin users cannot save questions.', 'error');
+				} else {
+					addNotif('Failed to save question. Do not refresh the page.', 'error');
+				}
 			}
 		} catch (error) {
 			questionSaveStatus[questionVersionId] = 'Unsaved';
 			console.error('Error saving question:', error);
-			addNotif('Error saving question', 'error');
+			addNotif('Error saving question.', 'error');
 		}
 	}
 
@@ -285,14 +300,16 @@
 										class:text-yellow-800={questionSaveStatus[question.id] === 'Saving'}
 										class:bg-red-200={questionSaveStatus[question.id] === 'Unsaved'}
 										class:text-red-800={questionSaveStatus[question.id] === 'Unsaved'}
+										class:bg-gray-200={questionSaveStatus[question.id] === 'Unanswered'}
+										class:text-gray-800={questionSaveStatus[question.id] === 'Unanswered'}
 									>
 										{questionSaveStatus[question.id]}
 									</div>
 								{:else if !isReadOnly && !isAdminPreview}
 									<div
-										class="absolute -top-2 right-2 rounded-full bg-green-200 px-2 py-1 text-xs font-semibold text-green-800"
+										class="absolute -top-2 right-2 rounded-full bg-gray-200 px-2 py-1 text-xs font-semibold text-gray-800"
 									>
-										Saved
+										Unanswered
 									</div>
 								{/if}
 							</div>

@@ -121,7 +121,8 @@ export async function publishFormFromDraft(
 						name: sec.name,
 						slug: sec.slug,
 						description: sec.description,
-						displayOrder: sec.displayOrder
+						displayOrder: sec.displayOrder,
+						colorScheme: sec.colorScheme
 					}
 				});
 
