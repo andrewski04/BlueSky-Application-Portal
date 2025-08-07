@@ -1,6 +1,7 @@
 import { prisma, prismaResult } from '$lib/server/prisma';
 import type { Prisma, QuestionVersion } from '@prisma/client';
 import { type Result, ok, err, AppError } from '$lib/utils/error';
+import { FormDraftWithSectionsWithQuestionsWithOptions } from './formDraftArgs';
 
 // Helper function, copies draft questions to immutable version
 // Creates new QuestionTemplate if no templateId is provided
@@ -161,4 +162,66 @@ export async function publishFormFromDraft(
 		console.error('Publish error', e);
 		return err(new AppError('Failed to publish form', 'ERR_PUBLISH_FORM'));
 	}
+}
+
+export async function getFormDraftPreview(formId: string) {
+	const applicationForm = await prismaResult(
+		prisma.applicationFormDraft.findUnique({
+			where: { id: formId },
+			...FormDraftWithSectionsWithQuestionsWithOptions
+		})
+	);
+
+	if (applicationForm.isErr()) {
+		return err(new AppError('Failed to fetch form draft'));
+	}
+
+	const draft = applicationForm.value;
+	if (!draft) {
+		return err(new AppError('Form draft not found'));
+	}
+
+	// Transform draft form to match the structure of getApplicationFormWithAnswers
+	const transformedForm = {
+		...draft,
+		// For preview, we don't have user, status, or updatedAt from application
+		user: null,
+		status: null,
+		updatedAt: null,
+		sections: draft.sections.map((sec) => ({
+			...sec,
+			questions: sec.questions.map((ql) => {
+				// Handle both questionDraft and questionVersion cases
+				const questionData = ql.questionVersion || ql.questionDraft;
+				if (!questionData) {
+					throw new Error('Question link missing both draft & version');
+				}
+
+				// Transform to match the structure from transformQuestion function
+				return {
+					id: questionData.id,
+					templateId: questionData.templateId || 'DraftQuestion',
+					version: 1, // Draft questions don't have version
+					prompt: questionData.prompt,
+					type: questionData.type,
+					slug: questionData.slug,
+					minLength: questionData.minLength,
+					maxLength: questionData.maxLength,
+					minValue: questionData.minValue,
+					maxValue: questionData.maxValue,
+					minDate: questionData.minDate,
+					maxDate: questionData.maxDate,
+					acceptedTypes: questionData.acceptedTypes,
+					maxFileSizeBytes: questionData.maxFileSizeBytes,
+					createdAt: new Date(), // Draft questions don't have createdAt
+					required: ql.required,
+					displayOrder: ql.displayOrder,
+					options: questionData.options || null,
+					answer: null
+				};
+			})
+		}))
+	};
+
+	return ok(transformedForm);
 }

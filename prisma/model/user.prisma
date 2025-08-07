@@ -22,7 +22,6 @@ model User {
   createdAt           DateTime              @default(now())
   ApplicationResponse ApplicationResponse[]
   Announcement        Announcement[]
-  hiddenAnnouncements HiddenAnnouncement[]
 }
 
 /**

@@ -1,33 +1,30 @@
 {
-    "css.customData": [".vscode/tailwind.json"],
-    "editor.formatOnSave": true,
-    "editor.defaultFormatter": "esbenp.prettier-vscode",
-    "[svelte]": {
-        "editor.defaultFormatter": "svelte.svelte-vscode"
-    },
-    "[typescript]": {
-        "editor.defaultFormatter": "esbenp.prettier-vscode"
-    },
-    "workbench.editor.labelFormat": "default",
-    "workbench.tree.indent": 16,
-    "explorer.sortOrder": "filesFirst",
-    "explorer.compactFolders": false,
-    "tailwindCSS.includeLanguages": {
-        "html": "html",
-        "javascript": "javascript",
-        "css": "css"
-    },
-    "editor.quickSuggestions": {
-        "strings": true
-    },
-    "openctx.providers": {
-        "https://openctx.org/npm/@openctx/provider-devdocs": {
-        "urls": ["https://devdocs.io/svelte/", "https://devdocs.io/tailwindcss/", "https://devdocs.io/typescript/",]
-        },
-    },
-    "workbench.editor.customLabels.patterns": {
-        "**/src/**/*+*": "${dirname}  [${filename}.${extname}]"
-    },
-    "workbench.editor.customLabels.enabled": true,
-    "typescript.tsdk": "node_modules\\typescript\\lib"
+	"editor.defaultColorDecorators": "always",
+	"css.customData": [".vscode/tailwind.json"],
+	"editor.formatOnSave": true,
+	"editor.defaultFormatter": "esbenp.prettier-vscode",
+	"[svelte]": {
+		"editor.defaultFormatter": "svelte.svelte-vscode"
+	},
+	"[typescript]": {
+		"editor.defaultFormatter": "esbenp.prettier-vscode"
+	},
+	"workbench.editor.labelFormat": "default",
+	"workbench.tree.indent": 16,
+	"explorer.sortOrder": "filesFirst",
+	"explorer.compactFolders": false,
+	"tailwindCSS.includeLanguages": {
+		"html": "html",
+		"javascript": "javascript",
+		"css": "css"
+	},
+	"editor.quickSuggestions": {
+		"strings": true
+	},
+
+	"workbench.editor.customLabels.patterns": {
+		"**/src/**/*+*": "${dirname}  [${filename}.${extname}]"
+	},
+	"workbench.editor.customLabels.enabled": true,
+	"typescript.tsdk": "node_modules\\typescript\\lib"
 }

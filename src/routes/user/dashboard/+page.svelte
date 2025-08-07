@@ -3,7 +3,7 @@
 	import UserNavBar from '$lib/components/dashboard/UserNavBar.svelte';
 
 	let { data }: { data: PageData } = $props();
-	let { user, error, applicationForms, announcements } = data;
+	let { user, applicationFormsError, applicationForms, announcementsError, announcements } = data;
 
 	// Add reactive variables for carousel functionality
 	let currentAnnouncementIndex = $state(0);
@@ -104,25 +104,6 @@
 			border-bottom: 1px solid rgba(59, 130, 246, 0.1);
 			padding: 1.5rem;
 			border-radius: 16px 16px 0 0;
-		}
-
-		.announcement-item {
-			padding: 1.5rem;
-			border-bottom: 1px solid rgba(59, 130, 246, 0.05);
-			transition: all 0.3s ease;
-		}
-
-		.announcement-item:hover {
-			background: linear-gradient(
-				135deg,
-				rgba(59, 130, 246, 0.02) 0%,
-				rgba(147, 197, 253, 0.02) 100%
-			);
-		}
-
-		.announcement-item:last-child {
-			border-bottom: none;
-			border-radius: 0 0 16px 16px;
 		}
 
 		.announcement-carousel {
@@ -360,7 +341,10 @@
 					{/if}
 				</div>
 			{:else}
-				<div class="announcement-item">
+				<div class="space-y-4 rounded-b-lg py-6">
+					{#if announcementsError}
+						<p class="text-center font-bold text-red-500">{announcementsError}</p>
+					{/if}
 					<p class="text-center text-gray-500">No announcements at this time.</p>
 				</div>
 			{/if}
@@ -386,14 +370,17 @@
 					Available Application Forms
 				</h2>
 			</div>
-			<div class="w-full bg-white shadow-md">
-				{#if error}
-					<p class="mb-4 text-center font-bold text-red-500">{error}</p>
-				{/if}
+			<div class="w-full rounded-b-lg bg-white shadow-md">
+				<div class="space-y-4 rounded-b-lg py-6">
+					{#if applicationFormsError}
+						<p class="text-center font-bold text-red-500">{applicationFormsError}</p>
+					{/if}
+					{#if !applicationForms || applicationForms.length === 0}
+						<p class="text-center text-gray-500">No application forms found</p>
+					{/if}
+				</div>
 
-				{#if !applicationForms || applicationForms.length === 0}
-					<p class="text-center text-gray-500">No application forms found</p>
-				{:else}
+				{#if applicationForms && applicationForms.length > 0}
 					<table class="min-w-full divide-y divide-gray-200">
 						<thead class="bg-gray-50">
 							<tr>
@@ -445,7 +432,7 @@
 									</td>
 									<td class="text-md px-4 py-2 whitespace-nowrap">
 										<a
-											href="/application/{form.id}"
+											href="/application/form/{form.id}"
 											class="start-form-button flex items-center justify-center px-4 py-2"
 										>
 											<svg

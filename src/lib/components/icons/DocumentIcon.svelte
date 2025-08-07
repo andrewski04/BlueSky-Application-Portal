@@ -2,10 +2,11 @@
 	let { class: className = '' } = $props();
 </script>
 
-<svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" fill="none" class={className}>
+<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" class={className}>
 	<path
-		fill="currentColor"
-		fill-rule="evenodd"
-		d="M4 1a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V7.414A2 2 0 0017.414 6L13 1.586A2 2 0 0011.586 1H4zm0 2h7.586L16 7.414V17H4V3zm2 2a1 1 0 000 2h5a1 1 0 100-2H6zm-1 5a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1zm1 3a1 1 0 100 2h8a1 1 0 100-2H6z"
-	/>
+		stroke-linecap="round"
+		stroke-linejoin="round"
+		stroke-width="2"
+		d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+	></path>
 </svg>

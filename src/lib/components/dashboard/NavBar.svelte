@@ -46,20 +46,23 @@
 					button.href
 				)
 					? 'active'
-					: ''}"
+					: ''} flex items-center"
 			>
 				{#if button.icon}
-					<button.icon class="mr-1 inline h-3 w-3 stroke-white md:h-4 md:w-4" />
+					<button.icon
+						class="mr-1 inline h-3 w-3 stroke-white align-middle md:h-4 md:w-4"
+						style="vertical-align: middle;"
+					/>
 				{/if}
-				{button.label}
+				<span class="align-middle" style="vertical-align: middle;">{button.label}</span>
 			</a>
 		{/each}
 		<a
 			href="/auth/logout"
-			class="logout-link rounded px-1 py-1 text-xs font-medium md:px-3 md:text-sm"
+			class="logout-link flex items-center rounded px-1 py-1 text-xs font-medium md:px-3 md:text-sm"
 		>
-			<LogoutIcon class="mr-1 inline h-3 w-3 stroke-white md:h-4 md:w-4" />
-			Logout
+			<LogoutIcon class="mr-1 inline h-3 w-3 stroke-white align-middle md:h-4 md:w-4" />
+			<span class="align-middle" style="vertical-align: middle;">Logout</span>
 		</a>
 	</nav>
 	<div id="nprogressbar" class="nprogressbar nav-section h-[4px] w-full"></div>

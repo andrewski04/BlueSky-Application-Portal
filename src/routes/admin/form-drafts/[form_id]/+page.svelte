@@ -12,76 +12,134 @@
 
 <svelte:head>
 	<title>Form Draft Details</title>
+	<style>
+		.main-container {
+			background: linear-gradient(
+				180deg,
+				rgba(239, 246, 255, 0.5) 0%,
+				rgba(219, 234, 254, 0.3) 50%,
+				rgba(147, 197, 253, 0.1) 100%
+			);
+		}
+		.content-card {
+			background: linear-gradient(
+				135deg,
+				rgba(255, 255, 255, 0.95) 0%,
+				rgba(248, 250, 252, 0.9) 100%
+			);
+			box-shadow:
+				0 8px 32px rgba(59, 130, 246, 0.1),
+				0 4px 16px rgba(0, 0, 0, 0.05);
+			border: 1px solid rgba(59, 130, 246, 0.1);
+			backdrop-filter: blur(10px);
+			border-radius: 16px;
+			transition: all 0.3s ease;
+		}
+
+		.content-card:hover {
+			box-shadow:
+				0 12px 40px rgba(59, 130, 246, 0.15),
+				0 6px 20px rgba(0, 0, 0, 0.08);
+			transform: translateY(-2px);
+		}
+
+		.section-header {
+			background: linear-gradient(
+				135deg,
+				rgba(59, 130, 246, 0.05) 0%,
+				rgba(147, 197, 253, 0.05) 100%
+			);
+			border-bottom: 1px solid rgba(59, 130, 246, 0.1);
+			border-radius: 16px 16px 0 0;
+		}
+	</style>
 </svelte:head>
 
 {#if applicationForm}
-	<div class="bg-secondary min-h-screen">
+	<div class="main-container min-h-screen">
 		<AdminNavBar message={`Viewing Draft: ${applicationForm?.name}`} />
-		<div class="container mx-auto p-6">
-			<div class="mb-6 rounded-md border border-gray-200 bg-white p-6 shadow-sm">
-				<div class="mb-2 flex items-center justify-between">
-					<div class="flex items-center gap-2">
-						<h1 class="text-3xl font-bold">Form Draft: {applicationForm?.name}</h1>
+		<div class="content-card container mx-auto mt-8 p-6">
+			<div class="section-header rounded-md border border-gray-200 bg-white p-6 shadow-sm">
+				<!-- Header with title and back button -->
+				<div class="mb-4 flex items-center justify-between">
+					<div class="flex items-center gap-3">
+						<h1 class="text-3xl font-bold text-gray-800">Form Draft: {applicationForm?.name}</h1>
 						<button
-							class="inline-block align-middle"
+							class="inline-flex items-center justify-center rounded-lg bg-blue-50 p-2 text-blue-600 transition-colors hover:bg-blue-100"
 							aria-label="Edit form draft"
 							onclick={() => {
 								editFormPopup = true;
 							}}
 						>
-							<img src="/icons/edit.svg" alt="Edit" class="h-6 w-6" />
+							<img src="/icons/edit.svg" alt="Edit" class="h-5 w-5" />
 						</button>
 					</div>
-					<a href="/admin/form-drafts" class="btn-bluebtn-red px-3 py-1">Back</a>
+					<button onclick={() => history.back()} class="btn-red px-4 py-2">Back</button>
 				</div>
-				<p><b>Description:</b> {applicationForm.description || 'No description provided'}</p>
-				<p><b>ID:</b> {applicationForm.id}</p>
-				<p>
-					<b>Created At:</b>
-					{applicationForm.createdAt.toLocaleString('en-US', { timeZoneName: 'shortGeneric' })}
-				</p>
-				<p>
-					<b>Last Updated:</b>
-					{applicationForm.updatedAt.toLocaleString('en-US', { timeZoneName: 'shortGeneric' })}
-				</p>
 
-				<div class="mt-4 flex items-center gap-2">
+				<!-- Description -->
+				<div class="mb-6">
+					<p class="text-lg leading-relaxed text-gray-700">
+						{applicationForm.description || 'No description provided'}
+					</p>
+				</div>
+
+				<!-- Metadata Grid -->
+				<div class="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+					<div class="rounded-lg bg-gray-50 p-4">
+						<h3 class="mb-1 text-sm font-semibold tracking-wide text-gray-600 uppercase">
+							Form ID
+						</h3>
+						<p class="font-mono text-sm text-gray-800">{applicationForm.id}</p>
+					</div>
+					<div class="rounded-lg bg-gray-50 p-4">
+						<h3 class="mb-1 text-sm font-semibold tracking-wide text-gray-600 uppercase">
+							Created
+						</h3>
+						<p class="text-sm text-gray-800">
+							{applicationForm.createdAt.toLocaleString('en-US', { timeZoneName: 'shortGeneric' })}
+						</p>
+					</div>
+					<div class="rounded-lg bg-gray-50 p-4">
+						<h3 class="mb-1 text-sm font-semibold tracking-wide text-gray-600 uppercase">
+							Last Updated
+						</h3>
+						<p class="text-sm text-gray-800">
+							{applicationForm.updatedAt.toLocaleString('en-US', { timeZoneName: 'shortGeneric' })}
+						</p>
+					</div>
+				</div>
+
+				<!-- Action Buttons -->
+				<div class="flex items-center gap-3">
 					<a
-						class="rounded-xl bg-green-600 px-4 py-1 text-white hover:bg-green-700"
+						class="btn-green px-6 py-2 text-lg"
 						href="/admin/form-drafts/{applicationForm.id}/edit"
 					>
-						Edit
+						Edit Form
 					</a>
-					<form action="?/deleteDraft" method="post">
+					<form action="?/deleteDraft" method="post" class="inline">
+						<button type="submit" class="btn-red px-6 py-2 text-lg">Delete Draft</button>
+					</form>
+					<form action="?/publishDraft" method="post" class="inline">
 						<button
 							type="submit"
-							class="rounded-xl bg-red-600 px-4 py-1 text-white hover:bg-red-700"
+							disabled={applicationForm?.sections.length === 0}
+							class="btn-blue px-6 py-2 text-lg disabled:cursor-not-allowed disabled:opacity-50"
 						>
-							Delete
+							Publish Form
 						</button>
 					</form>
-
-					<form action="?/publishDraft" method="post">
-						<Tooltip
-							tip="Creates uneditable copy of the form, <br> the draft will remain after publishing."
-							top
-						>
-							<button
-								type="submit"
-								disabled={applicationForm?.sections.length === 0}
-								class="rounded-xl bg-blue-600 px-4 py-1 text-white hover:bg-blue-700 disabled:opacity-50"
-							>
-								Publish
-							</button>
-						</Tooltip>
-					</form>
 				</div>
+
 				{#if form?.error}
-					<p class="text-center font-bold text-red-700">Error: {form.error}</p>
+					<div class="mt-4 rounded-lg border border-red-200 bg-red-50 p-3">
+						<p class="font-medium text-red-700">Error: {form.error}</p>
+					</div>
 				{/if}
 			</div>
 
-			<div class="mb-8 rounded-md border border-gray-200 bg-white p-6 shadow-sm">
+			<div class="rounded-b-lg border border-gray-200 bg-white p-6 shadow-sm">
 				{#if applicationForm.sections.length == 0}
 					<p class="text-center font-bold text-red-600">
 						This form currently has no sections or questions.
@@ -175,7 +233,7 @@
 						>
 							Cancel
 						</button>
-						<button type="submit" class="btn-bluebtn-primary rounded-xl px-3 py-1">Save</button>
+						<button type="submit" class="btn-blue rounded-xl px-3 py-1">Save</button>
 					</div>
 				</form>
 			</div>
@@ -187,7 +245,7 @@
 		<div class="container mx-auto p-6">
 			<div class="mb-4 flex items-center justify-between">
 				<h1 class="text-3xl font-bold">Form Details</h1>
-				<a href="/admin/forms" class="btn-bluebtn-red px-3 py-1">Back</a>
+				<button onclick={() => history.back()} class="btn-red px-3 py-1">Back</button>
 			</div>
 			<div
 				class="mb-6 rounded-md border border-gray-200 bg-white p-6 text-center text-red-500 shadow-sm"

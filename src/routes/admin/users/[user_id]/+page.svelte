@@ -39,13 +39,13 @@
 	<title>User Management - {user.email}</title>
 </svelte:head>
 
-<div class="bg-secondary min-h-screen">
+<div class="main-container min-h-screen">
 	<AdminNavBar message={`User Management - ${user.email}`} />
 
 	<div class="flex flex-col items-center p-4">
 		<div class="w-full max-w-6xl space-y-6">
 			<!-- User Information Card -->
-			<div class="rounded-lg bg-white p-6 shadow-md">
+			<div class="content-card rounded-lg bg-white p-6 shadow-lg">
 				<div class="mb-4 flex items-center justify-between">
 					<h2 class="text-2xl font-semibold text-gray-800">User Information</h2>
 					<a
@@ -134,7 +134,7 @@
 			</div>
 
 			<!-- Form Responses Card -->
-			<div class="rounded-lg bg-white p-6 shadow-md">
+			<div class=" content-card rounded-lg bg-white p-6 shadow-lg">
 				<h3 class="mb-4 text-xl font-semibold text-gray-800">Form Responses</h3>
 
 				{#if responses.length === 0}

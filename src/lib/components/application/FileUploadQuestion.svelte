@@ -6,13 +6,15 @@
 		existingAnswer,
 		value = $bindable(existingAnswer ?? undefined),
 		onchange,
-		readonly = false
+		readonly = false,
+		adminPreview = false
 	}: {
 		question: QuestionVersion & { required: boolean };
 		existingAnswer: string | null | undefined;
 		value?: string | null | undefined;
 		onchange?: (value: string | null | undefined) => void;
 		readonly?: boolean;
+		adminPreview?: boolean;
 	} = $props();
 
 	let uploading = $state(false);
@@ -93,6 +95,10 @@
 
 			if (!extensionMatch && !mimeMatch) {
 				uploadError = `File type ${file.type} (${fileExtension}) is not accepted. Accepted types: ${question.acceptedTypes}`;
+				return;
+			}
+			if (adminPreview) {
+				uploadError = `File type accepted, but will not be uploaded in admin preview.`;
 				return;
 			}
 		}

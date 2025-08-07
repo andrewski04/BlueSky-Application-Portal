@@ -26,7 +26,7 @@
 	</style>
 </svelte:head>
 
-<div class="flex min-h-screen flex-col items-center justify-center bg-gray-300">
+<div class="nprogressbar flex min-h-screen flex-col items-center justify-center bg-gray-300">
 	<div class="register-prompt mx-auto w-full max-w-lg space-y-8 rounded-lg p-12 shadow-lg">
 		<div class="rounded-lg bg-white p-3 shadow-lg/50">
 			<img

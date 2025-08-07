@@ -31,7 +31,7 @@
 	</style>
 </svelte:head>
 
-<div class="flex min-h-screen items-center justify-center bg-gray-300">
+<div class="nprogressbar flex min-h-screen items-center justify-center bg-gray-300">
 	<div class="check-email-prompt mx-auto my-8 w-full max-w-lg rounded-lg p-12 shadow-lg">
 		<div class="text-inverted text-center">
 			<h1 class="mb-4 text-3xl font-bold text-white">Check your email</h1>

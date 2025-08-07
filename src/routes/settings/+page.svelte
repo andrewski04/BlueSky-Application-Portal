@@ -34,38 +34,6 @@
 <svelte:head>
 	<title>Account Settings</title>
 	<style>
-		.settings-container {
-			background: linear-gradient(
-				180deg,
-				rgba(239, 246, 255, 0.5) 0%,
-				rgba(219, 234, 254, 0.3) 50%,
-				rgba(147, 197, 253, 0.1) 100%
-			);
-			height: auto;
-		}
-
-		.settings-card {
-			background: linear-gradient(
-				135deg,
-				rgba(255, 255, 255, 0.95) 0%,
-				rgba(248, 250, 252, 0.9) 100%
-			);
-			box-shadow:
-				0 8px 32px rgba(59, 130, 246, 0.1),
-				0 4px 16px rgba(0, 0, 0, 0.05);
-			border: 1px solid rgba(59, 130, 246, 0.1);
-			backdrop-filter: blur(10px);
-			border-radius: 16px;
-			transition: all 0.3s ease;
-		}
-
-		.settings-card:hover {
-			box-shadow:
-				0 12px 40px rgba(59, 130, 246, 0.15),
-				0 6px 20px rgba(0, 0, 0, 0.08);
-			transform: translateY(-2px);
-		}
-
 		.settings-section {
 			padding: 1.5rem;
 		}
@@ -223,16 +191,10 @@
 				align-items: center;
 			}
 		}
-
-		@media (max-width: 768px) {
-			.settings-container {
-				padding-bottom: 1rem;
-			}
-		}
 	</style>
 </svelte:head>
 
-<div class="bg-secondary min-h-screen">
+<div class="main-container min-h-screen">
 	{#if role === 'USER'}
 		<UserNavBar message={`Your Account Settings`} />
 	{:else}
@@ -240,7 +202,7 @@
 	{/if}
 
 	<!-- Settings Content -->
-	<div class="settings-container">
+	<div>
 		<div class="mx-auto max-w-4xl px-4 py-8">
 			<!-- Page Header -->
 			<div class="mb-6 text-center">
@@ -253,7 +215,7 @@
 			</div>
 
 			<!-- Account Information Card -->
-			<div class="settings-card mb-6">
+			<div class="content-card">
 				<form
 					class="settings-section"
 					method="POST"
@@ -403,23 +365,6 @@
 					<!-- Action Buttons  -->
 					<div class="setting-item">
 						<div class="button-group">
-							<button class="save-button" type="submit">
-								<svg
-									class="mr-2 inline h-4 w-4"
-									fill="none"
-									stroke="currentColor"
-									viewBox="0 0 24 24"
-								>
-									<path
-										stroke-linecap="round"
-										stroke-linejoin="round"
-										stroke-width="2"
-										d="M5 13l4 4L19 7"
-									></path>
-								</svg>
-								Save Changes
-							</button>
-
 							<a href="/auth/logout" class="logout-button">
 								<svg
 									class="mr-2 inline h-4 w-4"
@@ -436,6 +381,22 @@
 								</svg>
 								Log Out
 							</a>
+							<button class="save-button" type="submit">
+								<svg
+									class="mr-2 inline h-4 w-4"
+									fill="none"
+									stroke="currentColor"
+									viewBox="0 0 24 24"
+								>
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M5 13l4 4L19 7"
+									></path>
+								</svg>
+								Save Changes
+							</button>
 						</div>
 					</div>
 				</form>

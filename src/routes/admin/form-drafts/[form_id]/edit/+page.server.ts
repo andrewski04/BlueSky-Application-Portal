@@ -56,7 +56,8 @@ export const actions = {
 				name: name.trim(),
 				slug: slugify(name),
 				description: '',
-				displayOrder: count
+				displayOrder: count,
+				colorScheme: null
 			},
 			include: {
 				questions: true
@@ -126,7 +127,8 @@ export const actions = {
 					name: section.name,
 					description: section.description,
 					slug: section.slug,
-					displayOrder: section.displayOrder
+					displayOrder: section.displayOrder,
+					colorScheme: section.colorScheme
 				},
 				include: {
 					questions: {

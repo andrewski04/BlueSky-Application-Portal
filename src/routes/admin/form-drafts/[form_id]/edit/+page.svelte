@@ -3,9 +3,10 @@
 	import type { PageProps } from './$types';
 	import AdminNavBar from '$lib/components/dashboard/AdminNavBar.svelte';
 	import DraftQuestionOverview from '$lib/components/form/DraftQuestionOverview.svelte';
-	import type { Prisma } from '@prisma/client';
+	import type { Prisma, ColorScheme } from '@prisma/client';
 	import { QuestionTypeMap } from '$lib/utils/QuestionTypeMap';
 	import { slugify } from '$lib/utils/slugify';
+	import { colorSchemeOptions } from '$lib/utils/colorScheme';
 	import { onMount } from 'svelte';
 	import { deserialize } from '$app/forms';
 
@@ -614,18 +615,18 @@
 						</p>
 					{:else}
 						<!-- Save status and button -->
-						<div class="mb-4 flex items-center justify-between">
+						<div class="mb-2 flex items-center justify-between">
 							<div class="flex items-center gap-2">
 								{#if isSectionSaved}
-									<span class="text-sm text-green-600">✓ Saved</span>
+									<span class="text-lg text-green-600">✓ Section Saved</span>
 								{:else}
-									<span class="text-sm text-orange-600">● Unsaved changes</span>
+									<span class="text-lg text-orange-600">● Unsaved changes</span>
 								{/if}
 							</div>
 							{#if !isSectionSaved}
 								<button
 									onclick={saveSection}
-									class="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+									class="btn-green text-md px-4 py-1"
 									disabled={!!editSectionNameError}
 								>
 									Save Section
@@ -640,9 +641,37 @@
 							placeholder="Enter section title"
 						/>
 						{#if editSectionNameError}
-							<p class="w-full text-center text-sm text-red-600">{editSectionNameError}</p>
+							<p class="text-lg text-red-600">{editSectionNameError}</p>
 						{/if}
 
+						<p class="text-md">Section Color:</p>
+						<select
+							bind:value={currentSectionCopy.colorScheme}
+							class="mb-2 w-full rounded border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+						>
+							{#each colorSchemeOptions as option}
+								<option value={option.value}>
+									{option.label}
+								</option>
+							{/each}
+						</select>
+						{#if currentSectionCopy?.colorScheme}
+							<div class="mb-2 flex items-center gap-2">
+								<div
+									class="h-4 w-4 rounded-full border border-gray-300"
+									style="background-color: {colorSchemeOptions.find(
+										(opt) => opt.value === currentSectionCopy?.colorScheme
+									)?.color}"
+								></div>
+								<span class="text-sm text-gray-600">
+									Selected: {colorSchemeOptions.find(
+										(opt) => opt.value === currentSectionCopy?.colorScheme
+									)?.label}
+								</span>
+							</div>
+						{/if}
+
+						<p class="text-md">Section Description:</p>
 						<textarea
 							class="text-md w-full resize-none"
 							bind:value={currentSectionCopy.description}
@@ -669,190 +698,200 @@
 			</div>
 
 			<!-- Right Sidebar (question editor) -->
-			<div class="w-1/4 overflow-y-auto border-l bg-gray-50 p-4">
+			<div class="flex w-1/4 flex-col border-l bg-gray-50 p-4">
 				{#if currentSectionCopy}
-					<div class="mb-4 flex items-center justify-between">
-						<h2 class="text-lg font-semibold">
-							{isEditingQuestion ? 'Edit Question' : 'Add Question'}
-						</h2>
-						{#if isEditingQuestion}
-							<button
-								onclick={() => resetQuestionForm()}
-								class="text-sm text-gray-600 hover:text-gray-800"
-							>
-								Cancel
-							</button>
+					<!-- Question editor content - takes up available space -->
+					<div class="flex-1 overflow-y-auto">
+						<div class="mb-4 flex items-center justify-between">
+							<h2 class="text-lg font-semibold">
+								{isEditingQuestion ? 'Edit Question' : 'Add Question'}
+							</h2>
+							{#if isEditingQuestion}
+								<button
+									onclick={() => resetQuestionForm()}
+									class="text-sm text-gray-600 hover:text-gray-800"
+								>
+									Cancel
+								</button>
+							{/if}
+						</div>
+
+						<label class="mt-2 block">
+							<span class="block text-sm font-medium">Question Type</span>
+							<select bind:value={questionType} class="mt-1 w-full rounded border p-2">
+								{#each Object.entries(QuestionTypeMap) as [key, label]}
+									<option value={key}>{label}</option>
+								{/each}
+							</select>
+						</label>
+
+						<label class="mt-2 block">
+							<span class="block text-sm font-medium">Prompt</span>
+							<input
+								type="text"
+								bind:value={questionPrompt}
+								class="mt-1 w-full rounded border p-2"
+								placeholder="Enter question prompt..."
+							/>
+						</label>
+
+						<!-- Options for multiple choice, dropdown, checkbox -->
+						{#if needsOptions(questionType)}
+							<div class="mt-2">
+								<span class="block text-sm font-medium">Options</span>
+								{#each questionOptions as option, index}
+									<div class="mb-1 flex gap-2">
+										<input
+											type="text"
+											value={option}
+											oninput={(e) => updateOption(index, (e.target as HTMLInputElement).value)}
+											class="flex-1 rounded border p-2"
+											placeholder="Option {index + 1}"
+										/>
+										{#if questionOptions.length > 2}
+											<button
+												type="button"
+												onclick={() => removeOption(index)}
+												class="rounded px-2 py-1 text-red-600 hover:bg-red-100"
+											>
+												×
+											</button>
+										{/if}
+									</div>
+								{/each}
+								<button
+									type="button"
+									onclick={addOption}
+									class="mt-2 text-sm text-blue-600 hover:underline"
+								>
+									+ Add another option
+								</button>
+							</div>
 						{/if}
-					</div>
 
-					<label class="mt-2 block">
-						<span class="block text-sm font-medium">Question Type</span>
-						<select bind:value={questionType} class="mt-1 w-full rounded border p-2">
-							{#each Object.entries(QuestionTypeMap) as [key, label]}
-								<option value={key}>{label}</option>
-							{/each}
-						</select>
-					</label>
+						<!-- Length validation for text/paragraph -->
+						{#if needsLengthValidation(questionType)}
+							<div class="mt-2 grid grid-cols-2 gap-2">
+								<label class="block">
+									<span class="block text-sm font-medium">Min Length</span>
+									<input
+										type="number"
+										bind:value={questionMinLength}
+										class="mt-1 w-full rounded border p-2"
+										placeholder="Optional"
+									/>
+								</label>
+								<label class="block">
+									<span class="block text-sm font-medium">Max Length</span>
+									<input
+										type="number"
+										bind:value={questionMaxLength}
+										class="mt-1 w-full rounded border p-2"
+										placeholder="Optional"
+									/>
+								</label>
+							</div>
+						{/if}
 
-					<label class="mt-2 block">
-						<span class="block text-sm font-medium">Prompt</span>
-						<input
-							type="text"
-							bind:value={questionPrompt}
-							class="mt-1 w-full rounded border p-2"
-							placeholder="Enter question prompt..."
-						/>
-					</label>
+						<!-- Number validation -->
+						{#if needsNumberValidation(questionType)}
+							<div class="mt-2 grid grid-cols-2 gap-2">
+								<label class="block">
+									<span class="block text-sm font-medium">Min Value</span>
+									<input
+										type="number"
+										bind:value={questionMinValue}
+										class="mt-1 w-full rounded border p-2"
+										placeholder="Optional"
+									/>
+								</label>
+								<label class="block">
+									<span class="block text-sm font-medium">Max Value</span>
+									<input
+										type="number"
+										bind:value={questionMaxValue}
+										class="mt-1 w-full rounded border p-2"
+										placeholder="Optional"
+									/>
+								</label>
+							</div>
+						{/if}
 
-					<!-- Options for multiple choice, dropdown, checkbox -->
-					{#if needsOptions(questionType)}
-						<div class="mt-2">
-							<span class="block text-sm font-medium">Options</span>
-							{#each questionOptions as option, index}
-								<div class="mb-1 flex gap-2">
+						<!-- Date validation -->
+						{#if needsDateValidation(questionType)}
+							<div class="mt-2 grid grid-cols-2 gap-2">
+								<label class="block">
+									<span class="block text-sm font-medium">Min Date</span>
+									<input
+										type="date"
+										bind:value={questionMinDate}
+										class="mt-1 w-full rounded border p-2"
+									/>
+								</label>
+								<label class="block">
+									<span class="block text-sm font-medium">Max Date</span>
+									<input
+										type="date"
+										bind:value={questionMaxDate}
+										class="mt-1 w-full rounded border p-2"
+									/>
+								</label>
+							</div>
+						{/if}
+
+						<!-- File validation -->
+						{#if needsFileValidation(questionType)}
+							<div class="mt-2 space-y-2">
+								<label class="block">
+									<span class="block text-sm font-medium">Accepted File Types</span>
 									<input
 										type="text"
-										value={option}
-										oninput={(e) => updateOption(index, (e.target as HTMLInputElement).value)}
-										class="flex-1 rounded border p-2"
-										placeholder="Option {index + 1}"
+										bind:value={questionAcceptedTypes}
+										class="mt-1 w-full rounded border p-2"
+										placeholder="e.g., .pdf,.doc,.docx"
 									/>
-									{#if questionOptions.length > 2}
-										<button
-											type="button"
-											onclick={() => removeOption(index)}
-											class="rounded px-2 py-1 text-red-600 hover:bg-red-100"
-										>
-											×
-										</button>
-									{/if}
-								</div>
-							{/each}
-							<button
-								type="button"
-								onclick={addOption}
-								class="mt-2 text-sm text-blue-600 hover:underline"
-							>
-								+ Add another option
-							</button>
-						</div>
-					{/if}
+								</label>
+								<label class="block">
+									<span class="block text-sm font-medium">Max File Size (MB)</span>
+									<input
+										type="number"
+										bind:value={questionMaxFileSize}
+										class="mt-1 w-full rounded border p-2"
+										placeholder="Optional"
+									/>
+								</label>
+							</div>
+						{/if}
 
-					<!-- Length validation for text/paragraph -->
-					{#if needsLengthValidation(questionType)}
-						<div class="mt-2 grid grid-cols-2 gap-2">
-							<label class="block">
-								<span class="block text-sm font-medium">Min Length</span>
-								<input
-									type="number"
-									bind:value={questionMinLength}
-									class="mt-1 w-full rounded border p-2"
-									placeholder="Optional"
-								/>
-							</label>
-							<label class="block">
-								<span class="block text-sm font-medium">Max Length</span>
-								<input
-									type="number"
-									bind:value={questionMaxLength}
-									class="mt-1 w-full rounded border p-2"
-									placeholder="Optional"
-								/>
-							</label>
-						</div>
-					{/if}
+						<!-- Required setting -->
+						<label class="mt-2 block">
+							<input type="checkbox" bind:checked={questionRequired} class="mr-2" />
+							Required
+						</label>
 
-					<!-- Number validation -->
-					{#if needsNumberValidation(questionType)}
-						<div class="mt-2 grid grid-cols-2 gap-2">
-							<label class="block">
-								<span class="block text-sm font-medium">Min Value</span>
-								<input
-									type="number"
-									bind:value={questionMinValue}
-									class="mt-1 w-full rounded border p-2"
-									placeholder="Optional"
-								/>
-							</label>
-							<label class="block">
-								<span class="block text-sm font-medium">Max Value</span>
-								<input
-									type="number"
-									bind:value={questionMaxValue}
-									class="mt-1 w-full rounded border p-2"
-									placeholder="Optional"
-								/>
-							</label>
-						</div>
-					{/if}
+						<button
+							onclick={isEditingQuestion ? updateQuestion : createQuestion}
+							disabled={!questionPrompt.trim()}
+							class="mt-2 w-full rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-400"
+						>
+							{isEditingQuestion ? 'Update Question' : 'Add Question'}
+						</button>
 
-					<!-- Date validation -->
-					{#if needsDateValidation(questionType)}
-						<div class="mt-2 grid grid-cols-2 gap-2">
-							<label class="block">
-								<span class="block text-sm font-medium">Min Date</span>
-								<input
-									type="date"
-									bind:value={questionMinDate}
-									class="mt-1 w-full rounded border p-2"
-								/>
-							</label>
-							<label class="block">
-								<span class="block text-sm font-medium">Max Date</span>
-								<input
-									type="date"
-									bind:value={questionMaxDate}
-									class="mt-1 w-full rounded border p-2"
-								/>
-							</label>
-						</div>
-					{/if}
+						<hr class="my-4" />
 
-					<!-- File validation -->
-					{#if needsFileValidation(questionType)}
-						<div class="mt-2 space-y-2">
-							<label class="block">
-								<span class="block text-sm font-medium">Accepted File Types</span>
-								<input
-									type="text"
-									bind:value={questionAcceptedTypes}
-									class="mt-1 w-full rounded border p-2"
-									placeholder="e.g., .pdf,.doc,.docx"
-								/>
-							</label>
-							<label class="block">
-								<span class="block text-sm font-medium">Max File Size (MB)</span>
-								<input
-									type="number"
-									bind:value={questionMaxFileSize}
-									class="mt-1 w-full rounded border p-2"
-									placeholder="Optional"
-								/>
-							</label>
-						</div>
-					{/if}
+						<button class="mt-2 w-full text-center text-blue-500 hover:underline">
+							Open Question Library
+						</button>
+					</div>
 
-					<!-- Required setting -->
-					<label class="mt-2 block">
-						<input type="checkbox" bind:checked={questionRequired} class="mr-2" />
-						Required
-					</label>
-
-					<button
-						onclick={isEditingQuestion ? updateQuestion : createQuestion}
-						disabled={!questionPrompt.trim()}
-						class="mt-2 w-full rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-400"
-					>
-						{isEditingQuestion ? 'Update Question' : 'Add Question'}
-					</button>
-
-					<hr class="my-4" />
-
-					<button class="mt-2 w-full text-center text-blue-500 hover:underline">
-						Open Question Library
-					</button>
+					<!-- Preview Form button - positioned at bottom -->
+					<div class="mt-4 flex justify-center">
+						<a href={`/application/preview/${draftForm.id}`} class="btn-blue">Preview Form</a>
+					</div>
 				{:else}
-					<p class="text-center text-gray-500">Select a section to add questions</p>
+					<div class="flex flex-1 items-center justify-center">
+						<p class="text-center text-gray-500">Select a section to add questions</p>
+					</div>
 				{/if}
 			</div>
 		</div>

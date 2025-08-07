@@ -204,6 +204,11 @@ export const actions = {
 				data: {
 					name,
 					description
+				},
+				select: {
+					id: true,
+					name: true,
+					description: true
 				}
 			})
 		);
@@ -212,7 +217,10 @@ export const actions = {
 			return { success: false, error: result.error.message };
 		}
 
-		return { success: true };
+		return {
+			success: true,
+			group: result.value
+		};
 	},
 	updateGroup: async ({ locals, request }) => {
 		requireRole(locals, 'ADMIN');

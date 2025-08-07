@@ -21,6 +21,23 @@ enum ApplicationStatus {
   REJECTED
 }
 
+enum ColorScheme {
+  BLUE
+  GREEN
+  PURPLE
+  RED
+  TEAL
+  ORANGE
+  PINK
+  INDIGO
+  CYAN
+  EMERALD
+  AMBER
+  ROSE
+  VIOLET
+  SLATE
+}
+
 /// ─────────────────────────────────────────────────────────────────────────────
 /// QUESTION LIBRARY  (immutable versions)
 /// ─────────────────────────────────────────────────────────────────────────────
@@ -47,15 +64,14 @@ model QuestionVersion {
   type               QuestionType
   slug               String
 
-  /// validation / requirements fields 
-  minLength        Int?
-  maxLength        Int?
-  minValue         Float?
-  maxValue         Float?
-  minDate          DateTime?
-  maxDate          DateTime?
-  acceptedTypes    String?
-  maxFileSizeBytes Int?
+  minLength        Int?        /// for text fields
+  maxLength        Int?        /// for text fields
+  minValue         Float?      /// for number fields
+  maxValue         Float?      /// for number fields
+  minDate          DateTime?   /// for date fields
+  maxDate          DateTime?   /// for date fields
+  acceptedTypes    String?     /// for file upload fields
+  maxFileSizeBytes Int?        /// for file upload fields
 
   options               QuestionOption[] /// choices if applicable
   createdAt             DateTime                @default(now())
@@ -97,6 +113,7 @@ model FormSectionDraft {
   slug         String
   description  String?
   displayOrder Int
+  colorScheme  ColorScheme?   @default(BLUE)
   /// linking table holds the questions & their order
   questions    QuestionLinkDraft[]
   @@unique([formId, slug])
@@ -183,6 +200,7 @@ model FormSectionPublished {
   name         String
   slug         String
   description  String?
+  colorScheme  ColorScheme?   @default(BLUE)
   displayOrder Int
   questions    QuestionLinkPublished[]
   @@unique([formId, slug])

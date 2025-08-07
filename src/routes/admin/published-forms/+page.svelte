@@ -66,125 +66,169 @@
 	});
 </script>
 
-<div class="bg-secondary min-h-screen">
+<svelte:head>
+	<title>Published Application Forms</title>
+</svelte:head>
+
+<div class="main-container min-h-screen">
 	<AdminNavBar message={`View Published Application Forms`} />
 
-	<div class="flex flex-col items-center p-4">
-		<div class="w-full max-w-5xl rounded-lg bg-white p-6 shadow-md">
-			<h2 class="mb-2 text-2xl font-semibold text-gray-800">Published Application Forms</h2>
-			<p class="mb-4 text-sm text-gray-600">
-				Published application forms, when active, can be accessed by students.
-				<br />
-				They cannot be edited, but can be deactivated and republished from a draft.
-			</p>
-
-			<!-- Search bar and status filter -->
-			<div class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-				<input
-					type="text"
-					placeholder="Search by name, id, or description..."
-					bind:value={search}
-					class="w-full max-w-xs rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-				/>
-				<select
-					bind:value={statusFilter}
-					class="rounded border border-gray-300 bg-blue-500 px-3 py-2 text-sm text-white focus:border-blue-500 focus:outline-none"
-				>
-					<option value="all">All</option>
-					<option value="active">Active</option>
-					<option value="inactive">Inactive</option>
-				</select>
+	<div class="container mx-auto px-4 py-8">
+		<div class="content-card mb-8">
+			<div class="section-header p-6">
+				<h2 class="flex items-center text-xl font-semibold text-gray-800">
+					<svg
+						class="mr-3 h-6 w-6 text-blue-600"
+						fill="none"
+						stroke="currentColor"
+						viewBox="-1.9 0 19.00 19.00"
+					>
+						<g>
+							<path
+								fill="currentColor"
+								stroke="currentColor"
+								stroke-width="0.2"
+								d="M11.16 16.153a.477.477 0 0 1-.476.475H1.316a.477.477 0 0 1-.475-.475V3.046a.477.477 0 0 1 .475-.475h6.95l2.893 2.893zm-1.11-9.924H8.059a.575.575 0 0 1-.574-.574V3.679H1.95v11.84h8.102zm-1.234 4a.554.554 0 0 1-.784 0L6.55 8.747v5.121a.554.554 0 0 1-1.108 0V8.747l-1.483 1.482a.554.554 0 0 1-.783-.784l2.428-2.428a.554.554 0 0 1 .783 0l2.429 2.428a.554.554 0 0 1 0 .784z"
+							></path></g
+						>
+					</svg>Published Application Forms
+				</h2>
+				<p class="mt-2 text-sm text-gray-600">
+					Published application forms, when active, can be accessed by students.
+					<br />
+					They cannot be edited, but can be deactivated and republished from a draft.
+				</p>
 			</div>
-			{#if error}
-				<p class="mb-4 text-center text-red-500">{error}</p>
-			{/if}
 
-			{#if !filteredForms || filteredForms.length === 0}
-				<p class="text-center text-gray-500">No published application forms found</p>
-			{:else}
-				<div class="overflow-x-auto">
-					<table class="min-w-full divide-y divide-gray-200">
-						<thead>
-							<tr>
-								<th
-									class="cursor-pointer px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase select-none"
-									onclick={() => setSort('id')}
-								>
-									ID {sortKey === 'id' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
-								</th>
-								<th
-									class="cursor-pointer px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase select-none"
-									onclick={() => setSort('name')}
-								>
-									Name {sortKey === 'name' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
-								</th>
-								<th
-									class="cursor-pointer px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase select-none"
-									onclick={() => setSort('description')}
-								>
-									Description {sortKey === 'description'
-										? sortDirection === 'asc'
-											? '▲'
-											: '▼'
-										: ''}
-								</th>
-								<th
-									class="cursor-pointer px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase select-none"
-									onclick={() => setSort('publishedAt')}
-								>
-									Created {sortKey === 'publishedAt' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
-								</th>
-								<th
-									class="cursor-pointer px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase select-none"
-									onclick={() => setSort('active')}
-								>
-									Active {sortKey === 'active' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
-								</th>
-								<th
-									class="cursor-pointer px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase select-none"
-									onclick={() => setSort('responses')}
-								>
-									Responses {sortKey === 'responses' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
-								</th>
-								<th
-									class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
-								>
-									Actions
-								</th>
-							</tr>
-						</thead>
-						<tbody class="divide-y divide-gray-200 bg-white">
-							{#each filteredForms as form}
-								<tr class="hover:bg-gray-100">
-									<td class="px-6 py-4 text-sm whitespace-nowrap text-gray-900"
-										>{form.id.slice(0, 6)}...</td
-									>
-									<td class="px-6 py-4 text-sm whitespace-nowrap text-gray-900">{form.name}</td>
-									<td class="px-6 py-4 text-sm text-gray-900">{form.description ?? 'N/A'}</td>
-									<td class="px-6 py-4 text-sm whitespace-nowrap text-gray-900"
-										>{form.publishedAt.toLocaleDateString()} <br />
-										{form.publishedAt.toLocaleTimeString()}</td
-									>
-									<td class="px-6 py-4 text-sm whitespace-nowrap text-gray-900"
-										>{form.active ? 'Yes' : 'No'}</td
-									>
-									<td class="px-6 py-4 text-sm whitespace-nowrap text-gray-900">
-										{form.responses.length}
-									</td>
-									<td class="px-6 py-4 text-sm whitespace-nowrap text-gray-900">
-										<a
-											href={`/admin/published-forms/${form.id}`}
-											class="mr-2 inline-block rounded bg-green-600 px-2 py-1 text-xs font-semibold text-white hover:bg-green-700"
-										>
-											Manage
-										</a>
-									</td>
-								</tr>
-							{/each}
-						</tbody>
-					</table>
+			<div>
+				<!-- Search bar and status filter -->
+				<div class="flex items-end justify-between px-6 pt-4">
+					<input
+						type="text"
+						placeholder="Search by name, id, or description..."
+						bind:value={search}
+						class="search-input w-full max-w-xs px-3 py-2 text-sm focus:outline-none"
+					/>
+					<select
+						bind:value={statusFilter}
+						class="rounded border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 focus:border-blue-500 focus:outline-none"
+					>
+						<option value="all">All</option>
+						<option value="active">Active</option>
+						<option value="inactive">Inactive</option>
+					</select>
 				</div>
-			{/if}
+				{#if error}
+					<p class="mb-4 text-center font-bold text-red-500">{error}</p>
+				{/if}
+
+				<hr class="my-4 h-px border-0 bg-[rgb(59,130,246)]/10" />
+
+				<div class="w-full rounded-b-lg shadow-md">
+					<div class="space-y-4 rounded-b-lg">
+						{#if !filteredForms || filteredForms.length === 0}
+							<p class="pb-4 text-center text-gray-500">No published application forms found</p>
+						{/if}
+					</div>
+					{#if filteredForms && filteredForms.length > 0}
+						<table class="min-w-full divide-y divide-gray-200">
+							<thead class="bg-gray-50">
+								<tr>
+									<th
+										class="cursor-pointer p-4 pt-0 text-left font-semibold tracking-wide text-nowrap text-gray-700 uppercase select-none"
+										onclick={() => setSort('id')}
+									>
+										ID {sortKey === 'id' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
+									</th>
+									<th
+										class="cursor-pointer p-4 pt-0 text-left font-semibold tracking-wide text-nowrap text-gray-700 uppercase select-none"
+										onclick={() => setSort('name')}
+									>
+										Name {sortKey === 'name' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
+									</th>
+									<th
+										class="cursor-pointer p-4 pt-0 text-left font-semibold tracking-wide text-nowrap text-gray-700 uppercase select-none"
+										onclick={() => setSort('description')}
+									>
+										Description {sortKey === 'description'
+											? sortDirection === 'asc'
+												? '▲'
+												: '▼'
+											: ''}
+									</th>
+									<th
+										class="cursor-pointer p-4 pt-0 text-left font-semibold tracking-wide text-nowrap text-gray-700 uppercase select-none"
+										onclick={() => setSort('publishedAt')}
+									>
+										Created {sortKey === 'publishedAt' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
+									</th>
+									<th
+										class="cursor-pointer p-4 pt-0 text-left font-semibold tracking-wide text-nowrap text-gray-700 uppercase select-none"
+										onclick={() => setSort('active')}
+									>
+										Active {sortKey === 'active' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
+									</th>
+									<th
+										class="cursor-pointer p-4 pt-0 text-left font-semibold tracking-wide text-nowrap text-gray-700 uppercase select-none"
+										onclick={() => setSort('responses')}
+									>
+										Responses {sortKey === 'responses' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
+									</th>
+									<th
+										class="cursor-pointer p-4 pt-0 text-left font-semibold tracking-wide text-nowrap text-gray-700 uppercase select-none"
+									>
+										Actions
+									</th>
+								</tr>
+							</thead>
+							<tbody class="divide-y divide-gray-200 bg-white">
+								{#each filteredForms as form}
+									<tr class="hover:bg-gray-100">
+										<td class="px-4 py-4 text-sm text-black">{form.id.slice(0, 6)}...</td>
+										<td class="px-4 py-4 text-sm text-black">{form.name}</td>
+										<td class="px-6 py-4 text-sm text-gray-900">{form.description ?? 'N/A'}</td>
+										<td class="px-4 py-4 text-sm text-black"
+											>{form.publishedAt.toLocaleDateString()} <br />
+											{form.publishedAt.toLocaleTimeString()}</td
+										>
+										<td class="px-4 py-4 text-sm text-black">{form.active ? 'Yes' : 'No'}</td>
+										<td class="px-4 py-4 text-sm text-black">
+											{form.responses.length}
+										</td>
+										<td class="px-4 py-4 text-sm text-black">
+											<a
+												href={`/admin/published-forms/${form.id}`}
+												class="btn-green flex items-center justify-center px-4 py-2"
+											>
+												<svg
+													class="mr-1 inline h-4 w-4"
+													fill="none"
+													stroke="currentColor"
+													viewBox="0 0 24 24"
+												>
+													<path
+														stroke-linecap="round"
+														stroke-linejoin="round"
+														stroke-width="2"
+														d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+													></path>
+													<path
+														stroke-linecap="round"
+														stroke-linejoin="round"
+														stroke-width="2"
+														d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+													></path>
+												</svg>
+												Manage
+											</a>
+										</td>
+									</tr>
+								{/each}
+							</tbody>
+						</table>
+					{/if}
+				</div>
+			</div>
 		</div>
 	</div>
 </div>

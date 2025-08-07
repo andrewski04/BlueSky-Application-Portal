@@ -29,9 +29,6 @@
 				rgba(31, 73, 163, 1) 50%,
 				rgba(16, 51, 156, 1) 100%
 			);
-		}
-
-		.setup-prompt:hover {
 			box-shadow:
 				0 12px 40px rgba(59, 130, 246, 0.4),
 				inset 0 1px 0 rgba(255, 255, 255, 0.3);
@@ -39,7 +36,7 @@
 	</style>
 </svelte:head>
 
-<div class="flex min-h-screen items-center justify-center bg-gray-300">
+<div class="nprogressbar flex min-h-screen items-center justify-center bg-gray-300">
 	<div class="setup-prompt mx-auto my-8 w-full max-w-lg rounded-lg p-12 text-white shadow-lg">
 		<div class="text-inverted text-center">
 			<h1 class="mb-4 text-3xl font-bold">Complete Your Profile</h1>
@@ -48,8 +45,8 @@
 				method="POST"
 				use:enhance={({ formData }: { formData: FormData }) => {
 					loading = true;
-					formData.append('phoneNumber', phoneValue);
 					NProgress.start();
+					formData.append('phoneNumber', phoneValue);
 					return ({ update }) => {
 						loading = false;
 						NProgress.done();

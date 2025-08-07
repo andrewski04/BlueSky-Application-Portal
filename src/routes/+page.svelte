@@ -53,7 +53,7 @@
 	</style>
 </svelte:head>
 
-<div class="min-h-screen bg-gray-300">
+<div class="nprogressbar min-h-screen bg-gray-300">
 	<section class="purple-bar w-full py-8">
 		<div class="mx-auto">
 			<div class="flex w-full items-center justify-center space-x-8 text-white">
