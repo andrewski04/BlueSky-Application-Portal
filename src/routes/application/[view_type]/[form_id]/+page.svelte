@@ -213,19 +213,15 @@
 						style:border-color={getColorSchemeColor(section.colorScheme)}
 					>
 						<!-- Section Header -->
-						<div
-							class="{getColorSchemeClassName(
-								section.colorScheme
-							)} flex items-center justify-between rounded-lg py-4"
-						>
-							<h2 class="pl-4 text-2xl font-bold text-white">
+						<div class="{getColorSchemeClassName(section.colorScheme)} mb-2 rounded-lg p-4">
+							<h2 class="text-2xl font-bold text-white">
 								Section {section.displayOrder + 1}:
 								{section.name}
 							</h2>
+							{#if section.description}
+								<p class="text-white">{section.description}</p>
+							{/if}
 						</div>
-						{#if section.description}
-							<p class="mb-6 text-gray-700">{section.description}</p>
-						{/if}
 
 						{#each section.questions as question}
 							<div class="relative">

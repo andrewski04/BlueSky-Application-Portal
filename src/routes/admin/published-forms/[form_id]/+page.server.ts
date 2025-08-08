@@ -3,6 +3,7 @@ import { requireRole } from '$lib/server/auth/guard';
 import { prisma, prismaResult } from '$lib/server/prisma';
 import { Logger } from '$lib/utils/logger';
 import { FormPublishedWithSectionsWithQuestionsWithOptions } from '$lib/server/application/formDraftArgs';
+import { fail } from '@sveltejs/kit';
 
 const log = new Logger('Admin published form details page');
 
@@ -49,11 +50,94 @@ export const load = (async ({ locals, params }) => {
 }) satisfies PageServerLoad;
 
 export const actions = {
-	disablePublishedForm: async ({ locals, params }) => {
+	updatePublishedForm: async ({ locals, params, request }) => {
 		requireRole(locals, 'ADMIN');
 
 		if (!params.form_id) {
-			return { success: false, error: 'Form ID is required' };
+			return fail(400, { success: false, error: 'Form ID is required' });
+		}
+
+		const formData = await request.formData();
+		const name = formData.get('name');
+		const description = formData.get('description');
+
+		if (!name || typeof name !== 'string') {
+			return fail(400, { success: false, error: 'Name is required.' });
+		}
+		if (description && typeof description !== 'string') {
+			return fail(400, { success: false, error: 'Description must be a string.' });
+		}
+
+		const result = await prismaResult(
+			prisma.applicationFormPublished.update({
+				where: { id: params.form_id },
+				data: { name: name.trim(), description: description?.toString().trim() || null }
+			})
+		);
+
+		if (result.isErr()) {
+			return fail(500, { success: false, error: 'Error updating published form.' });
+		}
+
+		return { success: true, message: 'Published form updated successfully.' };
+	},
+	updatePublishedFormActiveStatus: async ({ locals, params, request }) => {
+		requireRole(locals, 'ADMIN');
+
+		const formData = await request.formData();
+		const action = formData.get('action') as string | null;
+
+		if (!action) {
+			return fail(400, { success: false, error: 'Action is required' });
+		}
+
+		if (!params.form_id) {
+			return fail(400, { success: false, error: 'Form ID is required' });
+		}
+
+		if (action !== 'enable' && action !== 'disable') {
+			return fail(400, { success: false, error: 'Invalid action' });
+		}
+
+		// For enable action, only update if form is not archived
+		// For disable action, always update
+		const whereClause =
+			action === 'enable' ? { id: params.form_id, archived: false } : { id: params.form_id };
+
+		const result = await prismaResult(
+			prisma.applicationFormPublished.update({
+				where: whereClause,
+				data: {
+					active: action === 'enable' ? true : false
+				}
+			})
+		);
+
+		if (result.isErr()) {
+			if (action === 'enable') {
+				return fail(400, { success: false, error: 'Cannot enable an archived form' });
+			}
+			return fail(500, { success: false, error: 'Failed to update form active status' });
+		}
+
+		return { success: true };
+	},
+	updatePublishedFormArchiveStatus: async ({ locals, params, request }) => {
+		requireRole(locals, 'ADMIN');
+
+		const formData = await request.formData();
+		const action = formData.get('action') as string | null;
+
+		if (!action) {
+			return fail(400, { success: false, error: 'Action is required' });
+		}
+
+		if (!params.form_id) {
+			return fail(400, { success: false, error: 'Form ID is required' });
+		}
+
+		if (action !== 'archive' && action !== 'unarchive') {
+			return fail(400, { success: false, error: 'Invalid action' });
 		}
 
 		const result = await prismaResult(
@@ -62,60 +146,40 @@ export const actions = {
 					id: params.form_id
 				},
 				data: {
+					archived: action === 'archive' ? true : false,
 					active: false
 				}
 			})
 		);
 
 		if (result.isErr()) {
-			return { success: false, error: result.error.message };
+			return fail(500, { success: false, error: 'Failed to update form archive status' });
 		}
 
 		return { success: true };
 	},
-	enablePublishedForm: async ({ locals, params }) => {
-		requireRole(locals, 'ADMIN');
 
-		if (!params.form_id) {
-			return { success: false, error: 'Form ID is required' };
-		}
-
-		const result = await prismaResult(
-			prisma.applicationFormPublished.update({
-				where: {
-					id: params.form_id
-				},
-				data: {
-					active: true
-				}
-			})
-		);
-
-		if (result.isErr()) {
-			return { success: false, error: result.error.message };
-		}
-
-		return { success: true };
-	},
 	updateFormDateRange: async ({ locals, params, request }) => {
 		requireRole(locals, 'ADMIN');
 
 		if (!params.form_id) {
-			return { success: false, error: 'Form ID is required' };
+			return fail(400, { success: false, error: 'Form ID is required' });
 		}
 
 		const formData = await request.formData();
 		const openDateRaw = formData.get('openDate') as string | null;
 		const closeDateRaw = formData.get('closeDate') as string | null;
-		const timezoneOffset = formData.get('timezoneOffset') as string | null;
+		const openDatezoneOffset = formData.get('openDatetimezoneOffset') as string | null;
+		const closeDatezoneOffset = formData.get('closeDatetimezoneOffset') as string | null;
 		const noOpenDate = formData.get('noOpenDate') === 'true';
 		const noCloseDate = formData.get('noCloseDate') === 'true';
 
-		if (!timezoneOffset) {
-			return { success: false, error: 'Timezone offset is required' };
+		if (!openDatezoneOffset || !closeDatezoneOffset) {
+			return fail(400, { success: false, error: 'Timezone offset is required' });
 		}
 
-		const offsetMinutes = parseInt(timezoneOffset, 10);
+		const openOffsetMinutes = parseInt(openDatezoneOffset, 10);
+		const closeOffsetMinutes = parseInt(closeDatezoneOffset, 10);
 
 		function localToUTC(dateStr: string | null, offset: number): Date | null {
 			if (!dateStr) return null;
@@ -131,12 +195,12 @@ export const actions = {
 		}
 
 		// Convert dates to UTC, or set to null if checkbox is checked
-		const openDate = noOpenDate ? null : localToUTC(openDateRaw, offsetMinutes);
-		const closeDate = noCloseDate ? null : localToUTC(closeDateRaw, offsetMinutes);
+		const openDate = noOpenDate ? null : localToUTC(openDateRaw, openOffsetMinutes);
+		const closeDate = noCloseDate ? null : localToUTC(closeDateRaw, closeOffsetMinutes);
 
 		// Validate that open date is before close date (only if both dates are set)
 		if (openDate && closeDate && openDate >= closeDate) {
-			return { success: false, error: 'Open date must be before close date' };
+			return fail(400, { success: false, error: 'Open date must be before close date' });
 		}
 
 		const result = await prismaResult(
@@ -154,7 +218,7 @@ export const actions = {
 		);
 
 		if (result.isErr()) {
-			return { success: false, error: result.error.message };
+			return fail(500, { success: false, error: result.error.message });
 		}
 
 		return {
@@ -167,7 +231,7 @@ export const actions = {
 		requireRole(locals, 'ADMIN');
 
 		if (!params.form_id) {
-			return { success: false, error: 'Form ID is required' };
+			return fail(400, { success: false, error: 'Form ID is required' });
 		}
 
 		const formData = await request.formData();
@@ -183,7 +247,7 @@ export const actions = {
 		);
 
 		if (result.isErr()) {
-			return { success: false, error: result.error.message };
+			return fail(500, { success: false, error: result.error.message });
 		}
 
 		return { success: true };
@@ -196,7 +260,7 @@ export const actions = {
 		const description = formData.get('description') as string | null;
 
 		if (!name) {
-			return { success: false, error: 'Group name is required' };
+			return fail(400, { success: false, error: 'Group name is required' });
 		}
 
 		const result = await prismaResult(
@@ -214,7 +278,7 @@ export const actions = {
 		);
 
 		if (result.isErr()) {
-			return { success: false, error: result.error.message };
+			return fail(500, { success: false, error: result.error.message });
 		}
 
 		return {
@@ -231,7 +295,7 @@ export const actions = {
 		const description = formData.get('description') as string | null;
 
 		if (!groupId || !name) {
-			return { success: false, error: 'Group ID and name are required' };
+			return fail(400, { success: false, error: 'Group ID and name are required' });
 		}
 
 		const result = await prismaResult(
@@ -245,7 +309,7 @@ export const actions = {
 		);
 
 		if (result.isErr()) {
-			return { success: false, error: result.error.message };
+			return fail(500, { success: false, error: result.error.message });
 		}
 
 		return { success: true };
@@ -257,7 +321,7 @@ export const actions = {
 		const groupId = formData.get('groupId') as string | null;
 
 		if (!groupId) {
-			return { success: false, error: 'Group ID is required' };
+			return fail(400, { success: false, error: 'Group ID is required' });
 		}
 
 		// Check if group has any forms or submissions
@@ -272,19 +336,22 @@ export const actions = {
 		);
 
 		if (groupWithRelations.isErr()) {
-			return { success: false, error: groupWithRelations.error.message };
+			return fail(500, { success: false, error: 'Error getting group' });
 		}
 
 		if (!groupWithRelations.value) {
-			return { success: false, error: 'Group not found' };
+			return fail(404, { success: false, error: 'Group not found' });
 		}
 
 		if (groupWithRelations.value.forms.length > 0) {
-			return { success: false, error: 'Cannot delete group that has forms assigned to it' };
+			return fail(400, {
+				success: false,
+				error: 'Cannot delete group that has forms assigned to it'
+			});
 		}
 
 		if (groupWithRelations.value.submissions.length > 0) {
-			return { success: false, error: 'Cannot delete group that has submissions' };
+			return fail(400, { success: false, error: 'Cannot delete group that has submissions' });
 		}
 
 		const result = await prismaResult(
@@ -294,7 +361,7 @@ export const actions = {
 		);
 
 		if (result.isErr()) {
-			return { success: false, error: result.error.message };
+			return fail(500, { success: false, error: 'Error deleting group' });
 		}
 
 		return { success: true };

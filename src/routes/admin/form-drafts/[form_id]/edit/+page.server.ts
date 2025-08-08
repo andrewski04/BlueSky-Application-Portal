@@ -4,9 +4,11 @@ import { Logger } from '$lib/utils/logger';
 import { prisma, prismaResult } from '$lib/server/prisma';
 import { slugify } from '$lib/utils/slugify';
 import type { QuestionType } from '@prisma/client';
+import { fail } from '@sveltejs/kit';
 
 import { FormDraftWithSectionsWithQuestionsWithOptions } from '$lib/server/application/formDraftArgs';
 import type { Actions } from '@sveltejs/kit';
+
 const log = new Logger('Admin edit form page');
 
 export const load = (async ({ locals, params }) => {
@@ -45,35 +47,70 @@ export const actions = {
 			name = 'Untitled Section';
 		}
 		if (!params.form_id) {
-			return { error: 'Form ID is required' };
+			return fail(400, { error: 'Form ID is required' });
 		}
 
-		const count = await prisma.formSectionDraft.count({ where: { formId: params.form_id } });
+		const count = await prismaResult(
+			prisma.formSectionDraft.count({ where: { formId: params.form_id } })
+		);
+		if (count.isErr()) {
+			return fail(500, { error: 'Error getting section count' });
+		}
 
-		const section = await prisma.formSectionDraft.create({
-			data: {
-				formId: params.form_id,
-				name: name.trim(),
-				slug: slugify(name),
-				description: '',
-				displayOrder: count,
-				colorScheme: null
-			},
-			include: {
-				questions: true
-			}
-		});
+		// Check for duplicate name or slug in the same form
+		const slug = slugify(name);
+		const existingSection = await prismaResult(
+			prisma.formSectionDraft.findFirst({
+				where: {
+					formId: params.form_id,
+					OR: [{ name: name.trim() }, { slug: slug }]
+				}
+			})
+		);
+		if (existingSection.isErr()) {
+			return fail(500, { error: 'Error getting existing section' });
+		}
 
-		prisma.applicationFormDraft.update({
-			where: {
-				id: params.form_id
-			},
-			data: {
-				updatedAt: new Date()
-			}
-		});
+		if (existingSection.value) {
+			return fail(400, {
+				error:
+					existingSection.value.name === name.trim()
+						? `A section with the name "${name.trim()}" already exists in this form`
+						: `A section with a similar name already exists in this form`
+			});
+		}
 
-		return { type: 'success', section };
+		const section = await prismaResult(
+			prisma.formSectionDraft.create({
+				data: {
+					formId: params.form_id,
+					name: name.trim(),
+					slug: slugify(name),
+					description: '',
+					displayOrder: count.value,
+					colorScheme: 'BLUE'
+				},
+				include: {
+					questions: true
+				}
+			})
+		);
+		if (section.isErr()) {
+			return fail(500, { error: 'Error creating section' });
+		}
+
+		await prismaResult(
+			prisma.applicationFormDraft.update({
+				where: {
+					id: params.form_id
+				},
+				data: {
+					updatedAt: new Date()
+				}
+			})
+		);
+
+		return { type: 'success', section: section.value };
 	},
 	deleteSection: async ({ request, locals, params }) => {
 		requireRole(locals, 'ADMIN');
@@ -111,24 +148,58 @@ export const actions = {
 		const sectionJson = data.get('section') as string;
 
 		if (!sectionJson) {
-			return { error: 'Section data is required' };
+			return fail(400, { error: 'Section data is required' });
 		}
 
 		try {
 			const section = JSON.parse(sectionJson);
 
+			if (!section.id) {
+				return fail(400, { error: 'Section ID is required' });
+			}
+
+			if (!section.name) {
+				return fail(400, { error: 'Section name is required' });
+			}
+
+			if (
+				section.displayOrder === undefined ||
+				section.displayOrder === null ||
+				typeof section.displayOrder !== 'number'
+			) {
+				return fail(400, { error: 'Section display order is required' });
+			}
+
 			// Always update the slug to match the new name
 			section.slug = slugify(section.name);
+
+			// Check for duplicate name or slug in the same form
+			const existingSection = await prisma.formSectionDraft.findFirst({
+				where: {
+					formId: params.form_id,
+					id: { not: section.id }, // Exclude current section
+					OR: [{ name: section.name }, { slug: section.slug }]
+				}
+			});
+
+			if (existingSection) {
+				return fail(400, {
+					error:
+						existingSection.name === section.name
+							? `A section with the name "${section.name}" already exists in this form`
+							: `A section with a similar name already exists in this form`
+				});
+			}
 
 			// Update the section with all its data
 			const updatedSection = await prisma.formSectionDraft.update({
 				where: { id: section.id },
 				data: {
 					name: section.name,
-					description: section.description,
+					description: section.description || '',
 					slug: section.slug,
 					displayOrder: section.displayOrder,
-					colorScheme: section.colorScheme
+					colorScheme: section.colorScheme || 'BLUE'
 				},
 				include: {
 					questions: {
@@ -152,7 +223,7 @@ export const actions = {
 			return { type: 'success', section: updatedSection };
 		} catch (error) {
 			log.error('Error updating section', error);
-			return { type: 'error', error: 'Failed to update section' };
+			return fail(500, { error: 'Failed to update section' });
 		}
 	},
 	createQuestion: async ({ request, locals, params }) => {

@@ -10,13 +10,16 @@
 	let search = $state('');
 
 	// Add status filter state
-	let statusFilter = $state<'all' | 'active' | 'inactive'>('all');
+	let statusFilter = $state<'all' | 'active' | 'inactive' | 'archived'>('all');
+
+	// Add archived forms toggle state
+	let showArchived = $state(false);
 
 	// Filtered forms state
 	let filteredForms = $state(publishedForms);
 
 	// Sorting state
-	let sortKey = $state<'id' | 'name' | 'description' | 'publishedAt' | 'active' | 'responses'>(
+	let sortKey = $state<'id' | 'name' | 'description' | 'publishedAt' | 'status' | 'responses'>(
 		'publishedAt'
 	);
 	let sortDirection = $state<'asc' | 'desc'>('desc');
@@ -29,6 +32,13 @@
 			sortDirection = 'asc';
 		}
 	}
+
+	const statusMessages = {
+		archived: 'No archived published application forms found',
+		inactive: 'No inactive published application forms found',
+		active: 'No active published application forms found',
+		all: 'No published application forms found'
+	};
 
 	$effect(() => {
 		let forms = publishedForms;
@@ -44,18 +54,39 @@
 		}
 		// Status filter
 		if (statusFilter === 'active') {
-			forms = forms.filter((form) => form.active);
+			forms = forms.filter((form) => form.active && !form.archived);
 		} else if (statusFilter === 'inactive') {
-			forms = forms.filter((form) => !form.active);
+			forms = forms.filter((form) => !form.active && !form.archived);
+		} else if (statusFilter === 'archived') {
+			forms = forms.filter((form) => form.archived);
+		} else {
+			// 'all' status - filter based on showArchived toggle
+			if (!showArchived) {
+				forms = forms.filter((form) => !form.archived);
+			}
 		}
 		// Sorting
 		forms = [...forms].sort((a, b) => {
-			let aVal: any = a[sortKey];
-			let bVal: any = b[sortKey];
-			if (sortKey === 'publishedAt') {
-				aVal = aVal ? aVal.getTime() : 0;
-				bVal = bVal ? bVal.getTime() : 0;
+			let aVal: any;
+			let bVal: any;
+
+			if (sortKey === 'status') {
+				// For status sorting, we need to determine the status value
+				const getStatusValue = (form: any) => {
+					if (form.archived) return 3; // Archived (highest priority)
+					if (form.active) return 1; // Active
+					return 2; // Inactive
+				};
+				aVal = getStatusValue(a);
+				bVal = getStatusValue(b);
+			} else if (sortKey === 'publishedAt') {
+				aVal = a[sortKey] ? a[sortKey].getTime() : 0;
+				bVal = b[sortKey] ? b[sortKey].getTime() : 0;
+			} else {
+				aVal = a[sortKey];
+				bVal = b[sortKey];
 			}
+
 			if (aVal == null) return 1;
 			if (bVal == null) return -1;
 			if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
@@ -109,14 +140,33 @@
 						bind:value={search}
 						class="search-input w-full max-w-xs px-3 py-2 text-sm focus:outline-none"
 					/>
-					<select
-						bind:value={statusFilter}
-						class="rounded border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 focus:border-blue-500 focus:outline-none"
-					>
-						<option value="all">All</option>
-						<option value="active">Active</option>
-						<option value="inactive">Inactive</option>
-					</select>
+					<div class="flex items-center gap-4">
+						<button
+							id="showArchived"
+							onclick={() => (showArchived = !showArchived)}
+							disabled={statusFilter !== 'all'}
+							class="flex items-center gap-2 rounded border border-gray-300 bg-white px-3 py-2 {statusFilter !==
+							'all'
+								? 'cursor-not-allowed opacity-50'
+								: 'cursor-pointer'}"
+						>
+							<div
+								class="h-4 w-4 rounded-md border-2 {showArchived
+									? 'border-blue-800 bg-blue-500'
+									: 'border-gray-500 bg-gray-300'}"
+							></div>
+							<p class="text-sm text-gray-700">Show archived</p>
+						</button>
+						<select
+							bind:value={statusFilter}
+							class="rounded border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 focus:border-blue-500 focus:outline-none"
+						>
+							<option value="all">All</option>
+							<option value="active">Active</option>
+							<option value="inactive">Inactive</option>
+							<option value="archived">Archived</option>
+						</select>
+					</div>
 				</div>
 				{#if error}
 					<p class="mb-4 text-center font-bold text-red-500">{error}</p>
@@ -127,7 +177,9 @@
 				<div class="w-full rounded-b-lg shadow-md">
 					<div class="space-y-4 rounded-b-lg">
 						{#if !filteredForms || filteredForms.length === 0}
-							<p class="pb-4 text-center text-gray-500">No published application forms found</p>
+							<p class="pb-4 text-center text-gray-500">
+								{statusMessages[statusFilter]}
+							</p>
 						{/if}
 					</div>
 					{#if filteredForms && filteredForms.length > 0}
@@ -164,9 +216,9 @@
 									</th>
 									<th
 										class="cursor-pointer p-4 pt-0 text-left font-semibold tracking-wide text-nowrap text-gray-700 uppercase select-none"
-										onclick={() => setSort('active')}
+										onclick={() => setSort('status')}
 									>
-										Active {sortKey === 'active' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
+										Status {sortKey === 'status' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
 									</th>
 									<th
 										class="cursor-pointer p-4 pt-0 text-left font-semibold tracking-wide text-nowrap text-gray-700 uppercase select-none"
@@ -191,7 +243,17 @@
 											>{form.publishedAt.toLocaleDateString()} <br />
 											{form.publishedAt.toLocaleTimeString()}</td
 										>
-										<td class="px-4 py-4 text-sm text-black">{form.active ? 'Yes' : 'No'}</td>
+										<td class="px-4 py-4 text-sm text-black">
+											{#if form.archived}
+												<span class="rounded-lg bg-amber-300 px-2 py-1 text-amber-800"
+													>Archived</span
+												>
+											{:else if form.active}
+												<span class="rounded-lg bg-green-300 px-2 py-1 text-green-800">Active</span>
+											{:else}
+												<span class="rounded-lg bg-red-300 px-2 py-1 text-red-800">Inactive</span>
+											{/if}
+										</td>
 										<td class="px-4 py-4 text-sm text-black">
 											{form.responses.length}
 										</td>

@@ -1,13 +1,19 @@
 <script lang="ts">
 	import type { PageProps } from './$types';
 	import AdminNavBar from '$lib/components/dashboard/AdminNavBar.svelte';
-	import Tooltip from '$lib/components/util/Tooltip.svelte';
-	import { QuestionTypeMap } from '$lib/utils/QuestionTypeMap';
+
+	import { enhance } from '$app/forms';
+	import { addNotif } from '$lib/utils/notify';
+	import DraftQuestionOverview from '$lib/components/form/DraftQuestionOverview.svelte';
+	import { getColorSchemeClassName } from '$lib/utils/colorScheme';
 
 	let editFormPopup = $state(false);
 
 	let { data, form }: PageProps = $props();
-	let { applicationForm, user } = data;
+	let { applicationForm } = data;
+
+	let name = $state(applicationForm?.name || '');
+	let description = $state(applicationForm?.description || '');
 </script>
 
 <svelte:head>
@@ -57,13 +63,16 @@
 
 {#if applicationForm}
 	<div class="main-container min-h-screen">
-		<AdminNavBar message={`Viewing Draft: ${applicationForm?.name}`} />
+		<AdminNavBar message={`Viewing Draft: ${name}`} />
 		<div class="content-card container mx-auto mt-8 p-6">
 			<div class="section-header rounded-md border border-gray-200 bg-white p-6 shadow-sm">
 				<!-- Header with title and back button -->
 				<div class="mb-4 flex items-center justify-between">
 					<div class="flex items-center gap-3">
-						<h1 class="text-3xl font-bold text-gray-800">Form Draft: {applicationForm?.name}</h1>
+						<h1 class="text-3xl font-bold text-gray-800">
+							<span class="rounded-lg bg-red-300 px-2 py-1 text-red-800">Draft</span>
+							{name}
+						</h1>
 						<button
 							class="inline-flex items-center justify-center rounded-lg bg-blue-50 p-2 text-blue-600 transition-colors hover:bg-blue-100"
 							aria-label="Edit form draft"
@@ -80,7 +89,7 @@
 				<!-- Description -->
 				<div class="mb-6">
 					<p class="text-lg leading-relaxed text-gray-700">
-						{applicationForm.description || 'No description provided'}
+						{description || 'No description provided'}
 					</p>
 				</div>
 
@@ -147,55 +156,23 @@
 				{/if}
 
 				{#each applicationForm.sections as section}
-					<p class="mb-1 text-2xl font-bold">{section.name}</p>
-					<p class="text-md">
-						{section.description ? section.description : 'No description provided'}
-					</p>
-					{#each section.questions as question}
-						{#if question.questionDraft}
-							<p class="mt-4 font-bold">
-								{question.questionDraft.prompt}
-								<Tooltip tip="Required" top>
-									<span class="text-red-600">{question.required ? '*' : ''}</span>
-								</Tooltip>
-							</p>
-
-							<p class="text-sm">
-								{QuestionTypeMap[question.questionDraft.type]}
-							</p>
-
-							{#if question.questionDraft.options.length > 0}
-								<p class="mt-2 text-sm font-bold underline">Options</p>
-								{#each question.questionDraft.options as option}
-									<p class="text-sm">{option.text}</p>
-								{/each}
-							{/if}
-						{:else if question.questionVersion}
-							<p class="mt-4 font-bold">
-								{question.questionVersion.prompt}
-								<Tooltip tip="Required" top>
-									<span class="text-red-600">{question.required ? '*' : ''}</span>
-								</Tooltip>
-							</p>
-							<Tooltip
-								tip="Library questions cannot be edited directly within a form. See Question Library page for more information."
-								right
-							>
-								<p class="text-sm text-gray-700">Library Question ⓘ</p>
-							</Tooltip>
-							<p class="text-sm">
-								{QuestionTypeMap[question.questionVersion.type]}
-							</p>
-
-							{#if question.questionVersion.options.length > 0}
-								<p class="mt-2 text-sm font-bold underline">Options</p>
-								{#each question.questionVersion.options as option}
-									<p class="text-sm">{option.text}</p>
-								{/each}
-							{/if}
+					<div class="{getColorSchemeClassName(section.colorScheme)} mb-2 rounded-lg p-4">
+						<h2 class="text-2xl font-bold text-white">
+							Section {section.displayOrder + 1}:
+							{section.name}
+						</h2>
+						{#if section.description}
+							<p class="text-white">{section.description}</p>
 						{/if}
-					{/each}
-					<hr class="my-6 text-gray-400" />
+					</div>
+					<div class="mt-4">
+						{#each section.questions as question}
+							<div class="mb-4">
+								<DraftQuestionOverview {question} />
+							</div>
+						{/each}
+					</div>
+					<hr class="my-6 text-gray-300" />
 				{/each}
 			</div>
 		</div>
@@ -205,15 +182,34 @@
 		<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
 			<div class="w-full max-w-xl rounded-lg bg-white p-6 shadow-2xl">
 				<h2 class="mb-2 text-center text-2xl font-bold">Edit Form Draft</h2>
-				<form class="flex flex-col gap-6" method="POST" action="?/updateDraft">
+				<form
+					class="flex flex-col gap-6"
+					method="POST"
+					action="?/updateDraft"
+					use:enhance={(formData) => {
+						const newName = formData.formData.get('name');
+						const newDescription = formData.formData.get('description');
+						return async ({ result }) => {
+							if (result.type === 'success') {
+								editFormPopup = false;
+								name = newName as string;
+								description = newDescription as string;
+								addNotif(result.data?.message as string, 'success');
+							} else if (result.type === 'failure') {
+								addNotif(result.data?.error as string, 'error');
+							}
+						};
+					}}
+				>
 					<div class="form-group flex flex-col gap-2">
-						<label for="name" class="font-semibold">Name</label>
+						<label for="name" class="font-semibold">Name<span class="text-red-600">*</span></label>
 						<input
 							type="text"
 							id="name"
 							name="name"
 							class="form-control rounded border-1 border-blue-500 px-4 py-2 text-lg focus:ring-2 focus:ring-blue-300 focus:outline-none"
-							value={applicationForm.name}
+							value={name}
+							required
 						/>
 					</div>
 					<div class="description flex flex-col gap-2">
@@ -222,13 +218,13 @@
 							id="description"
 							name="description"
 							class="form-control min-h-[100px] resize-y rounded border-1 border-blue-500 px-4 py-2 text-lg focus:ring-2 focus:ring-blue-300 focus:outline-none"
-							value={applicationForm.description}
+							value={description}
 						></textarea>
 					</div>
 					<div class="mt-2 flex justify-end gap-4">
 						<button
 							type="button"
-							class="btn-bluebtn-red rounded-xl px-3 py-1"
+							class="btn-red rounded-xl px-3 py-1"
 							onclick={() => (editFormPopup = false)}
 						>
 							Cancel

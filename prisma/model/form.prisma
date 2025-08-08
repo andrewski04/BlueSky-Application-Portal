@@ -113,7 +113,7 @@ model FormSectionDraft {
   slug         String
   description  String?
   displayOrder Int
-  colorScheme  ColorScheme?   @default(BLUE)
+  colorScheme  ColorScheme   @default(BLUE)
   /// linking table holds the questions & their order
   questions    QuestionLinkDraft[]
   @@unique([formId, slug])
@@ -183,6 +183,7 @@ model ApplicationFormPublished {
   id          String                 @id @default(cuid(2))
   name        String
   description String?
+  archived    Boolean                @default(false) /// hide/show to students and admins
   active      Boolean                @default(true) /// hide/show to students
   groupId     String?
   group       ApplicationFormGroup?  @relation(fields: [groupId], references: [id])
@@ -200,7 +201,7 @@ model FormSectionPublished {
   name         String
   slug         String
   description  String?
-  colorScheme  ColorScheme?   @default(BLUE)
+  colorScheme  ColorScheme   @default(BLUE)
   displayOrder Int
   questions    QuestionLinkPublished[]
   @@unique([formId, slug])

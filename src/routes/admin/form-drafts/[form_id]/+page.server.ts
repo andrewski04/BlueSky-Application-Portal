@@ -4,12 +4,12 @@ import { prisma, prismaResult } from '$lib/server/prisma';
 import { Logger } from '$lib/utils/logger';
 import { FormDraftWithSectionsWithQuestionsWithOptions } from '$lib/server/application/formDraftArgs';
 import { publishFormFromDraft } from '$lib/server/application/formService';
-import { redirect } from '@sveltejs/kit';
+import { fail, redirect } from '@sveltejs/kit';
 
 const log = new Logger('Admin form details page');
 
 export const load = (async ({ locals, params }) => {
-	const { user } = requireRole(locals, 'ADMIN');
+	requireRole(locals, 'ADMIN');
 
 	const applicationForm = await prismaResult(
 		prisma.applicationFormDraft.findUnique({
@@ -21,14 +21,13 @@ export const load = (async ({ locals, params }) => {
 	);
 	if (applicationForm.isErr()) {
 		log.error('Error getting application form by ID', applicationForm.error);
-		return { error: applicationForm.error.message, user };
+		return { error: 'An error occurred while getting the form draft.' };
 	}
 	if (!applicationForm.value) {
-		return { error: 'Application form not found', user };
+		return { error: 'Application form not found' };
 	}
 
 	return {
-		user,
 		applicationForm: applicationForm.value
 	};
 }) satisfies PageServerLoad;
@@ -59,7 +58,7 @@ export const actions = {
 		);
 
 		if (result.isErr()) {
-			return { success: false, error: result.error.message };
+			return { success: false, error: 'An error occurred while deleting the form draft.' };
 		}
 
 		return redirect(302, '/admin/form-drafts');
@@ -69,19 +68,21 @@ export const actions = {
 		const form = await request.formData();
 		const name = form.get('name');
 		const description = form.get('description');
-		console.log(name + ' ' + description);
-		if (!name || typeof name !== 'string' || !description || typeof description !== 'string') {
-			return { success: false, error: 'Name and description are required' };
+		if (!name || typeof name !== 'string') {
+			return fail(400, { success: false, error: 'Name is required.' });
+		}
+		if (description && typeof description !== 'string') {
+			return fail(400, { success: false, error: 'Description must be a string.' });
 		}
 		const result = await prismaResult(
 			prisma.applicationFormDraft.update({
 				where: { id: params.form_id },
-				data: { name: name.trim(), description: description.trim() }
+				data: { name: name.trim(), description: description?.trim() || null }
 			})
 		);
 		if (result.isErr()) {
-			return { success: false, error: result.error.message };
+			return fail(500, { success: false, error: 'Error updating form draft.' });
 		}
-		return redirect(302, `/admin/form-drafts/${params.form_id}`);
+		return { success: true, message: 'Form draft updated successfully.' };
 	}
 } satisfies Actions;
