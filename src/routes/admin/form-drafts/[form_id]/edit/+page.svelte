@@ -54,6 +54,12 @@
 	let selectedQuestion = $state<FormSectionWithQuestions['questions'][0] | null>(null);
 	let isEditingQuestion = $state(false);
 
+	// Drag and drop state
+	let draggedSection = $state<FormSectionWithQuestions | null>(null);
+	let draggedQuestion = $state<FormSectionWithQuestions['questions'][0] | null>(null);
+	let dragOverSection = $state<string | null>(null);
+	let dragOverQuestion = $state<string | null>(null);
+
 	// Add a reactive variable for the new section name input
 	let newSectionName = $state('');
 	let sectionNameError = $state('');
@@ -490,6 +496,192 @@
 			console.error(error);
 		}
 	}
+
+	// Drag and drop functions
+	function handleSectionDragStart(e: DragEvent, section: FormSectionWithQuestions) {
+		if (e.dataTransfer) {
+			e.dataTransfer.effectAllowed = 'move';
+			e.dataTransfer.setData('text/plain', section.id);
+			draggedSection = section;
+		}
+	}
+
+	function handleSectionDragOver(e: DragEvent, sectionId: string) {
+		e.preventDefault();
+		e.dataTransfer!.dropEffect = 'move';
+		dragOverSection = sectionId;
+	}
+
+	function handleSectionDragLeave(e: DragEvent) {
+		e.preventDefault();
+		dragOverSection = null;
+	}
+
+	async function handleSectionDrop(e: DragEvent, targetSectionId: string) {
+		e.preventDefault();
+		dragOverSection = null;
+
+		if (!draggedSection || draggedSection.id === targetSectionId) {
+			draggedSection = null;
+			return;
+		}
+
+		// Reorder sections
+		if (!draftForm) {
+			draggedSection = null;
+			return;
+		}
+		const sections = [...draftForm.sections];
+		const draggedIndex = sections.findIndex((s) => s.id === draggedSection!.id);
+		const targetIndex = sections.findIndex((s) => s.id === targetSectionId);
+
+		if (draggedIndex === -1 || targetIndex === -1) {
+			draggedSection = null;
+			return;
+		}
+
+		// Remove dragged section and insert at target position
+		const [draggedItem] = sections.splice(draggedIndex, 1);
+		sections.splice(targetIndex, 0, draggedItem);
+
+		// Update display orders
+		sections.forEach((section, index) => {
+			section.displayOrder = index;
+		});
+
+		// Update local state
+		draftForm.sections = sections;
+
+		// Update currentSectionCopy to reference the reordered section
+		if (currentSectionCopy) {
+			const updatedSection = sections.find((s) => s.id === currentSectionCopy!.id);
+			if (updatedSection) {
+				currentSectionCopy = JSON.parse(JSON.stringify(updatedSection));
+			}
+		}
+
+		// Save to server
+		const formData = new FormData();
+		formData.append(
+			'sections',
+			JSON.stringify(sections.map((s) => ({ id: s.id, displayOrder: s.displayOrder })))
+		);
+
+		const response = await fetch('?/reorderSections', {
+			method: 'POST',
+			body: formData
+		});
+
+		const result = deserialize(await response.text());
+
+		if (result.type === 'success') {
+			addNotif('Sections reordered successfully', 'success');
+			draggedSection = null;
+		} else {
+			error = 'Error reordering sections';
+			addNotif(error, 'error');
+			draggedSection = null;
+		}
+
+		draggedSection = null;
+	}
+
+	function handleQuestionDragStart(
+		e: DragEvent,
+		question: FormSectionWithQuestions['questions'][0]
+	) {
+		if (e.dataTransfer) {
+			e.dataTransfer.effectAllowed = 'move';
+			e.dataTransfer.setData('text/plain', question.questionDraftId);
+			draggedQuestion = question;
+			selectQuestion(question);
+		}
+	}
+
+	function handleQuestionDragOver(e: DragEvent, questionId: string) {
+		e.preventDefault();
+		e.dataTransfer!.dropEffect = 'move';
+		dragOverQuestion = questionId;
+	}
+
+	function handleQuestionDragLeave(e: DragEvent) {
+		e.preventDefault();
+		dragOverQuestion = null;
+	}
+
+	async function handleQuestionDrop(e: DragEvent, targetQuestionId: string) {
+		e.preventDefault();
+		dragOverQuestion = null;
+
+		if (
+			!draggedQuestion ||
+			!currentSectionCopy ||
+			draggedQuestion.questionDraftId === targetQuestionId
+		) {
+			draggedQuestion = null;
+			return;
+		}
+
+		// Reorder questions within the current section
+		const questions = [...currentSectionCopy.questions];
+		const draggedIndex = questions.findIndex(
+			(q) => q.questionDraftId === draggedQuestion!.questionDraftId
+		);
+		const targetIndex = questions.findIndex((q) => q.questionDraftId === targetQuestionId);
+
+		if (draggedIndex === -1 || targetIndex === -1) {
+			draggedQuestion = null;
+			return;
+		}
+
+		// Remove dragged question and insert at target position
+		const [draggedItem] = questions.splice(draggedIndex, 1);
+		questions.splice(targetIndex, 0, draggedItem);
+
+		// Update display orders
+		questions.forEach((question, index) => {
+			question.displayOrder = index;
+		});
+
+		// Update local state
+		currentSectionCopy.questions = questions;
+		questionsCount = questions.length;
+
+		// Also update the original section in the form
+		if (draftForm) {
+			const sectionIndex = draftForm.sections.findIndex((s) => s.id === currentSectionCopy!.id);
+			if (sectionIndex !== -1) {
+				draftForm.sections[sectionIndex].questions = questions;
+			}
+		}
+
+		// Save to server
+		const formData = new FormData();
+		formData.append(
+			'questions',
+			JSON.stringify(
+				questions.map((q) => ({ id: q.questionDraftId, displayOrder: q.displayOrder }))
+			)
+		);
+
+		const response = await fetch('?/reorderQuestions', {
+			method: 'POST',
+			body: formData
+		});
+
+		const result = deserialize(await response.text());
+
+		if (result.type === 'success') {
+			addNotif('Questions reordered successfully', 'success');
+			draggedQuestion = null;
+		} else {
+			error = 'Error reordering questions';
+			addNotif(error, 'error');
+			draggedQuestion = null;
+		}
+
+		draggedQuestion = null;
+	}
 </script>
 
 <svelte:head>
@@ -529,6 +721,19 @@
 		.form-builder-input:focus {
 			background: rgba(255, 255, 255, 1);
 			box-shadow: 0 0 0 2px rgba(173, 173, 173, 0.5);
+		}
+
+		.draggable-item:hover {
+			transform: translateY(-1px);
+		}
+
+		.draggable-item:active {
+			transform: translateY(0);
+		}
+
+		.drag-over {
+			border: 2px dashed rgba(59, 130, 246, 0.5);
+			border-radius: 8px;
 		}
 	</style>
 </svelte:head>
@@ -608,16 +813,29 @@
 				<hr class="my-4 border-gray-400" />
 
 				<h2 class="mb-2 text-center text-lg font-bold">Sections</h2>
+				<p class="mb-3 text-center text-xs text-gray-500">Drag to reorder sections</p>
 				<div class="space-y-2">
 					{#each draftForm.sections as section}
-						<div class="flex flex-row justify-between">
+						<div
+							class="draggable-item flex flex-row justify-between {dragOverSection === section.id
+								? 'drag-over'
+								: ''}"
+							draggable="true"
+							role="listitem"
+							ondragstart={(e) => handleSectionDragStart(e, section)}
+							ondragover={(e) => handleSectionDragOver(e, section.id)}
+							ondragleave={handleSectionDragLeave}
+							ondrop={(e) => handleSectionDrop(e, section.id)}
+						>
 							<button
 								onclick={() => setCurrentSection(section)}
 								class="w-full truncate {currentSectionCopy?.id === section.id
 									? 'bg-blue-100'
-									: ''} px-3 py-2 text-left hover:bg-blue-100"
+									: ''} cursor-move px-3 py-2 text-left hover:bg-blue-100"
 							>
-								{section.name}
+								<div class="flex items-center gap-2">
+									{section.name}
+								</div>
 							</button>
 							<form
 								method="POST"
@@ -742,19 +960,35 @@
 								</textarea>
 							</div>
 						</div>
-						<div class="my-4 space-y-4">
-							{#each currentSectionCopy.questions as question}
-								{#if question}
-									<div class="px-4">
-										<DraftQuestionOverview
-											{question}
-											isSelected={selectedQuestion?.questionDraftId === question.questionDraftId}
-											onSelect={selectQuestion}
-											onDelete={deleteQuestion}
-										/>
-									</div>
-								{/if}
-							{/each}
+						<div class="my-4">
+							<p class="mb-3 text-center text-sm text-gray-500">Drag questions to reorder them.</p>
+							<div class="space-y-4">
+								{#each currentSectionCopy.questions as question}
+									{#if question}
+										<div class="px-4">
+											<div
+												class="draggable-item {dragOverQuestion === question.questionDraftId
+													? 'drag-over'
+													: ''}"
+												draggable="true"
+												role="listitem"
+												ondragstart={(e) => handleQuestionDragStart(e, question)}
+												ondragover={(e) => handleQuestionDragOver(e, question.questionDraftId)}
+												ondragleave={handleQuestionDragLeave}
+												ondrop={(e) => handleQuestionDrop(e, question.questionDraftId)}
+											>
+												<DraftQuestionOverview
+													{question}
+													isSelected={selectedQuestion?.questionDraftId ===
+														question.questionDraftId}
+													onSelect={selectQuestion}
+													onDelete={deleteQuestion}
+												/>
+											</div>
+										</div>
+									{/if}
+								{/each}
+							</div>
 						</div>
 					{/if}
 				</div>
@@ -768,12 +1002,12 @@
 						<div class="question-editor-card mb-4 p-4">
 							<div class="mb-4 flex items-center justify-between">
 								<h2 class="text-lg font-semibold text-gray-800">
-									{isEditingQuestion ? 'Edit Question' : 'Add Question'}
+									{isEditingQuestion ? 'Editing Question' : 'Add Question'}
 								</h2>
 								{#if isEditingQuestion}
 									<button
 										onclick={() => resetQuestionForm()}
-										class="text-sm text-gray-600 transition-colors hover:text-gray-800"
+										class="btn-red px-2 py-1 text-sm transition-colors"
 									>
 										Cancel
 									</button>

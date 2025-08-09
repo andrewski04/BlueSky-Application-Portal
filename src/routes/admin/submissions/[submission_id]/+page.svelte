@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { PageData } from './$types';
-	import type { Answer, AnswerOptionSelection } from '@prisma/client';
+	import { formatPhoneNumber } from '$lib/utils/formatPhoneNumber';
 
 	import CheckboxQuestion from '$lib/components/application/CheckboxQuestion.svelte';
 	import DateQuestion from '$lib/components/application/DateQuestion.svelte';
@@ -21,90 +21,162 @@
 	<title>View Submission</title>
 </svelte:head>
 
-<AdminNavBar
-	message={`Viewing Submission: ${formWithAnswers ? formWithAnswers.user.firstName : 'Unknown'} ${formWithAnswers ? formWithAnswers.user.lastName : ''}`}
-/>
+<div class="main-content">
+	<AdminNavBar
+		message={`Viewing Submission: ${formWithAnswers ? formWithAnswers.user.firstName : 'Unknown'} ${formWithAnswers ? formWithAnswers.user.lastName : ''}`}
+	/>
 
-<div class="container mx-auto p-6">
-	<div class="mb-4 flex items-center justify-between">
-		<h1 class="text-3xl font-bold">Submission Details</h1>
-		<a href="/admin/submissions" class="btn-bluebtn-red px-3 py-1">Back</a>
-	</div>
-	{#if formWithAnswers}
-		<div class="mb-6 rounded-md border border-gray-200 bg-white p-6 shadow-sm">
-			<p><b>Last Updated:</b> {formWithAnswers.updatedAt}</p>
-			<p>
-				<b>Submitted By:</b>
-				{formWithAnswers.user.lastName}, {formWithAnswers.user.firstName}
-			</p>
-			<p><b>Form Name:</b> {formWithAnswers.name}</p>
-			<p><b>Submitter Email:</b> {formWithAnswers.user.email}</p>
-			<p><b>Status:</b> {formWithAnswers.status}</p>
+	<div class=" container mx-auto p-6">
+		<div class="mb-4 flex items-center justify-between">
+			<h1 class="text-3xl font-bold">Submission Details</h1>
+			<a href="/admin/submissions" class="btn-red px-3 py-1">Back</a>
 		</div>
-
-		{#each formWithAnswers.sections as section}
-			<div class="mb-8 rounded-md border border-gray-200 bg-white p-6 shadow-sm">
-				<h2 class="mb-4 text-2xl font-semibold">{section.name}</h2>
-				{#if section.description}
-					<p class="mb-6 text-gray-700">{section.description}</p>
-				{/if}
-
-				{#each section.questions as question}
-					<div class="mb-4 rounded-md border border-gray-100 bg-gray-50 p-4 shadow-sm">
-						{#if question.type === 'TEXT'}
-							<TextQuestion
-								{question}
-								existingAnswer={question.answer?.valueText}
-								readonly={true}
-							/>
-						{:else if question.type === 'PARAGRAPH'}
-							<ParagraphQuestion
-								{question}
-								existingAnswer={question.answer?.valueText}
-								readonly={true}
-							/>
-						{:else if question.type === 'NUMBER'}
-							<NumberQuestion
-								{question}
-								existingAnswer={question.answer?.valueNumber}
-								readonly={true}
-							/>
-						{:else if question.type === 'DATE'}
-							<DateQuestion
-								{question}
-								existingAnswer={question.answer?.valueDate}
-								readonly={true}
-							/>
-						{:else if question.type === 'CHECKBOX'}
-							<CheckboxQuestion
-								{question}
-								existingAnswer={question.answer?.selections.map((opt) => opt.id)}
-								readonly={true}
-							/>
-						{:else if question.type === 'MULTIPLE_CHOICE'}
-							<MultipleChoiceQuestion
-								{question}
-								existingAnswer={question.answer?.selections[0]?.id}
-								readonly={true}
-							/>
-						{:else if question.type === 'DROPDOWN'}
-							<DropdownQuestion
-								{question}
-								existingAnswer={question.answer?.selections[0]?.id}
-								readonly={true}
-							/>
-						{:else if question.type === 'FILE_UPLOAD'}
-							<FileUploadQuestion
-								{question}
-								existingAnswer={question.answer?.fileUploadId}
-								readonly={true}
-							/>
-						{/if}
+		{#if formWithAnswers}
+			<div class="section-header mb-6 rounded-md border border-gray-200 bg-white p-6 shadow-sm">
+				<!-- Header with title and back button -->
+				<div class="mb-4 flex items-center justify-between">
+					<div class="flex items-center gap-3">
+						<h1 class="text-3xl font-bold text-gray-800">
+							<span class="rounded-lg bg-blue-300 px-2 py-1 text-blue-800">Submission</span>
+							{formWithAnswers.user.lastName}, {formWithAnswers.user.firstName}
+						</h1>
 					</div>
-				{/each}
+				</div>
+
+				<!-- Metadata Grid -->
+				<div class="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+					<div class="rounded-lg p-4">
+						<h3 class="mb-1 text-sm font-semibold tracking-wide text-gray-600 uppercase">
+							Submitter
+						</h3>
+						<p class="text-sm text-gray-800">
+							{formWithAnswers.user.firstName}
+							{formWithAnswers.user.lastName}
+						</p>
+						<p class="text-xs text-gray-600">{formWithAnswers.user.email}</p>
+						<p class="text-xs text-gray-600">
+							{#if formWithAnswers.user.phoneNumber}
+								{formatPhoneNumber(formWithAnswers.user.phoneNumber)}
+							{:else}
+								No phone number
+							{/if}
+						</p>
+					</div>
+					<div class="rounded-lg p-4">
+						<h3 class="mb-1 text-sm font-semibold tracking-wide text-gray-600 uppercase">
+							Form Name
+						</h3>
+						<p class="text-sm text-gray-800">{formWithAnswers.name}</p>
+						<a
+							href="/admin/published-forms/{formWithAnswers.id}"
+							class="text-xs text-blue-600 hover:text-blue-800 hover:underline"
+						>
+							View Form →
+						</a>
+					</div>
+					<div class="rounded-lg p-4">
+						<h3 class="mb-1 text-sm font-semibold tracking-wide text-gray-600 uppercase">Status</h3>
+						<p class="text-sm text-gray-800">
+							<span
+								class="rounded px-2 py-1 text-xs font-medium {formWithAnswers.status === 'DRAFT'
+									? 'bg-yellow-100 text-yellow-800'
+									: 'bg-green-100 text-green-800'}"
+							>
+								{formWithAnswers.status}
+							</span>
+						</p>
+					</div>
+					<div class="rounded-lg p-4">
+						<h3 class="mb-1 text-sm font-semibold tracking-wide text-gray-600 uppercase">
+							Last Updated
+						</h3>
+						<p class="text-sm text-gray-800">
+							{formWithAnswers.updatedAt.toLocaleString('en-US', {
+								timeZoneName: 'shortGeneric'
+							})}
+						</p>
+					</div>
+					<div class="rounded-lg p-4">
+						<h3 class="mb-1 text-sm font-semibold tracking-wide text-gray-600 uppercase">
+							Form Group
+						</h3>
+						<p class="text-sm text-gray-800">
+							{formWithAnswers.group?.name ?? 'No group assigned'}
+						</p>
+					</div>
+					<div class="rounded-lg p-4">
+						<h3 class="mb-1 text-sm font-semibold tracking-wide text-gray-600 uppercase">
+							Submission ID
+						</h3>
+						<p class="font-mono text-sm text-gray-800">{formWithAnswers.id}</p>
+					</div>
+				</div>
 			</div>
-		{/each}
-	{:else}
-		<p>Could not load submission details.</p>
-	{/if}
+
+			{#each formWithAnswers.sections as section}
+				<div class="mb-8 rounded-md border border-gray-200 bg-white p-6 shadow-sm">
+					<h2 class="mb-4 text-2xl font-semibold">{section.name}</h2>
+					{#if section.description}
+						<p class="mb-6 text-gray-700">{section.description}</p>
+					{/if}
+
+					{#each section.questions as question}
+						<div class="mb-4 rounded-md border border-gray-100 bg-gray-50 p-4 shadow-sm">
+							{#if question.type === 'TEXT'}
+								<TextQuestion
+									{question}
+									existingAnswer={question.answer?.valueText}
+									readonly={true}
+								/>
+							{:else if question.type === 'PARAGRAPH'}
+								<ParagraphQuestion
+									{question}
+									existingAnswer={question.answer?.valueText}
+									readonly={true}
+								/>
+							{:else if question.type === 'NUMBER'}
+								<NumberQuestion
+									{question}
+									existingAnswer={question.answer?.valueNumber}
+									readonly={true}
+								/>
+							{:else if question.type === 'DATE'}
+								<DateQuestion
+									{question}
+									existingAnswer={question.answer?.valueDate}
+									readonly={true}
+								/>
+							{:else if question.type === 'CHECKBOX'}
+								<CheckboxQuestion
+									{question}
+									existingAnswer={question.answer?.selections.map((opt: { id: string }) => opt.id)}
+									readonly={true}
+								/>
+							{:else if question.type === 'MULTIPLE_CHOICE'}
+								<MultipleChoiceQuestion
+									{question}
+									existingAnswer={question.answer?.selections[0]?.id}
+									readonly={true}
+								/>
+							{:else if question.type === 'DROPDOWN'}
+								<DropdownQuestion
+									{question}
+									existingAnswer={question.answer?.selections[0]?.id}
+									readonly={true}
+								/>
+							{:else if question.type === 'FILE_UPLOAD'}
+								<FileUploadQuestion
+									{question}
+									existingAnswer={question.answer?.fileUploadId}
+									readonly={true}
+								/>
+							{/if}
+						</div>
+					{/each}
+				</div>
+			{/each}
+		{:else}
+			<p>Could not load submission details.</p>
+		{/if}
+	</div>
 </div>

@@ -456,5 +456,138 @@ export const actions = {
 			log.error('Error deleting question', error);
 			return { type: 'error', error: 'Failed to delete question' };
 		}
+	},
+	reorderSections: async ({ request, locals, params }) => {
+		requireRole(locals, 'ADMIN');
+		const data = await request.formData();
+		const sectionsJson = data.get('sections') as string;
+
+		if (!sectionsJson) {
+			return fail(400, { error: 'Sections data is required' });
+		}
+
+		try {
+			const sections = JSON.parse(sectionsJson) as Array<{ id: string; displayOrder: number }>;
+
+			// Update all sections with their new display orders using a transaction
+			await prisma.$transaction(async (tx) => {
+				// First, move all sections to temporary high display orders to avoid conflicts
+				const tempOffset = 10000;
+				for (const section of sections) {
+					await tx.formSectionDraft.update({
+						where: { id: section.id },
+						data: { displayOrder: tempOffset + section.displayOrder }
+					});
+				}
+
+				// Then, move them to their final positions
+				for (const section of sections) {
+					await tx.formSectionDraft.update({
+						where: { id: section.id },
+						data: { displayOrder: section.displayOrder }
+					});
+				}
+			});
+
+			// Update the form's updatedAt timestamp
+			await prisma.applicationFormDraft.update({
+				where: {
+					id: params.form_id
+				},
+				data: {
+					updatedAt: new Date()
+				}
+			});
+
+			return { type: 'success' };
+		} catch (error) {
+			log.error('Error reordering sections', error);
+			return fail(500, { error: 'Failed to reorder sections' });
+		}
+	},
+	reorderQuestions: async ({ request, locals, params }) => {
+		requireRole(locals, 'ADMIN');
+		const data = await request.formData();
+		const questionsJson = data.get('questions') as string;
+
+		if (!questionsJson) {
+			return fail(400, { error: 'Questions data is required' });
+		}
+
+		try {
+			const questions = JSON.parse(questionsJson) as Array<{ id: string; displayOrder: number }>;
+
+			// Update all question links with their new display orders
+			// We need to handle the unique constraint by using a temporary value approach
+			// First, get all the question links to find their sectionId
+			const questionLinks = await prisma.questionLinkDraft.findMany({
+				where: {
+					questionDraftId: { in: questions.map((q) => q.id) }
+				},
+				select: { questionDraftId: true, sectionId: true, displayOrder: true }
+			});
+
+			// Create a map of questionDraftId to sectionId
+			const questionToSection = new Map(
+				questionLinks.map((ql) => [ql.questionDraftId, ql.sectionId])
+			);
+
+			// Use a transaction to ensure atomicity and handle the unique constraint
+			await prisma.$transaction(async (tx) => {
+				// First, move all questions to temporary high display orders to avoid conflicts
+				const tempOffset = 10000;
+				for (const question of questions) {
+					const sectionId = questionToSection.get(question.id);
+					if (!sectionId) {
+						throw new Error(`Question ${question.id} not found`);
+					}
+
+					const currentOrder =
+						questionLinks.find((ql) => ql.questionDraftId === question.id)?.displayOrder || 0;
+					await tx.questionLinkDraft.update({
+						where: {
+							sectionId_displayOrder: {
+								sectionId: sectionId,
+								displayOrder: currentOrder
+							}
+						},
+						data: { displayOrder: tempOffset + question.displayOrder }
+					});
+				}
+
+				// Then, move them to their final positions
+				for (const question of questions) {
+					const sectionId = questionToSection.get(question.id);
+					if (!sectionId) {
+						throw new Error(`Question ${question.id} not found`);
+					}
+
+					await tx.questionLinkDraft.update({
+						where: {
+							sectionId_displayOrder: {
+								sectionId: sectionId,
+								displayOrder: tempOffset + question.displayOrder
+							}
+						},
+						data: { displayOrder: question.displayOrder }
+					});
+				}
+			});
+
+			// Update the form's updatedAt timestamp
+			await prisma.applicationFormDraft.update({
+				where: {
+					id: params.form_id
+				},
+				data: {
+					updatedAt: new Date()
+				}
+			});
+
+			return { type: 'success' };
+		} catch (error) {
+			log.error('Error reordering questions', error);
+			return fail(500, { error: 'Failed to reorder questions' });
+		}
 	}
 } satisfies Actions;

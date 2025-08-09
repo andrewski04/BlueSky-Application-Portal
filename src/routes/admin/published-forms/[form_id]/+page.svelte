@@ -552,6 +552,7 @@
 
 							// Close modal on success
 							showDateRange = false;
+							addNotif('Date range updated successfully', 'success');
 						} else if (result.type === 'failure') {
 							addNotif(result.data?.error as string, 'error');
 						}
@@ -568,6 +569,7 @@
 						name="openDate"
 						bind:this={openDateInput}
 						disabled={noOpenDate}
+						max="9999-12-31T23:59"
 						class="form-control rounded border-1 border-blue-500 px-4 py-2 text-lg focus:ring-2 focus:ring-blue-300 focus:outline-none disabled:cursor-not-allowed disabled:bg-gray-100"
 						value={applicationForm?.openDate
 							? new Date(
@@ -600,6 +602,7 @@
 						name="closeDate"
 						bind:this={closeDateInput}
 						disabled={noCloseDate}
+						max="9999-12-31T23:59"
 						class="form-control rounded border-1 border-blue-500 px-4 py-2 text-lg focus:ring-2 focus:ring-blue-300 focus:outline-none disabled:cursor-not-allowed disabled:bg-gray-100"
 						value={applicationForm?.closeDate
 							? new Date(
@@ -667,65 +670,68 @@
 
 			<div class="space-y-6">
 				<!-- Create New Group -->
-				<div class="rounded-lg border border-gray-200 p-4">
-					<h3 class="mb-3 text-lg font-semibold">Create New Group</h3>
-					<form
-						class="flex flex-col gap-4"
-						method="POST"
-						action="?/createGroup"
-						use:enhance={({ formData }) => {
-							return async ({ result }) => {
-								if (result.type === 'success') {
-									// Add new group to local state with real ID from server
-									const groupData = (result.data as any)?.group;
-									if (groupData) {
-										const newGroupData = {
-											id: groupData.id,
-											name: groupData.name,
-											description: groupData.description,
-											formCount: 0,
-											forms: []
-										};
-										localGroups = [...localGroups, newGroupData];
-									}
+				{#if !editingGroup}
+					<div class="rounded-lg border border-gray-200 p-4">
+						<h3 class="mb-3 text-lg font-semibold">Create New Group</h3>
+						<form
+							class="flex flex-col gap-4"
+							method="POST"
+							action="?/createGroup"
+							use:enhance={({ formData }) => {
+								return async ({ result }) => {
+									if (result.type === 'success') {
+										// Add new group to local state with real ID from server
+										const groupData = (result.data as any)?.group;
+										if (groupData) {
+											const newGroupData = {
+												id: groupData.id,
+												name: groupData.name,
+												description: groupData.description,
+												formCount: 0,
+												forms: []
+											};
+											localGroups = [...localGroups, newGroupData];
+										}
 
-									// Reset form
-									newGroup.name = '';
-									newGroup.description = '';
-								} else if (result.type === 'failure') {
-									addNotif(result.data?.error as string, 'error');
-								}
-							};
-						}}
-					>
-						<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-							<div class="flex flex-col gap-2">
-								<label for="newGroupName" class="font-semibold">Name (required)</label>
-								<input
-									type="text"
-									id="newGroupName"
-									name="name"
-									bind:value={newGroup.name}
-									class="rounded border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
-									required
-								/>
+										// Reset form
+										newGroup.name = '';
+										newGroup.description = '';
+										addNotif('Group created successfully', 'success');
+									} else if (result.type === 'failure') {
+										addNotif(result.data?.error as string, 'error');
+									}
+								};
+							}}
+						>
+							<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+								<div class="flex flex-col gap-2">
+									<label for="newGroupName" class="font-semibold">Name (required)</label>
+									<input
+										type="text"
+										id="newGroupName"
+										name="name"
+										bind:value={newGroup.name}
+										class="rounded border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
+										required
+									/>
+								</div>
+								<div class="flex flex-col gap-2">
+									<label for="newGroupDescription" class="font-semibold">Description</label>
+									<input
+										type="text"
+										id="newGroupDescription"
+										name="description"
+										bind:value={newGroup.description}
+										class="rounded border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
+									/>
+								</div>
 							</div>
-							<div class="flex flex-col gap-2">
-								<label for="newGroupDescription" class="font-semibold">Description</label>
-								<input
-									type="text"
-									id="newGroupDescription"
-									name="description"
-									bind:value={newGroup.description}
-									class="rounded border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
-								/>
+							<div class="flex justify-end">
+								<button type="submit" class="btn-blue rounded-xl px-4 py-2">Create Group</button>
 							</div>
-						</div>
-						<div class="flex justify-end">
-							<button type="submit" class="btn-blue rounded-xl px-4 py-2">Create Group</button>
-						</div>
-					</form>
-				</div>
+						</form>
+					</div>
+				{/if}
 
 				<!-- Edit Existing Group -->
 				{#if editingGroup}
@@ -749,6 +755,7 @@
 
 										// Clear editing state
 										editingGroup = null;
+										addNotif('Group updated successfully', 'success');
 									} else if (result.type === 'failure') {
 										addNotif(result.data?.error as string, 'error');
 									}
@@ -842,6 +849,7 @@
 																}
 																return g;
 															});
+															addNotif('Form added to group successfully', 'success');
 														} else if (result.type === 'failure') {
 															addNotif(result.data?.error as string, 'error');
 														}
@@ -870,6 +878,7 @@
 																}
 																return g;
 															});
+															addNotif('Form removed from group successfully', 'success');
 														} else if (result.type === 'failure') {
 															addNotif(result.data?.error as string, 'error');
 														}
@@ -897,6 +906,7 @@
 														if (applicationForm?.group?.id === groupId) {
 															applicationForm.group = null;
 														}
+														addNotif('Group deleted successfully', 'success');
 													} else if (result.type === 'failure') {
 														addNotif(result.data?.error as string, 'error');
 													}
@@ -907,11 +917,10 @@
 											<button
 												type="submit"
 												class="btn-red rounded px-2 py-1 text-sm"
-												disabled={group.formCount > 0}
 												onclick={(e) => {
 													if (
 														!confirm(
-															'Are you sure you want to delete this group? This action cannot be undone.'
+															'Are you sure you want to delete this group? All forms in this group will be unassigned. This action cannot be undone.'
 														)
 													) {
 														e.preventDefault();

@@ -172,7 +172,7 @@
 					<p class="mb-4 text-center font-bold text-red-500">{error}</p>
 				{/if}
 
-				<hr class="my-4 h-px border-0 bg-[rgb(59,130,246)]/10" />
+				<hr class="mt-4 h-px border-0 bg-[rgb(59,130,246)]/10" />
 
 				<div class="w-full rounded-b-lg shadow-md">
 					<div class="space-y-4 rounded-b-lg">
@@ -187,19 +187,19 @@
 							<thead class="bg-gray-50">
 								<tr>
 									<th
-										class="cursor-pointer p-4 pt-0 text-left font-semibold tracking-wide text-nowrap text-gray-700 uppercase select-none"
+										class="cursor-pointer p-4 text-left font-semibold tracking-wide text-nowrap text-gray-700 uppercase select-none"
 										onclick={() => setSort('id')}
 									>
 										ID {sortKey === 'id' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
 									</th>
 									<th
-										class="cursor-pointer p-4 pt-0 text-left font-semibold tracking-wide text-nowrap text-gray-700 uppercase select-none"
+										class="cursor-pointer p-4 text-left font-semibold tracking-wide text-nowrap text-gray-700 uppercase select-none"
 										onclick={() => setSort('name')}
 									>
 										Name {sortKey === 'name' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
 									</th>
 									<th
-										class="cursor-pointer p-4 pt-0 text-left font-semibold tracking-wide text-nowrap text-gray-700 uppercase select-none"
+										class="cursor-pointer p-4 text-left font-semibold tracking-wide text-nowrap text-gray-700 uppercase select-none"
 										onclick={() => setSort('description')}
 									>
 										Description {sortKey === 'description'
@@ -209,25 +209,25 @@
 											: ''}
 									</th>
 									<th
-										class="cursor-pointer p-4 pt-0 text-left font-semibold tracking-wide text-nowrap text-gray-700 uppercase select-none"
+										class="cursor-pointer p-4 text-left font-semibold tracking-wide text-nowrap text-gray-700 uppercase select-none"
 										onclick={() => setSort('publishedAt')}
 									>
 										Created {sortKey === 'publishedAt' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
 									</th>
 									<th
-										class="cursor-pointer p-4 pt-0 text-left font-semibold tracking-wide text-nowrap text-gray-700 uppercase select-none"
+										class="cursor-pointer p-4 text-left font-semibold tracking-wide text-nowrap text-gray-700 uppercase select-none"
 										onclick={() => setSort('status')}
 									>
 										Status {sortKey === 'status' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
 									</th>
 									<th
-										class="cursor-pointer p-4 pt-0 text-left font-semibold tracking-wide text-nowrap text-gray-700 uppercase select-none"
+										class="cursor-pointer p-4 text-left font-semibold tracking-wide text-nowrap text-gray-700 uppercase select-none"
 										onclick={() => setSort('responses')}
 									>
 										Responses {sortKey === 'responses' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
 									</th>
 									<th
-										class="cursor-pointer p-4 pt-0 text-left font-semibold tracking-wide text-nowrap text-gray-700 uppercase select-none"
+										class="cursor-pointer p-4 text-left font-semibold tracking-wide text-nowrap text-gray-700 uppercase select-none"
 									>
 										Actions
 									</th>

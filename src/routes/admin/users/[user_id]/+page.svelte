@@ -47,13 +47,18 @@
 			<!-- User Information Card -->
 			<div class="content-card rounded-lg bg-white p-6 shadow-lg">
 				<div class="mb-4 flex items-center justify-between">
-					<h2 class="text-2xl font-semibold text-gray-800">User Information</h2>
-					<a
-						href="/admin/users"
-						class="rounded bg-gray-500 px-3 py-2 text-sm font-semibold text-white hover:bg-gray-600"
-					>
-						← Back to Users
-					</a>
+					<div>
+						<h2 class="text-2xl font-bold">User Information</h2>
+						<h2 class="text-xl font-semibold text-gray-800">
+							{user.firstName}
+							{user.lastName}
+							{#if user.id === currentUser.id}
+								<span class="text-sm text-gray-500"> (Your Account)</span>
+							{/if}
+						</h2>
+					</div>
+
+					<a href="/admin/users" class="btn-red px-4 py-2"> Back </a>
 				</div>
 
 				<div class="grid grid-cols-1 gap-6 md:grid-cols-2">
@@ -124,8 +129,8 @@
 					<div class="flex flex-wrap gap-3">
 						<button
 							onclick={handleDisableUser}
-							disabled={isDisablingUser}
-							class="rounded bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-gray-400"
+							disabled={isDisablingUser || user.id === currentUser.id}
+							class="btn-red px-4 py-2 disabled:cursor-not-allowed disabled:opacity-50"
 						>
 							{isDisablingUser ? 'Processing...' : 'Disable User'}
 						</button>
@@ -134,8 +139,8 @@
 			</div>
 
 			<!-- Form Responses Card -->
-			<div class=" content-card rounded-lg bg-white p-6 shadow-lg">
-				<h3 class="mb-4 text-xl font-semibold text-gray-800">Form Responses</h3>
+			<div class=" content-card rounded-lg bg-white shadow-lg">
+				<h3 class="mt-4 ml-6 text-xl font-semibold text-gray-800">Form Responses</h3>
 
 				{#if responses.length === 0}
 					<p class="text-center text-gray-500">No form responses found for this user.</p>
@@ -154,11 +159,7 @@
 									>
 										Form Name
 									</th>
-									<th
-										class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
-									>
-										Form Description
-									</th>
+
 									<th
 										class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
 									>
@@ -185,9 +186,7 @@
 										<td class="px-6 py-4 text-sm whitespace-nowrap text-gray-900"
 											>{response.form.name}</td
 										>
-										<td class="px-6 py-4 text-sm text-gray-900"
-											>{response.form.description ?? 'N/A'}</td
-										>
+
 										<td class="px-6 py-4 text-sm whitespace-nowrap text-gray-900"
 											>{response.createdAt.toLocaleDateString()} <br />
 											{response.createdAt.toLocaleTimeString()}</td
@@ -197,10 +196,7 @@
 											{response.updatedAt.toLocaleTimeString()}</td
 										>
 										<td class="px-6 py-4 text-sm whitespace-nowrap text-gray-900">
-											<a
-												href={`/admin/submissions/${response.id}`}
-												class="mr-2 inline-block rounded bg-green-600 px-2 py-1 text-xs font-semibold text-white hover:bg-green-700"
-											>
+											<a href={`/admin/submissions/${response.id}`} class="btn-green px-4 py-2">
 												View
 											</a>
 										</td>

@@ -254,7 +254,7 @@
 			{#if announcements && announcements.length > 0}
 				<div class="announcement-carousel">
 					<!-- Current Announcement Content -->
-					<div class="carousel-content">
+					<div class="carousel-content {announcements.length <= 1 ? 'mb-6' : ''}">
 						{#if currentAnnouncement}
 							<div class="flex items-start justify-between">
 								<div class="flex-1">
@@ -371,14 +371,16 @@
 				</h2>
 			</div>
 			<div class="w-full rounded-b-lg bg-white shadow-md">
-				<div class="space-y-4 rounded-b-lg py-6">
-					{#if applicationFormsError}
+				{#if applicationFormsError}
+					<div class="space-y-4 rounded-b-lg py-6">
 						<p class="text-center font-bold text-red-500">{applicationFormsError}</p>
-					{/if}
-					{#if !applicationForms || applicationForms.length === 0}
+					</div>
+				{/if}
+				{#if !applicationForms || applicationForms.length === 0}
+					<div class="space-y-4 rounded-b-lg py-6">
 						<p class="text-center text-gray-500">No application forms found</p>
-					{/if}
-				</div>
+					</div>
+				{/if}
 
 				{#if applicationForms && applicationForms.length > 0}
 					<table class="min-w-full divide-y divide-gray-200">

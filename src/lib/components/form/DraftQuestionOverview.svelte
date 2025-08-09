@@ -53,8 +53,8 @@
 </script>
 
 <div
-	class="group w-full rounded-lg border bg-white p-6 shadow-sm transition-all duration-200 outline-none focus:ring-2 focus:ring-blue-300 {isSelected
-		? 'border-blue-500 bg-blue-50 shadow-md ring-2 ring-blue-200'
+	class="group w-full rounded-lg border bg-white p-6 shadow-sm transition-all duration-200 outline-none {isSelected
+		? 'border-blue-500 bg-blue-50 shadow-md ring-2 ring-blue-200 '
 		: 'border-gray-200'} {onSelect ? 'hover:bg-blue-50 hover:shadow-md' : 'pointer-events-none'}"
 	tabindex="0"
 	role="button"
@@ -87,12 +87,14 @@
 
 			<div class="flex items-start justify-between gap-3">
 				<div class="min-w-0 flex-1">
-					<h3 class="flex items-center gap-2 text-lg leading-tight font-semibold text-gray-900">
-						{getQuestionData().prompt}
-						{#if question.required}
-							<span class="inline font-bold text-red-600">*</span>
-						{/if}
-					</h3>
+					<div class="flex items-center gap-2 text-lg leading-tight font-semibold text-gray-900">
+						<h3>
+							{getQuestionData().prompt}
+							{#if question.required}
+								<span class="inline font-bold text-red-600">*</span>
+							{/if}
+						</h3>
+					</div>
 				</div>
 				{#if onDelete}
 					<button

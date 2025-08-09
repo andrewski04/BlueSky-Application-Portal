@@ -11,7 +11,7 @@ export const load = (async ({ locals, params }) => {
 	const formWithAnswersResult = await getApplicationFormWithAnswers(params.submission_id);
 	if (formWithAnswersResult.isErr()) {
 		log.error('Error getting application response by ID', formWithAnswersResult.error);
-		return { error: formWithAnswersResult.error.message };
+		return { error: 'An error occurred while loading the application response.' };
 	}
 	if (!formWithAnswersResult.value) {
 		return { error: 'Application response not found' };

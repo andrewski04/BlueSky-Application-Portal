@@ -3,7 +3,7 @@ import { requireRole } from '$lib/server/auth/guard';
 import { prisma, prismaResult } from '$lib/server/prisma';
 import { Logger } from '$lib/utils/logger';
 import { FormPublishedWithSectionsWithQuestionsWithOptions } from '$lib/server/application/formDraftArgs';
-import { fail } from '@sveltejs/kit';
+import { fail, error } from '@sveltejs/kit';
 
 const log = new Logger('Admin published form details page');
 
@@ -21,7 +21,7 @@ export const load = (async ({ locals, params }) => {
 
 	if (applicationForm.isErr()) {
 		log.error('Error getting application form by ID', applicationForm.error);
-		return { error: applicationForm.error.message, user };
+		return error(500, 'An error occurred while loading the application form.');
 	}
 	if (!applicationForm.value) {
 		return { error: 'Application form not found', user };
@@ -39,7 +39,7 @@ export const load = (async ({ locals, params }) => {
 	);
 	if (groupResult.isErr()) {
 		log.error('Error getting application form groups', groupResult.error);
-		return { error: groupResult.error.message, user };
+		return error(500, 'An error occurred while loading the application form groups.');
 	}
 
 	return {
@@ -218,7 +218,10 @@ export const actions = {
 		);
 
 		if (result.isErr()) {
-			return fail(500, { success: false, error: result.error.message });
+			return fail(500, {
+				success: false,
+				error: 'An error occurred while updating the form date range.'
+			});
 		}
 
 		return {
@@ -247,7 +250,10 @@ export const actions = {
 		);
 
 		if (result.isErr()) {
-			return fail(500, { success: false, error: result.error.message });
+			return fail(500, {
+				success: false,
+				error: 'An error occurred while updating the form group.'
+			});
 		}
 
 		return { success: true };
@@ -278,7 +284,10 @@ export const actions = {
 		);
 
 		if (result.isErr()) {
-			return fail(500, { success: false, error: result.error.message });
+			return fail(500, {
+				success: false,
+				error: 'An error occurred while creating the group.'
+			});
 		}
 
 		return {
@@ -309,7 +318,10 @@ export const actions = {
 		);
 
 		if (result.isErr()) {
-			return fail(500, { success: false, error: result.error.message });
+			return fail(500, {
+				success: false,
+				error: 'An error occurred while updating the group.'
+			});
 		}
 
 		return { success: true };
@@ -343,15 +355,24 @@ export const actions = {
 			return fail(404, { success: false, error: 'Group not found' });
 		}
 
-		if (groupWithRelations.value.forms.length > 0) {
-			return fail(400, {
-				success: false,
-				error: 'Cannot delete group that has forms assigned to it'
-			});
-		}
-
 		if (groupWithRelations.value.submissions.length > 0) {
 			return fail(400, { success: false, error: 'Cannot delete group that has submissions' });
+		}
+
+		// If group has forms, clear the group reference from those forms first
+		if (groupWithRelations.value.forms.length > 0) {
+			const formIds = groupWithRelations.value.forms.map((form) => form.id);
+
+			const updateFormsResult = await prismaResult(
+				prisma.applicationFormPublished.updateMany({
+					where: { id: { in: formIds } },
+					data: { groupId: null }
+				})
+			);
+
+			if (updateFormsResult.isErr()) {
+				return fail(500, { success: false, error: 'Error clearing group from forms' });
+			}
 		}
 
 		const result = await prismaResult(

@@ -83,6 +83,7 @@ export async function getApplicationFormWithAnswers(applicationId: string) {
 			const form = await tx.applicationFormPublished.findUniqueOrThrow({
 				where: { id: application.formId },
 				include: {
+					group: true,
 					sections: {
 						orderBy: { displayOrder: 'asc' },
 						include: {

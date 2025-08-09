@@ -1,6 +1,9 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import AdminNavBar from '$lib/components/dashboard/AdminNavBar.svelte';
+	import { page } from '$app/state';
+	import { goto } from '$app/navigation';
+
 	let { data }: { data: PageData } = $props();
 	let { error, applicationResponses } = data;
 
@@ -14,8 +17,17 @@
 	let filteredResponses = $state(applicationResponses || []);
 
 	// Sorting state
-	let sortKey = $state<'id' | 'user' | 'updatedAt' | 'status'>('updatedAt');
+	let sortKey = $state<'id' | 'user' | 'updatedAt' | 'status' | 'form' | 'group'>('updatedAt');
 	let sortDirection = $state<'asc' | 'desc'>('desc');
+
+	const sortKeyMap = {
+		id: 'ID',
+		user: 'User',
+		updatedAt: 'Last Updated',
+		status: 'Status',
+		form: 'Form Name',
+		group: 'Group'
+	};
 
 	function setSort(key: typeof sortKey) {
 		if (sortKey === key) {
@@ -45,14 +57,21 @@
 		}
 		// Sorting
 		responses = [...responses].sort((a, b) => {
-			let aVal: any = a[sortKey];
-			let bVal: any = b[sortKey];
+			let aVal: any;
+			let bVal: any;
+
 			if (sortKey === 'user') {
 				aVal = `${a.user.lastName}, ${a.user.firstName}`;
 				bVal = `${b.user.lastName}, ${b.user.firstName}`;
 			} else if (sortKey === 'updatedAt') {
-				aVal = aVal ? aVal.getTime() : 0;
-				bVal = bVal ? bVal.getTime() : 0;
+				aVal = a.updatedAt ? a.updatedAt.getTime() : 0;
+				bVal = b.updatedAt ? b.updatedAt.getTime() : 0;
+			} else if (sortKey === 'group') {
+				aVal = a.form?.group?.name ?? 'No group';
+				bVal = b.form?.group?.name ?? 'No group';
+			} else {
+				aVal = a[sortKey as keyof typeof a];
+				bVal = b[sortKey as keyof typeof b];
 			}
 			if (aVal == null) return 1;
 			if (bVal == null) return -1;
@@ -127,7 +146,7 @@
 				<p class="mb-4 text-center font-bold text-red-500">{error}</p>
 			{/if}
 
-			<hr class="my-4 h-px border-0 bg-[rgb(59,130,246)]/10" />
+			<hr class="mt-4 h-px border-0 bg-[rgb(59,130,246)]/10" />
 
 			<!--	Table	-->
 			<div class="w-full rounded-b-lg shadow-md">
@@ -140,36 +159,17 @@
 					<table class="min-w-full divide-y divide-gray-200">
 						<thead class="bg-gray-50">
 							<tr>
+								{#each Object.keys(sortKeyMap) as key}
+									<th
+										class="cursor-pointer p-4 text-left font-semibold tracking-wide text-nowrap text-gray-700 uppercase select-none"
+										onclick={() => setSort(key as typeof sortKey)}
+									>
+										{sortKeyMap[key as keyof typeof sortKeyMap]}
+										{sortKey === key ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
+									</th>
+								{/each}
 								<th
-									class="cursor-pointer p-4 pt-0 text-left font-semibold tracking-wide text-nowrap text-gray-700 uppercase select-none"
-									onclick={() => setSort('id')}
-								>
-									ID {sortKey === 'id' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
-								</th>
-								<th
-									class="cursor-pointer p-4 pt-0 text-left font-semibold tracking-wide text-nowrap text-gray-700 uppercase select-none"
-									onclick={() => setSort('user')}
-								>
-									User {sortKey === 'user' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
-								</th>
-								<th
-									class="cursor-pointer p-4 pt-0 text-left font-semibold tracking-wide text-nowrap text-gray-700 uppercase select-none"
-									onclick={() => setSort('updatedAt')}
-								>
-									Last Updated {sortKey === 'updatedAt'
-										? sortDirection === 'asc'
-											? '▲'
-											: '▼'
-										: ''}
-								</th>
-								<th
-									class="cursor-pointer p-4 pt-0 text-left font-semibold tracking-wide text-nowrap text-gray-700 uppercase select-none"
-									onclick={() => setSort('status')}
-								>
-									Status {sortKey === 'status' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
-								</th>
-								<th
-									class="cursor-pointer p-4 pt-0 text-left font-semibold tracking-wide text-nowrap text-gray-700 uppercase select-none"
+									class="p-4 text-left font-semibold tracking-wide text-nowrap text-gray-700 uppercase select-none"
 								>
 									Actions
 								</th>
@@ -191,7 +191,114 @@
 											'N/A'}</td
 									>
 									<td class="px-4 py-4 text-sm text-black">
-										{response.status}
+										{#if response.status === 'DRAFT'}
+											<span class="rounded-lg bg-yellow-300 px-2 py-1 text-yellow-800">Draft</span>
+										{:else if response.status === 'SUBMITTED'}
+											<span class="rounded-lg bg-blue-300 px-2 py-1 text-blue-800">Submitted</span>
+										{:else if response.status === 'APPROVED'}
+											<span class="rounded-lg bg-green-300 px-2 py-1 text-green-800">Approved</span>
+										{:else if response.status === 'REJECTED'}
+											<span class="rounded-lg bg-red-300 px-2 py-1 text-red-800">Rejected</span>
+										{/if}
+									</td>
+									<td class="px-4 py-4 text-sm text-black">
+										<div class="space-y-2">
+											<!-- Form Name -->
+											<div class="font-medium text-gray-900">
+												{response.form.name}
+											</div>
+
+											<!-- Status Badges Row -->
+											<div class="flex flex-wrap gap-1">
+												{#if response.form.closeDate && response.form.closeDate < new Date()}
+													<span
+														class="inline-flex items-center rounded-md bg-orange-50 px-2 py-1 text-xs font-medium text-orange-700 ring-1 ring-orange-600/20 ring-inset"
+													>
+														<svg class="mr-1 h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+															<path
+																fill-rule="evenodd"
+																d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
+																clip-rule="evenodd"
+															/>
+														</svg>
+														Past Due
+													</span>
+												{:else if response.form.active}
+													<span
+														class="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-green-600/20 ring-inset"
+													>
+														<svg class="mr-1 h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+															<path
+																fill-rule="evenodd"
+																d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+																clip-rule="evenodd"
+															/>
+														</svg>
+														Active
+													</span>
+												{:else}
+													<span
+														class="inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-red-600/20 ring-inset"
+													>
+														<svg class="mr-1 h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+															<path
+																fill-rule="evenodd"
+																d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+																clip-rule="evenodd"
+															/>
+														</svg>
+														Inactive
+													</span>
+												{/if}
+												<!-- View Form Button -->
+												<a
+													href="/admin/published-forms/{response.form.id}"
+													class="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-blue-600/20 transition-colors ring-inset hover:bg-blue-100"
+												>
+													<svg
+														class="mr-1 h-3 w-3"
+														fill="none"
+														stroke="currentColor"
+														viewBox="0 0 24 24"
+													>
+														<path
+															stroke-linecap="round"
+															stroke-linejoin="round"
+															stroke-width="2"
+															d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+														/>
+														<path
+															stroke-linecap="round"
+															stroke-linejoin="round"
+															stroke-width="2"
+															d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+														/>
+													</svg>
+													View Form
+												</a>
+											</div>
+
+											<!-- Due Date -->
+											{#if response.form.closeDate}
+												<div class="text-xs text-gray-500">
+													<span class="font-medium">Due:</span>
+													{response.form.closeDate.toLocaleDateString('en-US', {
+														year: 'numeric',
+														month: 'short',
+														day: 'numeric',
+														hour: '2-digit',
+														minute: '2-digit'
+													})}
+												</div>
+											{:else}
+												<div class="text-xs text-gray-500">
+													<span class="font-medium">No due date</span>
+												</div>
+											{/if}
+										</div>
+									</td>
+									<td class="px-4 py-4 text-sm text-black">
+										{response.form.group?.name ?? 'No group'}
 									</td>
 									<td class="px-4 py-4 text-sm text-black">
 										<a

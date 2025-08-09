@@ -73,7 +73,7 @@
 							maxlength={800}
 							minlength={10}
 							rows="3"
-							class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+							class="mt-1 block w-full rounded-md border-gray-300 px-2 py-1 shadow-sm focus:outline-2 focus:outline-blue-500"
 							required
 						></textarea>
 					</div>
@@ -98,7 +98,7 @@
 				{/if}
 			</div>
 
-			<hr class="my-4 h-px border-0 bg-[rgb(59,130,246)]/10" />
+			<hr class="mt-4 h-px border-0 bg-[rgb(59,130,246)]/10" />
 
 			<!-- Table -->
 			<div class="w-full rounded-b-lg shadow-md">
@@ -112,17 +112,17 @@
 						<thead class="bg-gray-50">
 							<tr>
 								<th
-									class="w-1/4 p-4 pt-0 text-left font-semibold tracking-wide text-nowrap text-gray-700 uppercase select-none"
+									class="w-1/4 p-4 text-left font-semibold tracking-wide text-nowrap text-gray-700 uppercase select-none"
 								>
 									Title
 								</th>
 								<th
-									class="p-4 pt-0 text-left font-semibold tracking-wide text-nowrap text-gray-700 uppercase select-none"
+									class="p-4 text-left font-semibold tracking-wide text-nowrap text-gray-700 uppercase select-none"
 								>
 									Content
 								</th>
 								<th
-									class="w-auto p-4 pt-0 text-left font-semibold tracking-wide text-nowrap text-gray-700 uppercase select-none"
+									class="w-auto p-4 text-left font-semibold tracking-wide text-nowrap text-gray-700 uppercase select-none"
 								>
 									Actions
 								</th>
