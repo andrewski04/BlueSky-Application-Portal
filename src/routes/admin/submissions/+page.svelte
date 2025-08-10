@@ -23,7 +23,7 @@
 	const sortKeyMap = {
 		id: 'ID',
 		user: 'User',
-		updatedAt: 'Last Updated',
+		updatedAt: 'Last Opened',
 		status: 'Status',
 		form: 'Form Name',
 		group: 'Group'
@@ -184,11 +184,13 @@
 										>{response.user.lastName}, {response.user.firstName}</td
 									>
 									<td class="px-6 py-4 text-sm text-gray-900"
-										>{response.updatedAt.toLocaleString('en-US', {
-											timeZoneName: 'shortGeneric'
-										}) ??
-											response.createdAt ??
-											'N/A'}</td
+										>{response.updatedAt?.toLocaleDateString('en-US', {
+											year: 'numeric',
+											month: 'short',
+											day: 'numeric',
+											hour: '2-digit',
+											minute: '2-digit'
+										}) ?? 'N/A'}</td
 									>
 									<td class="px-4 py-4 text-sm text-black">
 										{#if response.status === 'DRAFT'}

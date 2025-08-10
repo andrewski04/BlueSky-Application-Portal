@@ -4,7 +4,7 @@ import { Logger } from '$lib/utils/logger';
 import { prisma, prismaResult } from '$lib/server/prisma';
 import { slugify } from '$lib/utils/slugify';
 import type { QuestionType } from '@prisma/client';
-import { fail } from '@sveltejs/kit';
+import { fail, error } from '@sveltejs/kit';
 
 import { FormDraftWithSectionsWithQuestionsWithOptions } from '$lib/server/application/formDraftArgs';
 import type { Actions } from '@sveltejs/kit';
@@ -24,10 +24,10 @@ export const load = (async ({ locals, params }) => {
 	);
 	if (applicationForm.isErr()) {
 		log.error('Error getting application form by ID', applicationForm.error);
-		return { error: applicationForm.error.message, user };
+		return error(500, 'Error getting application form draft by ID');
 	}
 	if (!applicationForm.value) {
-		return { error: 'Application form not found', user };
+		return error(404, 'Application form not found');
 	}
 
 	return {

@@ -19,9 +19,9 @@
 	let filteredForms = $state(publishedForms);
 
 	// Sorting state
-	let sortKey = $state<'id' | 'name' | 'description' | 'publishedAt' | 'status' | 'responses'>(
-		'publishedAt'
-	);
+	let sortKey = $state<
+		'id' | 'name' | 'publishedAt' | 'status' | 'responses' | 'openDate' | 'closeDate'
+	>('publishedAt');
 	let sortDirection = $state<'asc' | 'desc'>('desc');
 
 	function setSort(key: typeof sortKey) {
@@ -79,9 +79,9 @@
 				};
 				aVal = getStatusValue(a);
 				bVal = getStatusValue(b);
-			} else if (sortKey === 'publishedAt') {
-				aVal = a[sortKey] ? a[sortKey].getTime() : 0;
-				bVal = b[sortKey] ? b[sortKey].getTime() : 0;
+			} else if (sortKey === 'publishedAt' || sortKey === 'openDate' || sortKey === 'closeDate') {
+				aVal = a[sortKey] ? (a[sortKey]?.getTime() ?? 0) : 0;
+				bVal = b[sortKey] ? (b[sortKey]?.getTime() ?? 0) : 0;
 			} else {
 				aVal = a[sortKey];
 				bVal = b[sortKey];
@@ -198,28 +198,37 @@
 									>
 										Name {sortKey === 'name' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
 									</th>
-									<th
-										class="cursor-pointer p-4 text-left font-semibold tracking-wide text-nowrap text-gray-700 uppercase select-none"
-										onclick={() => setSort('description')}
-									>
-										Description {sortKey === 'description'
-											? sortDirection === 'asc'
-												? '▲'
-												: '▼'
-											: ''}
-									</th>
+
 									<th
 										class="cursor-pointer p-4 text-left font-semibold tracking-wide text-nowrap text-gray-700 uppercase select-none"
 										onclick={() => setSort('publishedAt')}
 									>
 										Created {sortKey === 'publishedAt' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
 									</th>
+
 									<th
 										class="cursor-pointer p-4 text-left font-semibold tracking-wide text-nowrap text-gray-700 uppercase select-none"
 										onclick={() => setSort('status')}
 									>
 										Status {sortKey === 'status' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
 									</th>
+									<th
+										class="cursor-pointer p-4 text-left font-semibold tracking-wide text-nowrap text-gray-700 uppercase select-none"
+										onclick={() => setSort('openDate')}
+									>
+										Open Date {sortKey === 'openDate' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
+									</th>
+									<th
+										class="cursor-pointer p-4 text-left font-semibold tracking-wide text-nowrap text-gray-700 uppercase select-none"
+										onclick={() => setSort('closeDate')}
+									>
+										Close Date {sortKey === 'closeDate'
+											? sortDirection === 'asc'
+												? '▲'
+												: '▼'
+											: ''}
+									</th>
+
 									<th
 										class="cursor-pointer p-4 text-left font-semibold tracking-wide text-nowrap text-gray-700 uppercase select-none"
 										onclick={() => setSort('responses')}
@@ -238,7 +247,6 @@
 									<tr class="hover:bg-gray-100">
 										<td class="px-4 py-4 text-sm text-black">{form.id.slice(0, 6)}...</td>
 										<td class="px-4 py-4 text-sm text-black">{form.name}</td>
-										<td class="px-6 py-4 text-sm text-gray-900">{form.description ?? 'N/A'}</td>
 										<td class="px-4 py-4 text-sm text-black"
 											>{form.publishedAt.toLocaleDateString()} <br />
 											{form.publishedAt.toLocaleTimeString()}</td
@@ -252,6 +260,23 @@
 												<span class="rounded-lg bg-green-300 px-2 py-1 text-green-800">Active</span>
 											{:else}
 												<span class="rounded-lg bg-red-300 px-2 py-1 text-red-800">Inactive</span>
+											{/if}
+										</td>
+										<td class="px-4 py-4 text-sm text-black">
+											{#if form.openDate}
+												{form.openDate.toLocaleDateString()} <br />
+												{form.openDate.toLocaleTimeString()}
+											{:else}
+												N/A
+											{/if}
+											<br />
+										</td>
+										<td class="px-4 py-4 text-sm text-black">
+											{#if form.closeDate}
+												{form.closeDate.toLocaleDateString()} <br />
+												{form.closeDate.toLocaleTimeString()}
+											{:else}
+												N/A
 											{/if}
 										</td>
 										<td class="px-4 py-4 text-sm text-black">

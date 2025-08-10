@@ -13,6 +13,7 @@
 	import { addNotif } from '$lib/utils/notify';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
+	import Sortable from 'sortablejs';
 
 	type FormSectionWithQuestions = Prisma.FormSectionDraftGetPayload<{
 		include: {
@@ -29,7 +30,7 @@
 
 	let { data }: PageProps = $props();
 	let draftForm = $state(data.draftForm);
-	let error = $state(data.error);
+	let error = $state('');
 
 	// Mutable local copy of the current section
 	let currentSectionCopy = $state<FormSectionWithQuestions | null>(null);
@@ -54,15 +55,14 @@
 	let selectedQuestion = $state<FormSectionWithQuestions['questions'][0] | null>(null);
 	let isEditingQuestion = $state(false);
 
-	// Drag and drop state
-	let draggedSection = $state<FormSectionWithQuestions | null>(null);
-	let draggedQuestion = $state<FormSectionWithQuestions['questions'][0] | null>(null);
-	let dragOverSection = $state<string | null>(null);
-	let dragOverQuestion = $state<string | null>(null);
-
 	// Add a reactive variable for the new section name input
 	let newSectionName = $state('');
 	let sectionNameError = $state('');
+
+	// Drag and drop list divs
+	let sectionList = $state<HTMLElement | null>(null);
+	let questionList = $state<HTMLElement | null>(null);
+	let questionSortable = $state<Sortable | null>(null);
 
 	// Helper to check if a section name already exists
 	function sectionNameExists(name: string): boolean {
@@ -94,6 +94,31 @@
 
 	// Initialize with first section
 	onMount(() => {
+		if (sectionList) {
+			Sortable.create(sectionList, {
+				animation: 200,
+				handle: '.cursor-move',
+				delay: 150,
+				delayOnTouchOnly: true,
+				touchStartThreshold: 3,
+				forceFallback: true,
+				fallbackOnBody: true,
+				onStart: (evt) => {
+					// Add visual feedback that dragging has started
+					document.body.classList.add('dragging');
+				},
+				onEnd: (evt) => {
+					// Remove visual feedback
+					document.body.classList.remove('dragging');
+
+					handleSectionReorder(evt);
+				},
+				dataIdAttr: 'data-id',
+				ghostClass: 'sortable-ghost',
+				chosenClass: 'sortable-chosen'
+			});
+		}
+
 		if (draftForm?.sections[0]) {
 			const sectionId = page.url.searchParams.get('sectionId');
 			let paramSection = draftForm.sections.find((s) => s.id === sectionId);
@@ -119,6 +144,40 @@
 		questionsCount = currentSectionCopy!.questions.length;
 		isSectionSaved = true;
 		updateSearchParams('sectionId', currentSectionCopy!.id);
+		initSortableQuestions();
+	}
+
+	function initSortableQuestions() {
+		if (questionList && currentSectionCopy) {
+			// Destroy any existing Sortable instance
+			if (questionSortable) {
+				questionSortable.destroy();
+			}
+
+			// Create new Sortable instance for questions
+			questionSortable = Sortable.create(questionList, {
+				animation: 200,
+				handle: '.question-drag-handle',
+				delay: 150,
+				delayOnTouchOnly: true,
+				touchStartThreshold: 3,
+				forceFallback: true,
+				fallbackOnBody: true,
+				onStart: (evt) => {
+					// Add visual feedback that dragging has started
+					document.body.classList.add('dragging');
+				},
+				onEnd: (evt) => {
+					// Remove visual feedback
+					document.body.classList.remove('dragging');
+
+					handleQuestionReorder(evt);
+				},
+				dataIdAttr: 'data-id',
+				ghostClass: 'sortable-ghost',
+				chosenClass: 'sortable-chosen'
+			});
+		}
 	}
 
 	function updateSearchParams(key: string, value: string) {
@@ -133,8 +192,16 @@
 		const sectionIndex = draftForm.sections.findIndex((s) => s.id === currentSectionCopy!.id);
 		if (sectionIndex === -1) return;
 
-		const currentStr = JSON.stringify(currentSectionCopy);
-		const originalStr = JSON.stringify(draftForm.sections[sectionIndex]);
+		const currentStr = JSON.stringify({
+			...currentSectionCopy,
+			questions: undefined,
+			displayOrder: undefined
+		});
+		const originalStr = JSON.stringify({
+			...draftForm.sections[sectionIndex],
+			questions: undefined,
+			displayOrder: undefined
+		});
 		isSectionSaved = currentStr === originalStr;
 	}
 
@@ -322,7 +389,6 @@
 			const result = deserialize(await response.text());
 
 			if (result.type === 'success' && result.data) {
-				console.log(result.data.question);
 				// Update the question in the current section
 				if (currentSectionCopy && result.data.question && selectedQuestion) {
 					const questionIndex = currentSectionCopy.questions.findIndex(
@@ -497,162 +563,85 @@
 		}
 	}
 
-	// Drag and drop functions
-	function handleSectionDragStart(e: DragEvent, section: FormSectionWithQuestions) {
-		if (e.dataTransfer) {
-			e.dataTransfer.effectAllowed = 'move';
-			e.dataTransfer.setData('text/plain', section.id);
-			draggedSection = section;
-		}
-	}
-
-	function handleSectionDragOver(e: DragEvent, sectionId: string) {
-		e.preventDefault();
-		e.dataTransfer!.dropEffect = 'move';
-		dragOverSection = sectionId;
-	}
-
-	function handleSectionDragLeave(e: DragEvent) {
-		e.preventDefault();
-		dragOverSection = null;
-	}
-
-	async function handleSectionDrop(e: DragEvent, targetSectionId: string) {
-		e.preventDefault();
-		dragOverSection = null;
-
-		if (!draggedSection || draggedSection.id === targetSectionId) {
-			draggedSection = null;
+	// Sortable event handler for section reordering
+	// This function is called when a section is dropped in a new position
+	// The evt object contains oldIndex and newIndex properties from Sortable
+	async function handleSectionReorder(evt: Sortable.SortableEvent) {
+		const { oldIndex, newIndex } = evt;
+		if (oldIndex === undefined || newIndex === undefined || oldIndex === newIndex || !draftForm)
 			return;
-		}
 
-		// Reorder sections
-		if (!draftForm) {
-			draggedSection = null;
-			return;
-		}
-		const sections = [...draftForm.sections];
-		const draggedIndex = sections.findIndex((s) => s.id === draggedSection!.id);
-		const targetIndex = sections.findIndex((s) => s.id === targetSectionId);
+		const toEl = evt.to as HTMLElement; // Sortable gives you the container
+		const orderIds = Array.from(toEl.querySelectorAll<HTMLElement>('[data-id]'))
+			.map((el) => el.dataset.id!)
+			.filter(Boolean);
+		if (!orderIds.length) return;
+		// Build a rank map
+		const rank = new Map(orderIds.map((id, i) => [id, i]));
 
-		if (draggedIndex === -1 || targetIndex === -1) {
-			draggedSection = null;
-			return;
-		}
+		// Produce a new, immutably updated sections array from IDs
+		const reordered = [...draftForm.sections]
+			.sort((a, b) => rank.get(a.id)! - rank.get(b.id)!)
+			.map((s, i) => ({ ...s, displayOrder: i }));
 
-		// Remove dragged section and insert at target position
-		const [draggedItem] = sections.splice(draggedIndex, 1);
-		sections.splice(targetIndex, 0, draggedItem);
-
-		// Update display orders
-		sections.forEach((section, index) => {
-			section.displayOrder = index;
+		draftForm.sections.forEach((section) => {
+			section.displayOrder = reordered.findIndex((s) => s.id === section.id);
 		});
 
-		// Update local state
-		draftForm.sections = sections;
-
-		// Update currentSectionCopy to reference the reordered section
-		if (currentSectionCopy) {
-			const updatedSection = sections.find((s) => s.id === currentSectionCopy!.id);
-			if (updatedSection) {
-				currentSectionCopy = JSON.parse(JSON.stringify(updatedSection));
-			}
-		}
-
-		// Save to server
+		// Persist
 		const formData = new FormData();
 		formData.append(
 			'sections',
-			JSON.stringify(sections.map((s) => ({ id: s.id, displayOrder: s.displayOrder })))
+			JSON.stringify(reordered.map((s) => ({ id: s.id, displayOrder: s.displayOrder })))
 		);
 
-		const response = await fetch('?/reorderSections', {
-			method: 'POST',
-			body: formData
-		});
-
+		const response = await fetch('?/reorderSections', { method: 'POST', body: formData });
 		const result = deserialize(await response.text());
-
 		if (result.type === 'success') {
 			addNotif('Sections reordered successfully', 'success');
-			draggedSection = null;
 		} else {
-			error = 'Error reordering sections';
-			addNotif(error, 'error');
-			draggedSection = null;
-		}
-
-		draggedSection = null;
-	}
-
-	function handleQuestionDragStart(
-		e: DragEvent,
-		question: FormSectionWithQuestions['questions'][0]
-	) {
-		if (e.dataTransfer) {
-			e.dataTransfer.effectAllowed = 'move';
-			e.dataTransfer.setData('text/plain', question.questionDraftId);
-			draggedQuestion = question;
-			selectQuestion(question);
+			addNotif('Error reordering sections', 'error');
 		}
 	}
 
-	function handleQuestionDragOver(e: DragEvent, questionId: string) {
-		e.preventDefault();
-		e.dataTransfer!.dropEffect = 'move';
-		dragOverQuestion = questionId;
-	}
-
-	function handleQuestionDragLeave(e: DragEvent) {
-		e.preventDefault();
-		dragOverQuestion = null;
-	}
-
-	async function handleQuestionDrop(e: DragEvent, targetQuestionId: string) {
-		e.preventDefault();
-		dragOverQuestion = null;
-
+	async function handleQuestionReorder(evt: Sortable.SortableEvent) {
+		const { oldIndex, newIndex } = evt;
 		if (
-			!draggedQuestion ||
+			oldIndex === undefined ||
+			newIndex === undefined ||
+			oldIndex === newIndex ||
 			!currentSectionCopy ||
-			draggedQuestion.questionDraftId === targetQuestionId
-		) {
-			draggedQuestion = null;
+			!draftForm
+		)
 			return;
-		}
 
-		// Reorder questions within the current section
-		const questions = [...currentSectionCopy.questions];
-		const draggedIndex = questions.findIndex(
-			(q) => q.questionDraftId === draggedQuestion!.questionDraftId
-		);
-		const targetIndex = questions.findIndex((q) => q.questionDraftId === targetQuestionId);
+		// Get the questions in their new order from SortableJS
+		const toEl = evt.to as HTMLElement;
+		const orderIds = Array.from(toEl.querySelectorAll<HTMLElement>('[data-id]'))
+			.map((el) => el.dataset.id!)
+			.filter(Boolean);
 
-		if (draggedIndex === -1 || targetIndex === -1) {
-			draggedQuestion = null;
-			return;
-		}
+		if (!orderIds.length) return;
 
-		// Remove dragged question and insert at target position
-		const [draggedItem] = questions.splice(draggedIndex, 1);
-		questions.splice(targetIndex, 0, draggedItem);
+		// Build a rank map
+		const rank = new Map(orderIds.map((id, i) => [id, i]));
+
+		// Produce a new, immutably updated questions array from IDs
+		const reordered = [...currentSectionCopy.questions]
+			.sort((a, b) => rank.get(a.questionDraftId)! - rank.get(b.questionDraftId)!)
+			.map((q, i) => ({ ...q, displayOrder: i }));
 
 		// Update display orders
-		questions.forEach((question, index) => {
+		reordered.forEach((question, index) => {
 			question.displayOrder = index;
 		});
 
-		// Update local state
-		currentSectionCopy.questions = questions;
-		questionsCount = questions.length;
+		questionsCount = reordered.length;
 
 		// Also update the original section in the form
-		if (draftForm) {
-			const sectionIndex = draftForm.sections.findIndex((s) => s.id === currentSectionCopy!.id);
-			if (sectionIndex !== -1) {
-				draftForm.sections[sectionIndex].questions = questions;
-			}
+		const sectionIndex = draftForm.sections.findIndex((s) => s.id === currentSectionCopy!.id);
+		if (sectionIndex !== -1) {
+			draftForm.sections[sectionIndex].questions = reordered;
 		}
 
 		// Save to server
@@ -660,7 +649,7 @@
 		formData.append(
 			'questions',
 			JSON.stringify(
-				questions.map((q) => ({ id: q.questionDraftId, displayOrder: q.displayOrder }))
+				reordered.map((q) => ({ id: q.questionDraftId, displayOrder: q.displayOrder }))
 			)
 		);
 
@@ -673,14 +662,10 @@
 
 		if (result.type === 'success') {
 			addNotif('Questions reordered successfully', 'success');
-			draggedQuestion = null;
 		} else {
 			error = 'Error reordering questions';
 			addNotif(error, 'error');
-			draggedQuestion = null;
 		}
-
-		draggedQuestion = null;
 	}
 </script>
 
@@ -735,6 +720,52 @@
 			border: 2px dashed rgba(59, 130, 246, 0.5);
 			border-radius: 8px;
 		}
+
+		/* Sortable visual feedback */
+		.sortable-ghost {
+			opacity: 0.5;
+			background: rgba(59, 130, 246, 0.1);
+		}
+
+		.sortable-chosen {
+			background: rgba(59, 130, 246, 0.05);
+			box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+		}
+
+		.dragging .draggable-item {
+			cursor: grabbing;
+		}
+
+		.cursor-move {
+			user-select: none;
+			transition: color 0.2s ease;
+		}
+
+		.cursor-move:hover {
+			color: rgba(59, 130, 246, 0.8);
+		}
+
+		.dragging .cursor-move {
+			color: rgba(59, 130, 246, 1);
+		}
+
+		/* Question drag handle styling */
+		.question-drag-handle {
+			cursor: move;
+			transition: all 0.2s ease;
+			padding: 2px;
+			border-radius: 4px;
+			user-select: none;
+		}
+
+		.question-drag-handle:hover {
+			background-color: rgba(59, 130, 246, 0.1);
+			color: rgba(59, 130, 246, 0.8);
+		}
+
+		.dragging .question-drag-handle {
+			color: rgba(59, 130, 246, 1);
+		}
 	</style>
 </svelte:head>
 
@@ -744,8 +775,8 @@
 
 		<div class="flex min-h-0 flex-1 overflow-hidden">
 			<!-- Left Sidebar (section navigation)-->
-			<div class="w-1/6 overflow-y-auto border-r border-gray-200 bg-gray-100 p-4">
-				<div class="flex flex-col items-center justify-center gap-4">
+			<div class="w-1/6 overflow-y-auto border-r border-gray-200 bg-gray-100">
+				<div class="flex flex-col items-center justify-center gap-4 p-4">
 					<form
 						method="POST"
 						action="?/createSection"
@@ -781,6 +812,7 @@
 									];
 									setCurrentSection(draftForm.sections[draftForm.sections.length - 1]);
 									update();
+									addNotif('Section created successfully', 'success');
 									nProgress.done();
 								} else if (result.type === 'failure') {
 									sectionNameError = (result.data?.error as string) || 'Error creating section';
@@ -810,28 +842,40 @@
 					</form>
 				</div>
 
-				<hr class="my-4 border-gray-400" />
+				<hr class="mx-4 mb-4 border-gray-400" />
 
 				<h2 class="mb-2 text-center text-lg font-bold">Sections</h2>
-				<p class="mb-3 text-center text-xs text-gray-500">Drag to reorder sections</p>
-				<div class="space-y-2">
-					{#each draftForm.sections as section}
+				<div class="space-y-2" bind:this={sectionList}>
+					{#each draftForm.sections as section (section.id)}
 						<div
-							class="draggable-item flex flex-row justify-between {dragOverSection === section.id
-								? 'drag-over'
-								: ''}"
-							draggable="true"
+							class="draggable-item flex max-w-full flex-row justify-between"
 							role="listitem"
-							ondragstart={(e) => handleSectionDragStart(e, section)}
-							ondragover={(e) => handleSectionDragOver(e, section.id)}
-							ondragleave={handleSectionDragLeave}
-							ondrop={(e) => handleSectionDrop(e, section.id)}
+							data-id={section.id}
 						>
+							<div
+								class="flex cursor-move items-center gap-2 rounded-md px-2 text-gray-400 hover:bg-gray-200"
+							>
+								<svg
+									width="20px"
+									height="20px"
+									viewBox="0 0 24 24"
+									fill="none"
+									xmlns="http://www.w3.org/2000/svg"
+								>
+									<path
+										d="M5 10H19M14 19L12 21L10 19M14 5L12 3L10 5M5 14H19"
+										stroke="#000000"
+										stroke-width="2"
+										stroke-linecap="round"
+										stroke-linejoin="round"
+									/>
+								</svg>
+							</div>
 							<button
 								onclick={() => setCurrentSection(section)}
 								class="w-full truncate {currentSectionCopy?.id === section.id
 									? 'bg-blue-100'
-									: ''} cursor-move px-3 py-2 text-left hover:bg-blue-100"
+									: ''} px-3 py-2 text-left hover:bg-blue-100"
 							>
 								<div class="flex items-center gap-2">
 									{section.name}
@@ -865,7 +909,7 @@
 								<input type="hidden" name="sectionId" value={section.id} />
 								<button
 									aria-label="Delete section"
-									class="h-full rounded px-3 py-2 text-left hover:bg-red-400"
+									class="h-full rounded px-2 text-left hover:bg-red-400"
 								>
 									<img alt="Delete section" src="/icons/delete.svg" width="30" height="30" />
 								</button>
@@ -960,37 +1004,26 @@
 								</textarea>
 							</div>
 						</div>
-						<div class="my-4">
-							<p class="mb-3 text-center text-sm text-gray-500">Drag questions to reorder them.</p>
-							<div class="space-y-4">
-								{#each currentSectionCopy.questions as question}
-									{#if question}
-										<div class="px-4">
-											<div
-												class="draggable-item {dragOverQuestion === question.questionDraftId
-													? 'drag-over'
-													: ''}"
-												draggable="true"
-												role="listitem"
-												ondragstart={(e) => handleQuestionDragStart(e, question)}
-												ondragover={(e) => handleQuestionDragOver(e, question.questionDraftId)}
-												ondragleave={handleQuestionDragLeave}
-												ondrop={(e) => handleQuestionDrop(e, question.questionDraftId)}
-											>
-												<DraftQuestionOverview
-													{question}
-													isSelected={selectedQuestion?.questionDraftId ===
-														question.questionDraftId}
-													onSelect={selectQuestion}
-													onDelete={deleteQuestion}
-												/>
-											</div>
-										</div>
-									{/if}
-								{/each}
-							</div>
-						</div>
 					{/if}
+					<div class="my-4">
+						<div class="space-y-4" bind:this={questionList}>
+							{#if currentSectionCopy}
+								{#each currentSectionCopy.questions as question (question.questionDraftId)}
+									<div class="draggable-item px-4" data-id={question.questionDraftId}>
+										<DraftQuestionOverview
+											{question}
+											isSelected={selectedQuestion?.questionDraftId === question.questionDraftId}
+											onSelect={selectQuestion}
+											onDelete={deleteQuestion}
+										/>
+									</div>
+								{/each}
+								{#if currentSectionCopy.questions.length === 0}
+									<p class="text-center text-gray-500">No questions added yet</p>
+								{/if}
+							{/if}
+						</div>
+					</div>
 				</div>
 			</div>
 
@@ -1038,7 +1071,7 @@
 								<div class="mt-4">
 									<span class="mb-2 block text-sm font-medium text-gray-700">Options</span>
 									{#each questionOptions as option, index}
-										<div class="mb-2 flex gap-2">
+										<div class="mb-2 flex max-w-full gap-2">
 											<input
 												type="text"
 												value={option}
