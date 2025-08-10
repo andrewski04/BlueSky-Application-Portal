@@ -1,9 +1,8 @@
 import type { PageServerLoad, Actions } from './$types';
 import { requireRole } from '$lib/server/auth/guard';
-
 import { prisma, prismaResult } from '$lib/server/prisma';
 import { createExampleForm } from '$lib/server/application/exampleForm';
-import { redirect } from '@sveltejs/kit';
+import { redirect, fail, error } from '@sveltejs/kit';
 import { Logger } from '$lib/utils/logger';
 const log = new Logger('admin.forms.page.server');
 
@@ -26,7 +25,7 @@ export const load = (async ({ locals }) => {
 	);
 	if (applicationFormsResult.isErr()) {
 		log.error('Error loading application forms', applicationFormsResult.error);
-		return { applicationForms: [], error: 'Unable to fetch application forms', user };
+		return error(500, 'Unable to fetch application forms');
 	}
 	return {
 		user,
@@ -42,33 +41,36 @@ export const actions = {
 		const formName = formData.get('formName')?.toString();
 		const formDesc = formData.get('formDescription')?.toString();
 		if (!formName) {
-			return { success: false, error: 'Form name is required' };
+			return fail(400, { success: false, error: 'Form name is required' });
 		}
 
-		const newFormId = await prismaResult(
+		const newFormResult = await prismaResult(
 			prisma.applicationFormDraft.create({
 				data: {
 					name: formName,
 					description: formDesc
-				},
-				select: { id: true }
+				}
 			})
 		);
 
-		if (newFormId.isErr()) {
-			log.error('Error creating form', newFormId.error);
-			return { success: false, error: newFormId.error.message };
+		if (newFormResult.isErr()) {
+			log.error('Error creating form', newFormResult.error);
+			return fail(500, { success: false, error: 'Error creating form' });
 		}
 
-		log.info(`New form draft created with ID: ${newFormId.value.id}`);
-		return redirect(302, `/admin/form-drafts/${newFormId.value.id}`);
+		return { success: true, message: 'Form created successfully.', form: newFormResult.value };
 	},
 	createExampleForm: async ({ locals }) => {
 		requireRole(locals, 'ADMIN');
 
-		await createExampleForm();
-	}
-	/**delete: async ({ request, locals }) => {
+		const result = await createExampleForm();
+		if (result.isErr()) {
+			log.error('Error creating example form', result.error);
+			return fail(500, { success: false, error: 'Error creating example form' });
+		}
+		return { success: true, message: 'Example form created successfully.', form: result.value };
+	},
+	deleteDraft: async ({ locals, request }) => {
 		requireRole(locals, 'ADMIN');
 
 		const formData = await request.formData();
@@ -78,12 +80,43 @@ export const actions = {
 			return { success: false, error: 'Form ID is required' };
 		}
 
-		const result = await deleteApplicationFormById(formId);
+		const result = await prismaResult(
+			prisma.applicationFormDraft.delete({
+				where: {
+					id: formId
+				}
+			})
+		);
 
 		if (result.isErr()) {
-			return { success: false, error: result.error.message };
+			log.error('Error deleting form draft', result.error);
+			return fail(500, {
+				success: false,
+				error: 'An error occurred while deleting the form draft.'
+			});
 		}
 
-		return { success: true };
-	}*/
+		return { success: true, message: 'Form draft deleted successfully.' };
+	},
+	publishDraft: async ({ locals, request }) => {
+		requireRole(locals, 'ADMIN');
+
+		const formData = await request.formData();
+		const formId = formData.get('formId')?.toString();
+
+		if (!formId) {
+			return fail(400, { success: false, error: 'Form ID is required' });
+		}
+
+		// Import the publish function
+		const { publishFormFromDraft } = await import('$lib/server/application/formService');
+		const publishRes = await publishFormFromDraft(formId, { active: false });
+
+		if (publishRes.isErr()) {
+			log.error('Error publishing form draft', publishRes.error);
+			return fail(500, { success: false, error: 'Error publishing form draft' });
+		}
+
+		return redirect(302, `/admin/published-forms/${publishRes.value.publishedId}`);
+	}
 } satisfies Actions;

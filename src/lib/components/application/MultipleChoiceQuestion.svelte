@@ -24,7 +24,7 @@
 	});
 </script>
 
-<div class="mb-4">
+<div>
 	<fieldset>
 		<legend class="mb-2 block text-sm font-medium text-gray-700">
 			{question.prompt}

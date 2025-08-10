@@ -1,6 +1,11 @@
 <script lang="ts">
 	import type { PageProps } from './$types';
 	import AdminNavBar from '$lib/components/dashboard/AdminNavBar.svelte';
+	import ActionDropdown from '$lib/components/util/ActionDropdown.svelte';
+	import { enhance } from '$app/forms';
+	import nProgress from 'nprogress';
+	import { addNotif } from '$lib/utils/notify';
+	import { goto } from '$app/navigation';
 
 	let { data, form }: PageProps = $props();
 
@@ -8,11 +13,14 @@
 	let formName = $state('');
 	let formDescription = $state('');
 
+	// Quick actions state
+	let showDeleteConfirm = $state<string | null>(null);
+	let showPublishConfirm = $state<string | null>(null);
+
 	// Add search state
 	let search = $state('');
 
-	// Filtered forms state
-	let filteredForms = $state(data.applicationForms);
+	let applicationForms = $state(data.applicationForms);
 
 	// Sorting state
 	let sortKey = $state<'id' | 'name' | 'description' | 'createdAt' | 'updatedAt'>('updatedAt');
@@ -39,9 +47,18 @@
 		formDescription = '';
 	}
 
-	let { user, applicationForms, error } = data;
+	// Quick action handlers
+	function handleQuickAction(action: string, formId: string) {
+		if (action === 'edit') {
+			window.location.href = `/admin/form-drafts/${formId}/edit`;
+		} else if (action === 'delete') {
+			showDeleteConfirm = formId;
+		} else if (action === 'publish') {
+			showPublishConfirm = formId;
+		}
+	}
 
-	$effect(() => {
+	let filteredForms = $derived.by(() => {
 		let forms = applicationForms;
 		if (search) {
 			const q = search.toLowerCase();
@@ -67,7 +84,7 @@
 			if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
 			return 0;
 		});
-		filteredForms = forms;
+		return forms;
 	});
 </script>
 
@@ -115,7 +132,22 @@
 							Create Custom Form
 						</button>
 
-						<form method="POST" action="?/createExampleForm">
+						<form
+							method="POST"
+							action="?/createExampleForm"
+							use:enhance={({ formData }) => {
+								nProgress.start();
+								return async ({ result }) => {
+									nProgress.done();
+									if (result.type === 'success') {
+										addNotif(result.data?.message as string, 'success');
+										applicationForms = [...applicationForms, result.data?.form as any];
+									} else if (result.type === 'failure') {
+										addNotif(result.data?.error as string, 'error');
+									}
+								};
+							}}
+						>
 							<button type="submit" class="btn-blue px-4 py-2"> Create Example Form </button>
 						</form>
 					</div>
@@ -129,9 +161,6 @@
 					/>
 				</div>
 
-				{#if error}
-					<p class="mb-4 text-center font-bold text-red-500">{error}</p>
-				{/if}
 				{#if form && form.error}
 					<p class="mb-4 text-center font-bold text-red-500">{form.error}</p>
 				{/if}
@@ -207,31 +236,58 @@
 										{form.updatedAt.toLocaleTimeString()}</td
 									>
 									<td class="px-4 py-2 text-sm whitespace-nowrap">
-										<a
-											href={`/admin/form-drafts/${form.id}`}
-											class="btn-green flex items-center justify-center px-4 py-2"
-										>
-											<svg
-												class="mr-1 inline h-4 w-4"
-												fill="none"
-												stroke="currentColor"
-												viewBox="0 0 24 24"
+										<div class="flex items-center gap-2">
+											<a
+												href={`/admin/form-drafts/${form.id}`}
+												class="btn-green flex items-center justify-center px-4 py-2"
 											>
-												<path
-													stroke-linecap="round"
-													stroke-linejoin="round"
-													stroke-width="2"
-													d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-												></path>
-												<path
-													stroke-linecap="round"
-													stroke-linejoin="round"
-													stroke-width="2"
-													d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-												></path>
-											</svg>
-											Manage
-										</a>
+												<svg
+													class="mr-1 inline h-4 w-4"
+													fill="none"
+													stroke="currentColor"
+													viewBox="0 0 24 24"
+												>
+													<path
+														stroke-linecap="round"
+														stroke-linejoin="round"
+														stroke-width="2"
+														d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+													></path>
+													<path
+														stroke-linecap="round"
+														stroke-linejoin="round"
+														stroke-width="2"
+														d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+													></path>
+												</svg>
+												Manage
+											</a>
+											<div data-form-id={form.id}>
+												<ActionDropdown
+													actions={[
+														{
+															label: 'Edit',
+															action: 'edit',
+															icon: '/icons/edit.svg',
+															variant: 'default'
+														},
+														{
+															label: 'Publish',
+															action: 'publish',
+															icon: '/icons/info.svg',
+															variant: 'success'
+														},
+														{
+															label: 'Delete',
+															action: 'delete',
+															icon: '/icons/delete.svg',
+															variant: 'danger'
+														}
+													]}
+													onAction={(action) => handleQuickAction(action, form.id)}
+												/>
+											</div>
+										</div>
 									</td>
 								</tr>
 							{/each}
@@ -243,13 +299,106 @@
 	</div>
 </div>
 
+<!-- Delete Confirmation Modal -->
+{#if showDeleteConfirm}
+	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+		<form
+			method="POST"
+			action="?/deleteDraft"
+			class="w-full max-w-md rounded-lg bg-white p-6 shadow-2xl"
+			use:enhance={({ formData }) => {
+				nProgress.start();
+				if (showDeleteConfirm) {
+					formData.append('formId', showDeleteConfirm);
+				}
+				return async ({ result }) => {
+					nProgress.done();
+					if (result.type === 'success') {
+						applicationForms = applicationForms.filter((form) => form.id !== showDeleteConfirm);
+						addNotif(result.data?.message as string, 'success');
+					} else if (result.type === 'failure') {
+						addNotif(result.data?.error as string, 'error');
+					}
+					showDeleteConfirm = null;
+				};
+			}}
+		>
+			<h3 class="mb-4 text-lg font-semibold text-gray-900">Confirm Delete</h3>
+			<p class="mb-6 text-sm text-gray-600">
+				Are you sure you want to delete this form draft? This action cannot be undone.
+			</p>
+			<div class="flex justify-end gap-3">
+				<button type="button" class="btn-red px-4 py-2" onclick={() => (showDeleteConfirm = null)}>
+					Cancel
+				</button>
+				<button type="submit" class="btn-red px-4 py-2"> Delete </button>
+			</div>
+		</form>
+	</div>
+{/if}
+
+<!-- Publish Confirmation Modal -->
+{#if showPublishConfirm}
+	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+		<form
+			class="w-full max-w-md rounded-lg bg-white p-6 shadow-2xl"
+			method="POST"
+			action="?/publishDraft"
+			use:enhance={({ formData }) => {
+				nProgress.start();
+				if (showPublishConfirm) {
+					formData.append('formId', showPublishConfirm);
+				}
+				return async ({ result }) => {
+					nProgress.done();
+					if (result.type === 'redirect') {
+						addNotif('Successfully published form', 'success');
+						goto(result.location);
+					} else if (result.type === 'failure') {
+						addNotif(result.data?.error as string, 'error');
+					}
+					showPublishConfirm = null;
+				};
+			}}
+		>
+			<h3 class="mb-4 text-lg font-semibold text-gray-900">Confirm Publish</h3>
+			<p class="mb-6 text-sm text-gray-600">
+				Are you sure you want to publish this form draft? It will become available for users to
+				submit.
+			</p>
+			<div class="flex justify-end gap-3">
+				<button type="button" class="btn-red px-4 py-2" onclick={() => (showPublishConfirm = null)}>
+					Cancel
+				</button>
+				<button type="submit" class="btn-blue px-4 py-2"> Publish </button>
+			</div>
+		</form>
+	</div>
+{/if}
+
 <!-- Form Creation Popup -->
 {#if showFormCreationPopup}
 	<div class="fixed inset-0 z-100 flex items-center justify-center bg-black/70">
 		<div class="w-full max-w-md rounded-lg bg-white p-6 shadow-lg">
 			<h3 class="mb-4 text-xl font-bold text-gray-800">Create Custom Form</h3>
 
-			<form method="POST" action="?/createForm">
+			<form
+				method="POST"
+				action="?/createForm"
+				use:enhance={() => {
+					nProgress.start();
+					return async ({ result }) => {
+						nProgress.done();
+						if (result.type === 'success') {
+							addNotif(result.data?.message as string, 'success');
+							applicationForms = [...applicationForms, result.data?.form as any];
+							closeFormCreationPopup();
+						} else if (result.type === 'failure') {
+							addNotif(result.data?.error as string, 'error');
+						}
+					};
+				}}
+			>
 				<div class="mb-4">
 					<label for="formName" class="mb-2 block font-medium text-gray-700">
 						Form Name

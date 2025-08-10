@@ -68,7 +68,8 @@ export async function load({ locals, params }) {
 						select: {
 							closeDate: true,
 							openDate: true,
-							active: true
+							active: true,
+							archived: true
 						}
 					}
 				}
@@ -216,7 +217,8 @@ export const actions = {
 							closeDate: true,
 							openDate: true,
 							groupId: true,
-							active: true
+							active: true,
+							archived: true
 						}
 					}
 				}

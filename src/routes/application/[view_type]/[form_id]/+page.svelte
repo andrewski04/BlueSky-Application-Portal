@@ -186,23 +186,31 @@
 							{/if}
 
 							<!-- Contact and Deadline Information -->
-							<div class="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2">
-								<div class="rounded-lg border-l-4 border-blue-400 bg-blue-50 p-4">
-									<h3 class="mb-2 font-semibold text-blue-800">Contact Information</h3>
-									<p class="mb-2 text-sm text-gray-700">
-										If you have any questions, please contact:
-									</p>
-									<p class="font-medium text-blue-700">Haley Wilson</p>
-									<p class="text-blue-600">Haley_Wilson@bcbst.com</p>
-								</div>
+							{#if !isAdminPreview}
+								<div class="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2">
+									<div class="rounded-lg border-l-4 border-blue-400 bg-blue-50 p-4">
+										<h3 class="mb-2 font-semibold text-blue-800">Contact Information</h3>
+										<p class="mb-2 text-sm text-gray-700">
+											If you have any questions, please contact:
+										</p>
+										<p class="font-medium text-blue-700">Haley Wilson</p>
+										<p class="text-blue-600">Haley_Wilson@bcbst.com</p>
+									</div>
 
-								<div class="rounded-lg border-l-4 border-green-400 bg-green-50 p-4">
-									<h3 class="mb-2 font-semibold text-green-800">Application Information</h3>
-									<div class="space-y-1 text-sm">
-										<p></p>
+									<div class="rounded-lg border-l-4 border-green-400 bg-green-50 p-4">
+										<h3 class="mb-2 font-semibold text-green-800">Application Information</h3>
+										<div class="space-y-1 text-sm">
+											<p>
+												Application deadline: {applicationWithAnswers.closeDate
+													? new Date(applicationWithAnswers.closeDate).toLocaleDateString('en-US', {
+															timeZone: 'UTC'
+														})
+													: 'N/A'}
+											</p>
+										</div>
 									</div>
 								</div>
-							</div>
+							{/if}
 						</div>
 					</div>
 				</div>
@@ -213,7 +221,7 @@
 						style:border-color={getColorSchemeColor(section.colorScheme)}
 					>
 						<!-- Section Header -->
-						<div class="{getColorSchemeClassName(section.colorScheme)} mb-2 rounded-lg p-4">
+						<div class="{getColorSchemeClassName(section.colorScheme)} mb-6 rounded-lg p-4">
 							<h2 class="text-2xl font-bold text-white">
 								Section {section.displayOrder + 1}:
 								{section.name}
@@ -224,7 +232,7 @@
 						</div>
 
 						{#each section.questions as question}
-							<div class="relative">
+							<div class="relative mb-6">
 								{#if question.type === 'TEXT'}
 									<TextQuestion
 										onchange={(value) => handleQuestionChange(question.id, value)}

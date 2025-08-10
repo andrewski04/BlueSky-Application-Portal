@@ -2,9 +2,19 @@
 	import type { PageProps } from './$types';
 	import AdminNavBar from '$lib/components/dashboard/AdminNavBar.svelte';
 	import Tooltip from '$lib/components/util/Tooltip.svelte';
+	import ActionDropdown from '$lib/components/util/ActionDropdown.svelte';
+	import { enhance } from '$app/forms';
+	import nProgress from 'nprogress';
+	import { addNotif } from '$lib/utils/notify';
 
 	let { data }: PageProps = $props();
-	let { publishedForms = [], error } = data;
+	let publishedForms = $state(data.publishedForms);
+
+	// Quick actions state
+	let showStatusConfirm = $state<{ formId: string; action: string; active: boolean } | null>(null);
+	let showArchiveConfirm = $state<{ formId: string; action: string; archived: boolean } | null>(
+		null
+	);
 
 	// Add search state
 	let search = $state('');
@@ -14,9 +24,6 @@
 
 	// Add archived forms toggle state
 	let showArchived = $state(false);
-
-	// Filtered forms state
-	let filteredForms = $state(publishedForms);
 
 	// Sorting state
 	let sortKey = $state<
@@ -40,7 +47,8 @@
 		all: 'No published application forms found'
 	};
 
-	$effect(() => {
+	// Filtered forms state
+	let filteredForms = $derived.by(() => {
 		let forms = publishedForms;
 		if (search) {
 			const q = search.toLowerCase();
@@ -93,8 +101,16 @@
 			if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
 			return 0;
 		});
-		filteredForms = forms;
+		return forms;
 	});
+
+	function handleQuickAction(action: string, formId: string, active: boolean, archived: boolean) {
+		if (action === 'toggleStatus') {
+			showStatusConfirm = { formId, action: 'toggleStatus', active: !active };
+		} else if (action === 'toggleArchive') {
+			showArchiveConfirm = { formId, action: 'toggleArchive', archived: !archived };
+		}
+	}
 </script>
 
 <svelte:head>
@@ -168,16 +184,13 @@
 						</select>
 					</div>
 				</div>
-				{#if error}
-					<p class="mb-4 text-center font-bold text-red-500">{error}</p>
-				{/if}
 
 				<hr class="mt-4 h-px border-0 bg-[rgb(59,130,246)]/10" />
 
 				<div class="w-full rounded-b-lg shadow-md">
 					<div class="space-y-4 rounded-b-lg">
 						{#if !filteredForms || filteredForms.length === 0}
-							<p class="pb-4 text-center text-gray-500">
+							<p class="py-4 text-center text-gray-500">
 								{statusMessages[statusFilter]}
 							</p>
 						{/if}
@@ -283,31 +296,54 @@
 											{form.responses.length}
 										</td>
 										<td class="px-4 py-4 text-sm text-black">
-											<a
-												href={`/admin/published-forms/${form.id}`}
-												class="btn-green flex items-center justify-center px-4 py-2"
-											>
-												<svg
-													class="mr-1 inline h-4 w-4"
-													fill="none"
-													stroke="currentColor"
-													viewBox="0 0 24 24"
+											<div class="flex items-center gap-2">
+												<a
+													href={`/admin/published-forms/${form.id}`}
+													class="btn-green flex items-center justify-center px-4 py-2"
 												>
-													<path
-														stroke-linecap="round"
-														stroke-linejoin="round"
-														stroke-width="2"
-														d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-													></path>
-													<path
-														stroke-linecap="round"
-														stroke-linejoin="round"
-														stroke-width="2"
-														d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-													></path>
-												</svg>
-												Manage
-											</a>
+													<svg
+														class="mr-1 inline h-4 w-4"
+														fill="none"
+														stroke="currentColor"
+														viewBox="0 0 24 24"
+													>
+														<path
+															stroke-linecap="round"
+															stroke-linejoin="round"
+															stroke-width="2"
+															d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+														></path>
+														<path
+															stroke-linecap="round"
+															stroke-linejoin="round"
+															stroke-width="2"
+															d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+														></path>
+													</svg>
+													Manage
+												</a>
+												<div data-form-id={form.id}>
+													<ActionDropdown
+														actions={[
+															{
+																disabled: form.archived,
+																label: form.active ? 'Deactivate' : 'Activate',
+																action: 'toggleStatus',
+																icon: '/icons/info.svg',
+																variant: form.active ? 'danger' : 'success'
+															},
+															{
+																label: form.archived ? 'Unarchive' : 'Archive',
+																action: 'toggleArchive',
+																icon: '/icons/info.svg',
+																variant: form.archived ? 'success' : 'warning'
+															}
+														]}
+														onAction={(action) =>
+															handleQuickAction(action, form.id, form.active, form.archived)}
+													/>
+												</div>
+											</div>
 										</td>
 									</tr>
 								{/each}
@@ -319,3 +355,106 @@
 		</div>
 	</div>
 </div>
+
+<!-- Status Change Confirmation Modal -->
+{#if showStatusConfirm}
+	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+		<form
+			method="post"
+			action={`?/updatePublishedFormActiveStatus`}
+			class="w-full max-w-md rounded-lg bg-white p-6 shadow-2xl"
+			use:enhance={({ formData }) => {
+				nProgress.start();
+				if (showStatusConfirm) {
+					formData.append('formId', showStatusConfirm.formId);
+					formData.append('active', showStatusConfirm.active.toString());
+				}
+				return async ({ result }) => {
+					nProgress.done();
+					if (result.type === 'success') {
+						publishedForms = publishedForms.map((form) => {
+							if (form.id === showStatusConfirm?.formId) {
+								return { ...form, active: showStatusConfirm?.active };
+							}
+							return form;
+						});
+
+						addNotif(result.data?.message as string, 'success');
+					} else if (result.type === 'failure') {
+						addNotif(result.data?.error as string, 'error');
+					}
+					showStatusConfirm = null;
+				};
+			}}
+		>
+			<h3 class="mb-4 text-lg font-semibold text-gray-900">
+				Confirm {showStatusConfirm.active ? 'Activate' : 'Deactivate'}
+			</h3>
+			<p class="mb-6 text-sm text-gray-600">
+				Are you sure you want to {showStatusConfirm.active ? 'activate' : 'deactivate'} this form?
+				{showStatusConfirm.active
+					? 'It will become available for users to submit if the date range is open or unset.'
+					: 'Users will no longer be able to submit to this form.'}
+			</p>
+			<div class="flex justify-end gap-3">
+				<button type="button" class="btn-red px-4 py-2" onclick={() => (showStatusConfirm = null)}>
+					Cancel
+				</button>
+				<button type="submit" class="btn-blue px-4 py-2">
+					{showStatusConfirm.active ? 'Activate' : 'Deactivate'}
+				</button>
+			</div>
+		</form>
+	</div>
+{/if}
+
+<!-- Archive Change Confirmation Modal -->
+{#if showArchiveConfirm}
+	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+		<form
+			method="post"
+			action={`?/updatePublishedFormArchiveStatus`}
+			class="w-full max-w-md rounded-lg bg-white p-6 shadow-2xl"
+			use:enhance={({ formData }) => {
+				nProgress.start();
+				if (showArchiveConfirm) {
+					formData.append('formId', showArchiveConfirm.formId);
+					formData.append('archived', showArchiveConfirm.archived.toString());
+				}
+				return async ({ result }) => {
+					nProgress.done();
+					if (result.type === 'success') {
+						publishedForms = publishedForms.map((form) => {
+							if (form.id === showArchiveConfirm?.formId) {
+								return { ...form, archived: showArchiveConfirm?.archived };
+							}
+							return form;
+						});
+
+						addNotif(result.data?.message as string, 'success');
+					} else if (result.type === 'failure') {
+						addNotif(result.data?.error as string, 'error');
+					}
+					showArchiveConfirm = null;
+				};
+			}}
+		>
+			<h3 class="mb-4 text-lg font-semibold text-gray-900">
+				Confirm {showArchiveConfirm.archived ? 'Archive' : 'Unarchive'}
+			</h3>
+			<p class="mb-6 text-sm text-gray-600">
+				{showArchiveConfirm.archived
+					? 'This form will be archived and hidden from the main list. You can unarchive it later.'
+					: 'This form will be restored and visible in the main list.'}
+			</p>
+			<div class="flex justify-end gap-3">
+				<button type="button" class="btn-red px-4 py-2" onclick={() => (showArchiveConfirm = null)}>
+					Cancel
+				</button>
+				<button type="submit" class="btn-blue px-4 py-2">
+					{showArchiveConfirm.archived ? 'Archive' : 'Unarchive'}
+				</button>
+			</div>
+		</form>
+	</div>
+{/if}

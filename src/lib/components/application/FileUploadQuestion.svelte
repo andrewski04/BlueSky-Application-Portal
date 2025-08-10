@@ -180,7 +180,7 @@
 	}
 </script>
 
-<div class="mb-4">
+<div>
 	<label for={question.id} class="mb-1 block text-sm font-medium text-gray-700">
 		{question.prompt}
 		{#if question.required}<span class="text-red-500">*</span>{/if}

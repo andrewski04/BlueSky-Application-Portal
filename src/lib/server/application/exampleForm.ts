@@ -1,10 +1,7 @@
 import { prisma, prismaResult } from '$lib/server/prisma';
-import { Logger } from '$lib/utils/logger';
-
-const log = new Logger('exampleForm');
 
 export async function createExampleForm() {
-	const exampleForm = await prismaResult(
+	return await prismaResult(
 		prisma.applicationFormDraft.create({
 			data: {
 				name: 'BlueSky Institute Application Form',
@@ -553,11 +550,4 @@ export async function createExampleForm() {
 			}
 		})
 	);
-
-	if (exampleForm.isErr()) {
-		log.error('Error creating example form', exampleForm.error);
-		throw exampleForm.error;
-	}
-
-	return exampleForm.value;
 }

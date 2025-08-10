@@ -404,7 +404,11 @@
 					<div class="mt-4">
 						{#each section.questions as question}
 							<div class="mb-4">
-								<DraftQuestionOverview question={notypecheck(question)} hideLibrary />
+								<DraftQuestionOverview
+									question={notypecheck(question)}
+									hideLibrary
+									hideDragHandle
+								/>
 							</div>
 						{/each}
 					</div>

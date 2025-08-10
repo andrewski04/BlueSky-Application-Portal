@@ -88,14 +88,17 @@ export async function getApplicationFormWithAnswers(applicationId: string) {
 						orderBy: { displayOrder: 'asc' },
 						include: {
 							questions: {
-								orderBy: { displayOrder: 'asc' },
 								include: {
+									Answer: {
+										where: { applicationId }
+									},
 									questionVersion: {
 										include: {
 											options: { orderBy: { displayOrder: 'asc' } }
 										}
 									}
-								}
+								},
+								orderBy: { displayOrder: 'asc' }
 							}
 						}
 					}
@@ -266,6 +269,7 @@ export async function getAllAvailableApplicationForms(userId: string) {
 		prisma.applicationFormPublished.findMany({
 			where: {
 				active: true,
+				archived: false,
 				OR: [
 					// Forms with no date constraints
 					{
@@ -314,6 +318,7 @@ export function checkApplicationReadOnly(application: {
 		closeDate: Date | null;
 		openDate: Date | null;
 		active: boolean;
+		archived: boolean;
 	};
 }): { isReadOnly: boolean; readOnlyMessage: string } {
 	// Check if form is already submitted
@@ -323,6 +328,15 @@ export function checkApplicationReadOnly(application: {
 			readOnlyMessage: 'This form has been submitted and is no longer editable.'
 		};
 	}
+
+	// Check if form is archived
+	if (application.form.archived) {
+		return {
+			isReadOnly: true,
+			readOnlyMessage: 'This form is archived and is no longer available.'
+		};
+	}
+
 	// Check if form is closed (only if closeDate is set)
 	if (application.form.closeDate && application.form.closeDate < new Date()) {
 		return {

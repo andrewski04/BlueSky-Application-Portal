@@ -29,15 +29,22 @@
 		if (value && !readonly) {
 			const dateValue = new Date(value);
 			if (question.minDate && dateValue < new Date(question.minDate)) {
-				error = `Date must be on or after ${new Date(question.minDate).toLocaleDateString()}.`;
+				error = `Date must be on or after ${new Date(question.minDate).toLocaleDateString('en-US', {
+					timeZone: 'UTC'
+				})}.`;
 			} else if (question.maxDate && dateValue > new Date(question.maxDate)) {
-				error = `Date must be on or before ${new Date(question.maxDate).toLocaleDateString()}.`;
+				error = `Date must be on or before ${new Date(question.maxDate).toLocaleDateString(
+					'en-US',
+					{
+						timeZone: 'UTC'
+					}
+				)}.`;
 			}
 		}
 	});
 </script>
 
-<div class="mb-4">
+<div>
 	<label for={question.id} class="mb-1 block text-sm font-medium text-gray-700">
 		{question.prompt}
 		{#if question.required}<span class="text-red-500">*</span>{/if}
@@ -59,13 +66,17 @@
 		{#if question.minDate != null || question.maxDate != null}
 			<div class="mt-1 text-xs text-gray-500">
 				{#if question.minDate != null}
-					Min: {question.minDate ? new Date(question.minDate).toISOString().split('T')[0] : ''}
+					Min: {question.minDate
+						? new Date(question.minDate).toLocaleDateString('en-US', { timeZone: 'UTC' })
+						: ''}
 				{/if}
 				{#if question.minDate != null && question.maxDate != null}
 					|
 				{/if}
 				{#if question.maxDate != null}
-					Max: {question.maxDate ? new Date(question.maxDate).toISOString().split('T')[0] : ''}
+					Max: {question.maxDate
+						? new Date(question.maxDate).toLocaleDateString('en-US', { timeZone: 'UTC' })
+						: ''}
 				{/if}
 			</div>
 		{/if}

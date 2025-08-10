@@ -168,7 +168,7 @@
 					<div class="mt-4">
 						{#each section.questions as question}
 							<div class="mb-4">
-								<DraftQuestionOverview {question} />
+								<DraftQuestionOverview {question} hideDragHandle />
 							</div>
 						{/each}
 					</div>

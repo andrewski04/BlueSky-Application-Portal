@@ -15,13 +15,15 @@
 		isSelected,
 		onSelect,
 		onDelete,
-		hideLibrary = false
+		hideLibrary = false,
+		hideDragHandle = false
 	}: {
 		question: FormQuestion;
 		isSelected?: boolean;
 		onSelect?: (question: FormQuestion) => void;
 		onDelete?: (question: FormQuestion) => void;
 		hideLibrary?: boolean;
+		hideDragHandle?: boolean;
 	} = $props();
 
 	function getQuestionData() {
@@ -88,23 +90,25 @@
 			<div class="flex items-start justify-between gap-3">
 				<div class="min-w-0 flex-1">
 					<div class="flex items-center gap-2 text-lg leading-tight font-semibold text-gray-900">
-						<div class="question-drag-handle text-gray-400">
-							<svg
-								width="24"
-								height="24"
-								viewBox="0 0 24 24"
-								fill="none"
-								xmlns="http://www.w3.org/2000/svg"
-							>
-								<path
-									d="M5 10H19M14 19L12 21L10 19M14 5L12 3L10 5M5 14H19"
-									stroke="currentColor"
-									stroke-width="2"
-									stroke-linecap="round"
-									stroke-linejoin="round"
-								/>
-							</svg>
-						</div>
+						{#if !hideDragHandle}
+							<div class="question-drag-handle text-gray-400">
+								<svg
+									width="24"
+									height="24"
+									viewBox="0 0 24 24"
+									fill="none"
+									xmlns="http://www.w3.org/2000/svg"
+								>
+									<path
+										d="M5 10H19M14 19L12 21L10 19M14 5L12 3L10 5M5 14H19"
+										stroke="currentColor"
+										stroke-width="2"
+										stroke-linecap="round"
+										stroke-linejoin="round"
+									/>
+								</svg>
+							</div>
+						{/if}
 						<h3>
 							{getQuestionData().prompt}
 							{#if question.required}
