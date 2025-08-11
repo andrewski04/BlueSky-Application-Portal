@@ -790,15 +790,14 @@
 
 							if (newSectionName.trim() && sectionNameExists(newSectionName)) {
 								sectionNameError = 'A section with this name already exists.';
-								cancel();
 								nProgress.done();
+								cancel();
 							} else {
 								sectionNameError = '';
 							}
 
 							if (input && (!input.value.trim() || input.value.trim() === 'Untitled Section')) {
 								const newName = getNextUntitledSectionName();
-								input.value = newName;
 								formData.set('name', newName); // Ensure the correct name is sent
 							}
 							return async ({ result, update }) => {
@@ -811,7 +810,6 @@
 										}
 									];
 									setCurrentSection(draftForm.sections[draftForm.sections.length - 1]);
-									update();
 									addNotif('Section created successfully', 'success');
 									nProgress.done();
 								} else if (result.type === 'failure') {

@@ -7,7 +7,7 @@ import {
 } from '$lib/server/application/formResponseService';
 import { getFormDraftPreview } from '$lib/server/application/formService';
 import { prisma, prismaResult } from '$lib/server/prisma';
-import { error, redirect } from '@sveltejs/kit';
+import { error, fail, redirect } from '@sveltejs/kit';
 
 export async function load({ locals, params }) {
 	const { user } = requireAuth(locals);
@@ -30,6 +30,7 @@ export async function load({ locals, params }) {
 			isReadOnly: false,
 			isAdminPreview: true,
 			readOnlyMessage: 'Draft Form Preview',
+			applicationResponse: null,
 			user
 		};
 	}
@@ -61,40 +62,39 @@ export async function load({ locals, params }) {
 					formId
 				},
 				update: {},
-				select: {
-					id: true,
-					status: true,
-					form: {
-						select: {
-							closeDate: true,
-							openDate: true,
-							active: true,
-							archived: true
-						}
-					}
+				include: {
+					user: true
 				}
 			})
 		);
 		if (applicationResult.isErr()) {
 			throw error(500, `Error fetching application ID.`);
 		}
-		const application = applicationResult.value;
-		if (!application) {
+		const applicationResponse = applicationResult.value;
+		if (!applicationResponse) {
 			throw error(404, 'Application not found');
 		}
 
-		const applicationWithAnswersResult = await getApplicationFormWithAnswers(application.id);
+		const applicationWithAnswersResult = await getApplicationFormWithAnswers(
+			applicationResponse.id,
+			formId
+		);
 		if (applicationWithAnswersResult.isErr()) {
 			throw error(500, `Error fetching application form and answers.`);
 		}
+		const applicationWithAnswers = applicationWithAnswersResult.value;
 
-		const { isReadOnly, readOnlyMessage } = checkApplicationReadOnly(application);
+		const { isReadOnly, readOnlyMessage } = checkApplicationReadOnly({
+			status: applicationResponse.status,
+			form: applicationWithAnswers
+		});
 
 		return {
-			isReadOnly,
-			readOnlyMessage,
-			applicationWithAnswers: applicationWithAnswersResult.value,
-			isAdminPreview: false,
+			isReadOnly: user.role === 'ADMIN' ? true : isReadOnly,
+			readOnlyMessage: user.role === 'ADMIN' ? 'Draft Form Preview' : readOnlyMessage,
+			applicationWithAnswers,
+			applicationResponse,
+			isAdminPreview: user.role === 'ADMIN',
 			user
 		};
 	}
@@ -242,9 +242,15 @@ export const actions = {
 		const submitResult = await submitApplication(userId, formId, application.form.groupId);
 
 		if (submitResult.isErr()) {
-			throw error(500, `Error submitting application.`);
+			if (submitResult.error.code === 'ERR_VALIDATION_FAILED') {
+				return fail(400, { error: submitResult.error.message, code: submitResult.error.code });
+			}
+			throw error(
+				500,
+				`Error submitting application. Your draft is still saved, please try again.`
+			);
 		}
 
-		return redirect(302, '/user/dashboard');
+		return redirect(302, `/application/form/${formId}/submitted`);
 	}
 };

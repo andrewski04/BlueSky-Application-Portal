@@ -86,7 +86,6 @@
 			0 8px 32px rgba(59, 130, 246, 0.3),
 			0 4px 16px rgba(0, 0, 0, 0.1);
 		backdrop-filter: blur(10px);
-		border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 	}
 
 	/* Enhanced navigation tabs */

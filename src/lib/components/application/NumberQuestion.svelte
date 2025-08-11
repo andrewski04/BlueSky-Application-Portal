@@ -17,6 +17,54 @@
 		error?: string | null;
 	} = $props();
 
+	// Prevent non-numeric input
+	function handleKeydown(event: KeyboardEvent) {
+		// Allow: backspace, delete, tab, escape, enter, and navigation keys
+		if (
+			[
+				'Backspace',
+				'Delete',
+				'Tab',
+				'Escape',
+				'Enter',
+				'ArrowLeft',
+				'ArrowUp',
+				'ArrowRight',
+				'ArrowDown'
+			].includes(event.key) ||
+			// Allow: Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
+			(event.ctrlKey && ['a', 'c', 'v', 'x'].includes(event.key.toLowerCase())) ||
+			// Allow: home, end
+			['Home', 'End'].includes(event.key)
+		) {
+			return;
+		}
+
+		// Allow: numbers, decimal point, minus sign
+		if (/^[0-9]$/.test(event.key) || event.key === '.' || event.key === '-') {
+			return;
+		}
+
+		// Prevent all other keys
+		event.preventDefault();
+	}
+
+	// Prevent paste of non-numeric content
+	function handlePaste(event: ClipboardEvent) {
+		const pastedText = event.clipboardData?.getData('text');
+		if (pastedText && !/^-?\d*\.?\d*$/.test(pastedText)) {
+			event.preventDefault();
+		}
+	}
+
+	// Prevent drop of non-numeric content
+	function handleDrop(event: DragEvent) {
+		const droppedText = event.dataTransfer?.getData('text');
+		if (droppedText && !/^-?\d*\.?\d*$/.test(droppedText)) {
+			event.preventDefault();
+		}
+	}
+
 	$effect(() => {
 		if (onchange) {
 			onchange(value);
@@ -52,6 +100,12 @@
 			bind:value
 			min={question.minValue ?? undefined}
 			max={question.maxValue ?? undefined}
+			step="any"
+			inputmode="decimal"
+			pattern="[0-9]*\.?[0-9]*"
+			onkeydown={handleKeydown}
+			onpaste={handlePaste}
+			ondrop={handleDrop}
 			class="w-full rounded-md border border-blue-600 px-3 py-2 shadow-sm focus:border-blue-700 focus:ring-blue-700 focus:outline-none"
 		/>
 	{/if}

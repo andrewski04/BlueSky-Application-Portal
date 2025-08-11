@@ -165,7 +165,34 @@ export async function publishFormFromDraft(
 	}
 }
 
-export async function getFormDraftPreview(formId: string) {
+type appPub = Prisma.ApplicationFormPublishedGetPayload<{
+	include: {
+		group: true;
+		sections: {
+			orderBy: { displayOrder: 'asc' };
+			include: {
+				questions: {
+					include: {
+						Answer: {
+							include: {
+								selectedOptions: { include: { option: true } };
+								FileUpload: true;
+							};
+						};
+						questionVersion: {
+							include: {
+								options: { orderBy: { displayOrder: 'asc' } };
+							};
+						};
+					};
+					orderBy: { displayOrder: 'asc' };
+				};
+			};
+		};
+	};
+}>;
+
+export async function getFormDraftPreview(formId: string): Promise<Result<appPub>> {
 	const applicationForm = await prismaResult(
 		prisma.applicationFormDraft.findUnique({
 			where: { id: formId },
@@ -185,42 +212,28 @@ export async function getFormDraftPreview(formId: string) {
 	// Transform draft form to match the structure of getApplicationFormWithAnswers
 	const transformedForm = {
 		...draft,
-		// For preview, we don't have user, status, or updatedAt from application
-		user: null,
-		status: null,
-		updatedAt: null,
+		active: true,
+		archived: false,
+		closeDate: null,
+		openDate: null,
+		groupId: null,
+		publishedAt: new Date(),
+		group: null,
 		sections: draft.sections.map((sec) => ({
 			...sec,
-			questions: sec.questions.map((ql) => {
-				// Handle both questionDraft and questionVersion cases
-				const questionData = ql.questionVersion || ql.questionDraft;
-				if (!questionData) {
-					throw new Error('Question link missing both draft & version');
-				}
-
-				// Transform to match the structure from transformQuestion function
-				return {
-					id: questionData.id,
-					templateId: questionData.templateId || 'DraftQuestion',
-					version: 1, // Draft questions don't have version
-					prompt: questionData.prompt,
-					type: questionData.type,
-					slug: questionData.slug,
-					minLength: questionData.minLength,
-					maxLength: questionData.maxLength,
-					minValue: questionData.minValue,
-					maxValue: questionData.maxValue,
-					minDate: questionData.minDate,
-					maxDate: questionData.maxDate,
-					acceptedTypes: questionData.acceptedTypes,
-					maxFileSizeBytes: questionData.maxFileSizeBytes,
-					createdAt: new Date(), // Draft questions don't have createdAt
-					required: ql.required,
-					displayOrder: ql.displayOrder,
-					options: questionData.options || null,
-					answer: null
-				};
-			})
+			questions: sec.questions.map((ql) => ({
+				...ql,
+				questionVersionId: ql.questionVersion?.id ?? ql.questionDraft?.id ?? 'DraftQuestion',
+				questionVersion: ql.questionVersion
+					? ql.questionVersion
+					: {
+							...ql.questionDraft,
+							version: 1,
+							createdAt: new Date(),
+							templateId: 'DraftQuestion'
+						},
+				Answer: []
+			}))
 		}))
 	};
 

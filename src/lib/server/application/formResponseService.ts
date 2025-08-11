@@ -5,116 +5,35 @@ import { QuestionType } from '@prisma/client';
 
 const log = new Logger('FormResponseService');
 
-// Helper function to transform answer data
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function transformAnswer(ans: any) {
-	if (!ans) return null;
-
-	const result = {
-		id: ans.id,
-		valueText: ans.valueText,
-		valueNumber: ans.valueNumber,
-		valueBool: ans.valueBool,
-		valueDate: ans.valueDate,
-		fileUploadId: ans.fileUploadId,
-		file: ans.FileUpload ?? null,
-		selections: ans.selectedOptions.map(
-			(sel: { option: { id: string; text: string; displayOrder: number } }) => ({
-				id: sel.option.id,
-				text: sel.option.text,
-				displayOrder: sel.option.displayOrder
-			})
-		)
-	};
-
-	return result;
-}
-
-// Helper function to transform question data
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function transformQuestion(ql: any, ansMap: Map<string, any>) {
-	const qv = ql.questionVersion;
-	const ans = ansMap.get(qv.id);
-
-	return {
-		id: qv.id,
-		templateId: qv.templateId,
-		version: qv.version,
-		prompt: qv.prompt,
-		type: qv.type,
-		slug: qv.slug,
-		minLength: qv.minLength,
-		maxLength: qv.maxLength,
-		minValue: qv.minValue,
-		maxValue: qv.maxValue,
-		minDate: qv.minDate,
-		maxDate: qv.maxDate,
-		acceptedTypes: qv.acceptedTypes,
-		maxFileSizeBytes: qv.maxFileSizeBytes,
-		createdAt: qv.createdAt,
-		required: ql.required,
-		displayOrder: ql.displayOrder,
-		options: qv.options,
-		answer: transformAnswer(ans)
-	};
-}
-
-export async function getApplicationFormWithAnswers(applicationId: string) {
+export async function getApplicationFormWithAnswers(applicationId: string, formId: string) {
 	return prismaResult(
-		prisma.$transaction(async (tx) => {
-			// get formId from application response
-			const application = await tx.applicationResponse.findUniqueOrThrow({
-				where: { id: applicationId },
-				select: { formId: true, user: true, updatedAt: true, status: true }
-			});
-
-			// load all answers
-			const answers = await tx.answer.findMany({
-				where: { applicationId },
-				include: {
-					selectedOptions: { include: { option: true } },
-					FileUpload: true
-				}
-			});
-
-			// map questionVersionId to answer
-			const ansMap = new Map(answers.map((a) => [a.questionVersionId, a]));
-
-			const form = await tx.applicationFormPublished.findUniqueOrThrow({
-				where: { id: application.formId },
-				include: {
-					group: true,
-					sections: {
-						orderBy: { displayOrder: 'asc' },
-						include: {
-							questions: {
-								include: {
-									Answer: {
-										where: { applicationId }
-									},
-									questionVersion: {
-										include: {
-											options: { orderBy: { displayOrder: 'asc' } }
-										}
+		prisma.applicationFormPublished.findUniqueOrThrow({
+			where: { id: formId },
+			include: {
+				group: true,
+				sections: {
+					orderBy: { displayOrder: 'asc' },
+					include: {
+						questions: {
+							include: {
+								Answer: {
+									where: { applicationId },
+									include: {
+										selectedOptions: { include: { option: true } },
+										FileUpload: true
 									}
 								},
-								orderBy: { displayOrder: 'asc' }
-							}
+								questionVersion: {
+									include: {
+										options: { orderBy: { displayOrder: 'asc' } }
+									}
+								}
+							},
+							orderBy: { displayOrder: 'asc' }
 						}
 					}
 				}
-			});
-
-			return {
-				...form,
-				user: application.user,
-				updatedAt: application.updatedAt,
-				status: application.status,
-				sections: form.sections.map((sec) => ({
-					...sec,
-					questions: sec.questions.map((ql) => transformQuestion(ql, ansMap))
-				}))
-			};
+			}
 		})
 	);
 }
@@ -124,7 +43,28 @@ export async function submitApplication(
 	formId: string,
 	formGroupId: string | null
 ) {
-	// add validation here!!
+	// Get the application response to find the application ID
+	const applicationResponse = await prisma.applicationResponse.findUnique({
+		where: { userId_formId: { userId, formId } },
+		select: { id: true }
+	});
+
+	if (!applicationResponse) {
+		return err(new AppError('Application not found', 'ERR_APPLICATION_NOT_FOUND'));
+	}
+
+	// Get the form with all answers for validation
+	const formWithAnswersResult = await getApplicationFormWithAnswers(applicationResponse.id, formId);
+	if (!formWithAnswersResult.isOk()) {
+		return formWithAnswersResult;
+	}
+
+	// Validate all questions
+	const validationResult = validateApplicationAnswers(formWithAnswersResult.unwrap());
+	if (!validationResult.isValid) {
+		return err(new AppError(validationResult.errorMessage, 'ERR_VALIDATION_FAILED'));
+	}
+
 	return prismaResult(
 		prisma.$transaction(async (tx) => {
 			// update application response status
@@ -140,6 +80,191 @@ export async function submitApplication(
 			});
 		})
 	);
+}
+
+interface ValidationResult {
+	isValid: boolean;
+	errorMessage: string;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function validateApplicationAnswers(formWithAnswers: any): ValidationResult {
+	for (const section of formWithAnswers.sections) {
+		for (const question of section.questions) {
+			const questionLink = question.questionVersion;
+			const answer = question.Answer[0]; // Get the answer for this question
+			const isRequired = question.required;
+
+			// Check if required questions are answered
+			if (isRequired && !answer) {
+				return {
+					isValid: false,
+					errorMessage: `Required question "${questionLink.prompt}" is not answered.`
+				};
+			}
+
+			// If question is not required and has no answer, skip validation
+			if (!isRequired && !answer) {
+				continue;
+			}
+
+			// If question is not required but has an answer, validate the answer
+			if (answer) {
+				const validationResult = validateAnswer(answer, questionLink);
+				if (!validationResult.isValid) {
+					return validationResult;
+				}
+			}
+		}
+	}
+
+	return { isValid: true, errorMessage: '' };
+}
+
+function validateAnswer(
+	answer: {
+		valueText: string | null;
+		valueNumber: number | null;
+		valueDate: Date | null;
+		fileUploadId: string | null;
+		selectedOptions: { optionId: string }[];
+	},
+	questionVersion: {
+		type: QuestionType;
+		minLength: number | null;
+		maxLength: number | null;
+		minValue: number | null;
+		maxValue: number | null;
+		minDate: Date | null;
+		maxDate: Date | null;
+		prompt: string;
+	}
+): ValidationResult {
+	const { type, minLength, maxLength, minValue, maxValue, minDate, maxDate } = questionVersion;
+
+	switch (type) {
+		case QuestionType.TEXT:
+		case QuestionType.PARAGRAPH:
+			return validateTextAnswer(answer.valueText, minLength, maxLength, questionVersion.prompt);
+
+		case QuestionType.NUMBER:
+			return validateNumberAnswer(answer.valueNumber, minValue, maxValue, questionVersion.prompt);
+
+		case QuestionType.DATE:
+			return validateDateAnswer(answer.valueDate, minDate, maxDate, questionVersion.prompt);
+
+		case QuestionType.FILE_UPLOAD:
+			return validateFileUploadAnswer(answer.fileUploadId);
+
+		case QuestionType.MULTIPLE_CHOICE:
+		case QuestionType.DROPDOWN:
+		case QuestionType.CHECKBOX:
+			return validateChoiceAnswer(answer.selectedOptions);
+
+		default:
+			return { isValid: true, errorMessage: '' };
+	}
+}
+
+function validateTextAnswer(
+	value: string | null,
+	minLength: number | null,
+	maxLength: number | null,
+	prompt: string
+): ValidationResult {
+	if (value === null || value === undefined) {
+		return { isValid: true, errorMessage: '' }; // Not required or empty
+	}
+
+	const textValue = value.toString().trim();
+
+	if (minLength !== null && textValue.length < minLength) {
+		return {
+			isValid: false,
+			errorMessage: `Question "${prompt}" must be at least ${minLength} characters long.`
+		};
+	}
+
+	if (maxLength !== null && textValue.length > maxLength) {
+		return {
+			isValid: false,
+			errorMessage: `Question "${prompt}" must be no more than ${maxLength} characters long.`
+		};
+	}
+
+	return { isValid: true, errorMessage: '' };
+}
+
+function validateNumberAnswer(
+	value: number | null,
+	minValue: number | null,
+	maxValue: number | null,
+	prompt: string
+): ValidationResult {
+	if (value === null || value === undefined) {
+		return { isValid: true, errorMessage: '' }; // Not required or empty
+	}
+
+	if (minValue !== null && value < minValue) {
+		return {
+			isValid: false,
+			errorMessage: `Question "${prompt}" must be at least ${minValue}.`
+		};
+	}
+
+	if (maxValue !== null && value > maxValue) {
+		return {
+			isValid: false,
+			errorMessage: `Question "${prompt}" must be no more than ${maxValue}.`
+		};
+	}
+
+	return { isValid: true, errorMessage: '' };
+}
+
+function validateDateAnswer(
+	value: Date | null,
+	minDate: Date | null,
+	maxDate: Date | null,
+	prompt: string
+): ValidationResult {
+	if (value === null || value === undefined) {
+		return { isValid: true, errorMessage: '' }; // Not required or empty
+	}
+
+	if (minDate !== null && value < minDate) {
+		return {
+			isValid: false,
+			errorMessage: `Question "${prompt}" must be on or after ${minDate.toLocaleDateString()}.`
+		};
+	}
+
+	if (maxDate !== null && value > maxDate) {
+		return {
+			isValid: false,
+			errorMessage: `Question "${prompt}" must be on or before ${maxDate.toLocaleDateString()}.`
+		};
+	}
+
+	return { isValid: true, errorMessage: '' };
+}
+
+function validateFileUploadAnswer(fileUploadId: string | null): ValidationResult {
+	if (fileUploadId === null || fileUploadId === undefined || fileUploadId === '') {
+		return { isValid: true, errorMessage: '' }; // Not required or empty
+	}
+
+	// File upload validation is handled elsewhere (file existence check)
+	return { isValid: true, errorMessage: '' };
+}
+
+function validateChoiceAnswer(selectedOptions: { optionId: string }[]): ValidationResult {
+	if (!selectedOptions || selectedOptions.length === 0) {
+		return { isValid: true, errorMessage: '' }; // Not required or empty
+	}
+
+	// Choice questions are valid if they have selected options
+	return { isValid: true, errorMessage: '' };
 }
 
 export async function saveApplicationQuestion(
@@ -198,6 +323,17 @@ export async function saveApplicationQuestion(
 			}
 		}
 
+		// For file uploads, validate that the file exists if a value is provided
+		if (qVer.type === QuestionType.FILE_UPLOAD && value != null && value !== '') {
+			const fileExists = await prisma.fileUpload.findUnique({
+				where: { id: value }
+			});
+			if (!fileExists) {
+				log.error('File upload ID does not exist', { fileUploadId: value });
+				return err(new AppError('File not found', 'ERR_FILE_NOT_FOUND'));
+			}
+		}
+
 		// fields to update
 		const scalars = (() => {
 			switch (qVer.type) {
@@ -209,7 +345,7 @@ export async function saveApplicationQuestion(
 				case QuestionType.DATE:
 					return { valueDate: value ? new Date(value) : null };
 				case QuestionType.FILE_UPLOAD:
-					return { fileUploadId: value ?? null };
+					return { fileUploadId: value && value !== '' ? value : null };
 				default:
 					return {};
 			}
@@ -228,6 +364,40 @@ export async function saveApplicationQuestion(
 			: {
 					deleteMany: {} // clear previous selections only
 				};
+
+		// For file uploads, we need to handle the case where the old file might have been deleted
+		// First, check if there's an existing answer and if its fileUploadId is still valid
+		if (qVer.type === QuestionType.FILE_UPLOAD) {
+			const existingAnswer = await prisma.answer.findUnique({
+				where: {
+					applicationId_questionVersionId: {
+						applicationId: application.id,
+						questionVersionId: qVer.id
+					}
+				},
+				select: { fileUploadId: true }
+			});
+
+			// If there's an existing answer with a fileUploadId, verify the file still exists
+			if (existingAnswer?.fileUploadId) {
+				const oldFileExists = await prisma.fileUpload.findUnique({
+					where: { id: existingAnswer.fileUploadId }
+				});
+
+				// If the old file was deleted, clear the reference first
+				if (!oldFileExists) {
+					await prisma.answer.update({
+						where: {
+							applicationId_questionVersionId: {
+								applicationId: application.id,
+								questionVersionId: qVer.id
+							}
+						},
+						data: { fileUploadId: null }
+					});
+				}
+			}
+		}
 
 		// update or create answer
 		await prisma.answer.upsert({

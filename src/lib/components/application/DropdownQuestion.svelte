@@ -39,6 +39,7 @@
 			bind:value
 			class="w-full rounded-md border border-blue-600 px-3 py-2 shadow-sm focus:border-blue-700 focus:ring-blue-700 focus:outline-none"
 		>
+			<option value="">Choose answer</option>
 			{#each question.options as option}
 				<option value={option.id}>{option.text}</option>
 			{/each}

@@ -14,7 +14,7 @@
 
 	let { data }: { data: PageData } = $props();
 
-	const { formWithAnswers } = data;
+	const { formWithAnswers, isReadOnly } = data;
 </script>
 
 <svelte:head>
@@ -42,6 +42,11 @@
 						</h1>
 					</div>
 				</div>
+				{#if !isReadOnly && formWithAnswers.status === 'DRAFT'}
+					<p class="w-fit rounded-md bg-red-100 p-2 px-4 text-sm text-red-800">
+						This submission is in progress and the applicant can still edit their answers.
+					</p>
+				{/if}
 
 				<!-- Metadata Grid -->
 				<div class="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -120,7 +125,7 @@
 						<p class="mb-6 text-gray-700">{section.description}</p>
 					{/if}
 
-					{#each section.questions as question}
+					{#each section.questions.map( (q) => ({ required: q.required, answer: q.Answer[0], ...q.questionVersion }) ) as question}
 						<div class="mb-4 rounded-md border border-gray-100 bg-gray-50 p-4 shadow-sm">
 							{#if question.type === 'TEXT'}
 								<TextQuestion
@@ -149,19 +154,21 @@
 							{:else if question.type === 'CHECKBOX'}
 								<CheckboxQuestion
 									{question}
-									existingAnswer={question.answer?.selections.map((opt: { id: string }) => opt.id)}
+									existingAnswer={question.answer?.selectedOptions.map(
+										(opt: { option: { id: string } }) => opt.option.id
+									)}
 									readonly={true}
 								/>
 							{:else if question.type === 'MULTIPLE_CHOICE'}
 								<MultipleChoiceQuestion
 									{question}
-									existingAnswer={question.answer?.selections[0]?.id}
+									existingAnswer={question.answer?.selectedOptions[0]?.option.id}
 									readonly={true}
 								/>
 							{:else if question.type === 'DROPDOWN'}
 								<DropdownQuestion
 									{question}
-									existingAnswer={question.answer?.selections[0]?.id}
+									existingAnswer={question.answer?.selectedOptions[0]?.option.id}
 									readonly={true}
 								/>
 							{:else if question.type === 'FILE_UPLOAD'}
