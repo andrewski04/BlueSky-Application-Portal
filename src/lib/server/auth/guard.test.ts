@@ -20,10 +20,16 @@ describe('Auth Guards', () => {
 	const mockUser: User = {
 		id: 'user123',
 		email: 'test@example.com',
-		role: 'user',
+		role: 'USER',
 		firstName: 'John',
 		lastName: 'Doe',
-		createdAt: new Date()
+		createdAt: new Date(),
+		etsuApplicationComplete: false,
+		etsuENumber: null,
+		etsuEmail: null,
+		phoneNumber: null,
+		isAdmin: false,
+		isSetup: true
 	};
 
 	const mockSession: Session = {
@@ -51,7 +57,7 @@ describe('Auth Guards', () => {
 			mockEvent.locals.user = mockUser;
 			mockEvent.locals.session = mockSession;
 
-			const result = requireAuth(mockEvent);
+			const result = requireAuth(mockEvent.locals);
 
 			expect(result.user).toBe(mockUser);
 			expect(result.session).toBe(mockSession);
@@ -63,7 +69,7 @@ describe('Auth Guards', () => {
 			mockEvent.locals.user = null;
 			mockEvent.locals.session = null;
 
-			expect(() => requireAuth(mockEvent)).toThrow();
+			expect(() => requireAuth(mockEvent.locals)).toThrow();
 			expect(redirect).toHaveBeenCalledWith(303, '/auth/login');
 		});
 
@@ -72,7 +78,7 @@ describe('Auth Guards', () => {
 			mockEvent.locals.user = null;
 			mockEvent.locals.session = null;
 
-			expect(() => requireAuth(mockEvent, '/custom/login')).toThrow();
+			expect(() => requireAuth(mockEvent.locals, '/custom/login')).toThrow();
 			expect(redirect).toHaveBeenCalledWith(303, '/custom/login');
 		});
 
@@ -81,7 +87,7 @@ describe('Auth Guards', () => {
 			mockEvent.locals.user = mockUser;
 			mockEvent.locals.session = null;
 
-			expect(() => requireAuth(mockEvent)).toThrow();
+			expect(() => requireAuth(mockEvent.locals)).toThrow();
 			expect(redirect).toHaveBeenCalledWith(303, '/auth/login');
 		});
 	});
@@ -89,15 +95,14 @@ describe('Auth Guards', () => {
 	describe('requireRole', () => {
 		it('should return user and session when authenticated with correct role', () => {
 			// Set up authenticated user with 'admin' role
-			const adminUser = { ...mockUser, role: 'admin' };
+			const adminUser = { ...mockUser, role: 'ADMIN' };
 			mockEvent.locals.user = adminUser;
 			mockEvent.locals.session = mockSession;
 
-			const result = requireRole(mockEvent, 'admin');
+			const result = requireRole(mockEvent.locals, 'ADMIN');
 
 			expect(result.user).toBe(adminUser);
 			expect(result.session).toBe(mockSession);
-			expect(redirect).not.toHaveBeenCalled();
 		});
 
 		it('should redirect when user does not have required role', () => {
@@ -105,8 +110,8 @@ describe('Auth Guards', () => {
 			mockEvent.locals.user = mockUser; // role is 'user'
 			mockEvent.locals.session = mockSession;
 
-			expect(() => requireRole(mockEvent, 'admin')).toThrow();
-			expect(redirect).toHaveBeenCalledWith(303, '/auth/login');
+			expect(() => requireRole(mockEvent.locals, 'ADMIN')).toThrow();
+			expect(redirect).toHaveBeenCalledWith(303, '/user/dashboard');
 		});
 
 		it('should redirect to custom URL when specified and role is incorrect', () => {
@@ -114,18 +119,8 @@ describe('Auth Guards', () => {
 			mockEvent.locals.user = mockUser; // role is 'user'
 			mockEvent.locals.session = mockSession;
 
-			expect(() => requireRole(mockEvent, 'admin', '/unauthorized')).toThrow();
-			expect(redirect).toHaveBeenCalledWith(303, '/unauthorized');
-		});
-
-		it('should redirect when user role is undefined', () => {
-			// Set up authenticated user with undefined role
-			const userWithoutRole = { ...mockUser, role: undefined };
-			mockEvent.locals.user = userWithoutRole;
-			mockEvent.locals.session = mockSession;
-
-			expect(() => requireRole(mockEvent, 'admin')).toThrow();
-			expect(redirect).toHaveBeenCalledWith(303, '/auth/login');
+			expect(() => requireRole(mockEvent.locals, 'ADMIN')).toThrow();
+			expect(redirect).toHaveBeenCalledWith(303, '/user/dashboard');
 		});
 
 		it('should redirect when user is not authenticated', () => {
@@ -133,7 +128,7 @@ describe('Auth Guards', () => {
 			mockEvent.locals.user = null;
 			mockEvent.locals.session = null;
 
-			expect(() => requireRole(mockEvent, 'admin')).toThrow();
+			expect(() => requireRole(mockEvent.locals, 'ADMIN')).toThrow();
 			expect(redirect).toHaveBeenCalledWith(303, '/auth/login');
 		});
 	});

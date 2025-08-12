@@ -92,15 +92,35 @@ if %errorlevel% neq 0 (
 REM Wait for PostgreSQL to be ready
 echo.
 echo Waiting for PostgreSQL to start...
-:loop
+:postgres_loop
 timeout /t 3 /nobreak > nul
 call docker exec -i postgres pg_isready -U postgres
 if %errorlevel% neq 0 (
-    goto loop
+    goto postgres_loop
 )
 echo.
 echo PostgreSQL is ready!
 
+REM Wait for MinIO to be ready
+echo.
+echo Waiting for MinIO to start...
+:minio_loop
+timeout /t 3 /nobreak > nul
+curl -f http://localhost:9000/minio/health/live >nul 2>&1
+if %errorlevel% neq 0 (
+    goto minio_loop
+)
+echo.
+echo MinIO is ready!
+
+REM Initialize MinIO bucket
+echo.
+echo Initializing MinIO bucket...
+call node scripts/init-minio.js
+if %errorlevel% neq 0 (
+    echo Failed to initialize MinIO bucket
+    exit /b 1
+)
 
 REM Run Prisma migrations
 echo.
@@ -140,6 +160,7 @@ echo.
 echo Domains:
 echo - Development server: http://localhost:5173 (start server first)
 echo - pgAdmin: http://localhost:5050 (email: admin@example.com, password: admin)
+echo - MinIO Console: http://localhost:9001 (login: minioadmin / minioadmin)
 echo - MailDev: http://localhost:8080
 echo - Docs: http://localhost:3000
 echo.

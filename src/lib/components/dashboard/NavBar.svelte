@@ -38,9 +38,12 @@
 		</button>
 	</header>
 	<div class="nav-section h-[4px] w-full"></div>
-	<nav class="nav-section flex justify-center space-x-1 px-1 py-1 text-white md:space-x-2 md:px-3">
+	<nav
+		class="nav-section flex justify-center space-x-1 px-1 py-1 text-white select-none md:space-x-2 md:px-3"
+	>
 		{#each buttons as button}
 			<a
+				draggable="false"
 				href={button.href}
 				class="nav-link rounded px-1 py-1 text-xs font-medium md:px-3 md:text-sm {isActive(
 					button.href

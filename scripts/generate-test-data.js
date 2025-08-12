@@ -515,6 +515,7 @@ async function createPublishedForms(drafts, groups) {
 				closeDate:
 					Math.random() > 0.3 ? getRandomDateInFutureWeeks(8) : getRandomDateInPastWeeks(2), // 70% future, 30% past
 				active: Math.random() > 0.2, // 80% are active
+				adminName: draft.name + ' (Version 1)',
 				sections: {
 					create: draftWithDetails.sections.map((section) => ({
 						slug: section.slug,

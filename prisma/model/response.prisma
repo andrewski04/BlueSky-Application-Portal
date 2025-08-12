@@ -2,8 +2,6 @@
 enum ApplicationStatus {
   DRAFT
   SUBMITTED
-  APPROVED
-  REJECTED
 }
 
 /// ─────────────────────────────────────────────────────────────────────────────

@@ -6,14 +6,14 @@
 		value = 'all',
 		placeholder = 'Select an option',
 		label = '',
-		width = 'min-w-[200px]',
+		class: classes = 'min-w-[200px]',
 		onChange = () => {}
 	} = $props<{
 		options: Array<{ id: string; name: string; adminName?: string }>;
 		value?: string;
 		placeholder?: string;
 		label?: string;
-		width?: string;
+		class?: string;
 		onChange?: (value: string) => void;
 	}>();
 
@@ -92,7 +92,7 @@
 	);
 </script>
 
-<div class="relative {width}" bind:this={dropdownRef}>
+<div class="relative {classes}" bind:this={dropdownRef}>
 	{#if label}
 		<p class="mb-1 block text-sm font-medium text-gray-700">{label}</p>
 	{/if}
@@ -100,7 +100,7 @@
 	<button
 		type="button"
 		onclick={toggleDropdown}
-		class="flex w-full items-center justify-between rounded border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 focus:border-blue-500 focus:outline-none"
+		class=" flex w-full cursor-pointer items-center justify-between rounded border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 focus:border-blue-500 focus:outline-none"
 	>
 		<span class="truncate">
 			{#if selectedOption}

@@ -14,13 +14,14 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 	const page = parseInt(url.searchParams.get('page') || '1');
 	const limit = 20; // Show 20 responses per page
 	const search = url.searchParams.get('search') || '';
-	const statusFilter = url.searchParams.get('status') || 'all';
+	const statusFilter = url.searchParams.get('status') || 'SUBMITTED';
 	const groupFilter = url.searchParams.get('group') || 'all';
 	const formFilter = url.searchParams.get('form') || 'all';
 	const dateFromFilter = url.searchParams.get('dateFrom') || '';
 	const dateToFilter = url.searchParams.get('dateTo') || '';
 	const sortKey = url.searchParams.get('sort') || 'updatedAt';
 	const sortDirection = url.searchParams.get('direction') || 'desc';
+	const showAdminSubmissions = url.searchParams.get('showAdminSubmissions') === 'true';
 
 	// Calculate offset
 	const offset = (page - 1) * limit;
@@ -44,7 +45,7 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 	}
 
 	if (statusFilter !== 'all') {
-		where.status = statusFilter as 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'REJECTED';
+		where.status = statusFilter as 'DRAFT' | 'SUBMITTED';
 	}
 
 	if (groupFilter !== 'all') {
@@ -74,6 +75,17 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 		} else {
 			where.OR = dateFilters;
 		}
+	}
+
+	// Filter out admin submissions if showAdminSubmissions is false
+	if (!showAdminSubmissions) {
+		where.user = {
+			role: { not: 'ADMIN' }
+		};
+	} else {
+		where.user = {
+			role: { in: ['ADMIN', 'USER'] }
+		};
 	}
 
 	// Build orderBy clause for sorting
@@ -181,7 +193,8 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 			dateFrom: dateFromFilter,
 			dateTo: dateToFilter,
 			sort: sortKey,
-			direction: sortDirection
+			direction: sortDirection,
+			showAdminSubmissions
 		}
 	});
 };

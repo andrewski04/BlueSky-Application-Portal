@@ -261,6 +261,7 @@ export async function getFormDraftPreview(formId: string): Promise<Result<appPub
 	// Transform draft form to match the structure of getApplicationFormWithAnswers
 	const transformedForm = {
 		...draft,
+		adminName: draft.name,
 		active: true,
 		archived: false,
 		closeDate: null,

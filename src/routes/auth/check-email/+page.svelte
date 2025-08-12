@@ -35,10 +35,13 @@
 	<div class="check-email-prompt mx-auto my-8 w-full max-w-lg rounded-lg p-12 shadow-lg">
 		<div class="text-inverted text-center">
 			<h1 class="mb-4 text-3xl font-bold text-white">Check your email</h1>
-			<p class="mb-1 text-white">
+			<p class="mb-2 text-white">
 				We've sent a login link to <strong>{data.email}</strong>
 			</p>
-			<p class="mb-6 text-white">You can close this page if the link is opened on this device.</p>
+			<p class="mb-6 text-sm text-white">
+				If the link is opened on this device, you will be automatically logged in and can close this
+				page.
+			</p>
 			<div class="my-6 flex items-center">
 				<hr class="flex-grow border-t border-white" />
 				<span class="bg-primary-800 mx-4 rounded px-2 text-sm text-white">OR</span>
@@ -47,8 +50,8 @@
 
 			<h2 class="mb-3 text-xl font-semibold text-white">Enter verification code</h2>
 			<p class="mb-4 text-white">
-				If you're using a different device, open the link on that device to get a verification code,
-				then enter it below:
+				If you open the link on a different device, you will be shown a verification code to enter
+				below:
 			</p>
 
 			<form

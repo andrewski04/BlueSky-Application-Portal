@@ -6,7 +6,7 @@
 
 	// Local state for form inputs
 	let search = $state('');
-	let statusFilter = $state<'all' | 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'REJECTED'>('all');
+	let statusFilter = $state<'all' | 'DRAFT' | 'SUBMITTED'>('SUBMITTED');
 	let groupFilter = $state<string>('all');
 	let formFilter = $state<string>('all');
 	let dateFromFilter = $state<string>('');
@@ -15,6 +15,7 @@
 		'updatedAt'
 	);
 	let sortDirection = $state<'asc' | 'desc'>('desc');
+	let showAdminSubmissions = $state(false);
 
 	// Data state
 	let applicationResponses = $state<any[]>([]);
@@ -41,13 +42,14 @@
 		try {
 			const params = new URLSearchParams();
 			if (search) params.set('search', search);
-			if (statusFilter !== 'all') params.set('status', statusFilter);
+			if (statusFilter !== 'SUBMITTED') params.set('status', statusFilter);
 			if (groupFilter !== 'all') params.set('group', groupFilter);
 			if (formFilter !== 'all') params.set('form', formFilter);
 			if (dateFromFilter) params.set('dateFrom', dateFromFilter);
 			if (dateToFilter) params.set('dateTo', dateToFilter);
 			if (sortKey !== 'updatedAt') params.set('sort', sortKey);
 			if (sortDirection !== 'desc') params.set('direction', sortDirection);
+			if (showAdminSubmissions) params.set('showAdminSubmissions', 'true');
 
 			// Get current page from URL or pagination state
 			const urlParams = new URLSearchParams(window.location.search);
@@ -100,8 +102,7 @@
 		// Initialize state from URL parameters
 		const urlParams = new URLSearchParams(window.location.search);
 		search = urlParams.get('search') || '';
-		statusFilter =
-			(urlParams.get('status') as 'all' | 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'REJECTED') || 'all';
+		statusFilter = (urlParams.get('status') as 'all' | 'DRAFT' | 'SUBMITTED') || 'SUBMITTED';
 		groupFilter = urlParams.get('group') || 'all';
 		formFilter = urlParams.get('form') || 'all';
 		dateFromFilter = urlParams.get('dateFrom') || '';
@@ -116,6 +117,7 @@
 				| 'form'
 				| 'group') || 'updatedAt';
 		sortDirection = (urlParams.get('direction') as 'asc' | 'desc') || 'desc';
+		showAdminSubmissions = urlParams.get('showAdminSubmissions') === 'true';
 
 		// Initialize pagination state from URL
 		const pageParam = urlParams.get('page');
@@ -148,13 +150,14 @@
 	async function updateURL() {
 		const params = new URLSearchParams();
 		if (search) params.set('search', search);
-		if (statusFilter !== 'all') params.set('status', statusFilter);
+		if (statusFilter !== 'SUBMITTED') params.set('status', statusFilter);
 		if (groupFilter !== 'all') params.set('group', groupFilter);
 		if (formFilter !== 'all') params.set('form', formFilter);
 		if (dateFromFilter) params.set('dateFrom', dateFromFilter);
 		if (dateToFilter) params.set('dateTo', dateToFilter);
 		if (sortKey !== 'updatedAt') params.set('sort', sortKey);
 		if (sortDirection !== 'desc') params.set('direction', sortDirection);
+		if (showAdminSubmissions) params.set('showAdminSubmissions', 'true');
 
 		// Get current page from pagination state or default to 1
 		const currentPage = pagination?.currentPage || 1;
@@ -175,7 +178,7 @@
 
 			const params = new URLSearchParams();
 			if (search) params.set('search', search);
-			if (statusFilter !== 'all') params.set('status', statusFilter);
+			if (statusFilter !== 'SUBMITTED') params.set('status', statusFilter);
 			if (sortKey !== 'updatedAt') params.set('sort', sortKey);
 			if (sortDirection !== 'desc') params.set('direction', sortDirection);
 			if (pageNum > 1) params.set('page', pageNum.toString());
@@ -221,13 +224,14 @@
 
 		const params = new URLSearchParams();
 		if (search) params.set('search', search);
-		if (statusFilter !== 'all') params.set('status', statusFilter);
+		if (statusFilter !== 'SUBMITTED') params.set('status', statusFilter);
 		if (groupFilter !== 'all') params.set('group', groupFilter);
 		if (formFilter !== 'all') params.set('form', formFilter);
 		if (dateFromFilter) params.set('dateFrom', dateFromFilter);
 		if (dateToFilter) params.set('dateTo', dateToFilter);
 		if (sortKey !== 'updatedAt') params.set('sort', sortKey);
 		if (sortDirection !== 'desc') params.set('direction', sortDirection);
+		if (showAdminSubmissions) params.set('showAdminSubmissions', 'true');
 
 		const url = params.toString() ? `?${params.toString()}` : '';
 		await goto(`/admin/submissions${url}`);
@@ -237,11 +241,12 @@
 
 	async function clearFilters() {
 		search = '';
-		statusFilter = 'all';
+		statusFilter = 'SUBMITTED';
 		groupFilter = 'all';
 		formFilter = 'all';
 		dateFromFilter = '';
 		dateToFilter = '';
+		showAdminSubmissions = false;
 		await handleFilter();
 	}
 
@@ -318,7 +323,7 @@
 			</div>
 
 			<!-- Search bar and filters -->
-			<div class="px-6 pt-4">
+			<div class=" px-6 pt-4">
 				<!-- Search row -->
 				<div class="mb-4 flex items-center space-x-2">
 					<input
@@ -340,13 +345,11 @@
 					<select
 						bind:value={statusFilter}
 						onchange={async () => await handleFilter()}
-						class="rounded border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 focus:border-blue-500 focus:outline-none"
+						class=" cursor-pointer rounded border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 focus:border-blue-500 focus:outline-none"
 					>
 						<option value="all">All Statuses</option>
 						<option value="DRAFT">Draft</option>
 						<option value="SUBMITTED">Submitted</option>
-						<option value="APPROVED">Approved</option>
-						<option value="REJECTED">Rejected</option>
 					</select>
 
 					<!-- Group Filter -->
@@ -354,7 +357,7 @@
 						options={[{ id: 'all', name: 'All Groups' }, ...availableGroups]}
 						value={groupFilter}
 						placeholder="All Groups"
-						width="min-w-[250px]"
+						class="w-[200px]"
 						onChange={async (newValue) => {
 							groupFilter = newValue;
 							await handleFilter();
@@ -366,7 +369,7 @@
 						options={[{ id: 'all', name: 'All Forms' }, ...availableForms]}
 						value={formFilter}
 						placeholder="All Forms"
-						width="min-w-[300px]"
+						class="w-[200px]"
 						onChange={async (newValue) => {
 							formFilter = newValue;
 							await handleFilter();
@@ -393,24 +396,35 @@
 					</div>
 
 					<!-- Clear Filters Button -->
-					<button
-						onclick={clearFilters}
-						class="rounded border border-gray-300 bg-white px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 focus:border-blue-500 focus:outline-none"
-					>
-						Clear Filters
-					</button>
+					<button onclick={clearFilters} class="btn-red px-3 py-2 text-sm"> Clear Filters </button>
 				</div>
 			</div>
 
-			<!-- Results count and pagination info -->
-			{#if pagination}
-				<div class="px-6 py-2 text-sm text-gray-600">
-					Showing {(pagination.currentPage - 1) * pagination.limit + 1} to {Math.min(
-						pagination.currentPage * pagination.limit,
-						pagination.totalCount
-					)} of {pagination.totalCount} submissions
+			<div class="flex space-x-8 px-6 py-2">
+				<!-- Results count and pagination info -->
+				{#if pagination}
+					<div class="text-sm text-gray-600">
+						Showing {(pagination.currentPage - 1) * pagination.limit + 1} to {Math.min(
+							pagination.currentPage * pagination.limit,
+							pagination.totalCount
+						)} of {pagination.totalCount} submissions
+					</div>
+				{/if}
+				<div class="ml-2 flex items-center space-x-2">
+					<input
+						type="checkbox"
+						bind:checked={showAdminSubmissions}
+						id="showAdminSubmissions"
+						onchange={async () => {
+							await handleFilter();
+						}}
+						class="h-4 w-4 cursor-pointer"
+					/>
+					<label for="showAdminSubmissions" class="w-full cursor-pointer text-center text-sm">
+						Include admin submissions
+					</label>
 				</div>
-			{/if}
+			</div>
 
 			<!-- Top Pagination Controls -->
 			{#if pagination && pagination.totalPages > 1}
@@ -429,7 +443,7 @@
 						<button
 							onclick={async () => await goToPage(pagination.currentPage - 1)}
 							disabled={pagination.currentPage === 1}
-							class="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+							class="btn-red rounded-md px-3 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50"
 						>
 							Previous
 						</button>
@@ -451,7 +465,7 @@
 						<button
 							onclick={async () => await goToPage(pagination.currentPage + 1)}
 							disabled={pagination.currentPage === pagination.totalPages}
-							class="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+							class="btn-blue rounded-md px-3 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50"
 						>
 							Next
 						</button>
@@ -565,10 +579,6 @@
 											<span class="rounded-lg bg-yellow-300 px-2 py-1 text-yellow-800">Draft</span>
 										{:else if response.status === 'SUBMITTED'}
 											<span class="rounded-lg bg-blue-300 px-2 py-1 text-blue-800">Submitted</span>
-										{:else if response.status === 'APPROVED'}
-											<span class="rounded-lg bg-green-300 px-2 py-1 text-green-800">Approved</span>
-										{:else if response.status === 'REJECTED'}
-											<span class="rounded-lg bg-red-300 px-2 py-1 text-red-800">Rejected</span>
 										{/if}
 									</td>
 									<td class="px-4 py-4 text-sm text-black">
@@ -721,7 +731,7 @@
 						<button
 							onclick={async () => await goToPage(pagination.currentPage - 1)}
 							disabled={pagination.currentPage === 1}
-							class="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+							class="btn-red rounded-md px-3 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50"
 						>
 							Previous
 						</button>
@@ -743,7 +753,7 @@
 						<button
 							onclick={async () => await goToPage(pagination.currentPage + 1)}
 							disabled={pagination.currentPage === pagination.totalPages}
-							class="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+							class="btn-blue rounded-md px-3 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50"
 						>
 							Next
 						</button>
