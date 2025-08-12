@@ -17,6 +17,7 @@ model User {
   etsuEmail             String?
   phoneNumber           String?
   role                UserRole              @default(USER)
+  isAdmin             Boolean               @default(false)
   sessions            Session[]
   isSetup             Boolean               @default(false)
   createdAt           DateTime              @default(now())

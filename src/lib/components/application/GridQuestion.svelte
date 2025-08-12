@@ -86,21 +86,21 @@
 	}
 </script>
 
-<div>
+<div class=" w-full">
 	<fieldset>
-		<legend class="mb-2 block text-lg font-bold text-black">
+		<legend class="mb-4 block text-sm font-bold text-gray-700">
 			{question.prompt}
 			{#if required}<span class="text-red-500">*</span>{/if}
 		</legend>
 
-		<div class="space-y-2">
-			<div class="">
-				<table class="w-full table-fixed">
+		<div class="mb-4 flex w-full flex-col items-center space-y-2">
+			<div class="max-w-full rounded-lg border-2 border-gray-300 p-4">
+				<table class="max-w-full min-w-1/2 table-auto">
 					<thead>
 						<tr class="border-b border-gray-300 pb-3">
-							<th class="pb-3 text-left"></th>
+							<th class=" pb-3 text-left"></th>
 							{#each optionTexts as optionText}
-								<th class="truncate px-4 pb-3 text-center text-xs font-medium text-gray-600">
+								<th class="px-4 pb-3 text-center text-xs font-medium text-gray-600">
 									{optionText}
 								</th>
 							{/each}
@@ -109,7 +109,7 @@
 					<tbody>
 						{#each optionsByGroup as group}
 							<tr class="transition-colors hover:bg-white">
-								<td class="truncate py-2 pr-4 text-sm font-medium text-gray-700">
+								<td class="py-2 text-sm font-medium text-gray-700">
 									{group.groupText}
 								</td>
 								{#each optionTexts as optionText}

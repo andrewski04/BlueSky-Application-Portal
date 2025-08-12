@@ -269,7 +269,7 @@ async function createUsers() {
 				firstName,
 				lastName,
 				role: 'USER',
-				isSetup: Math.random() > 0.2, // 80% are setup
+				isSetup: true,
 				etsuApplicationComplete: Math.random() > 0.3, // 70% have completed ETSU app
 				etsuEmail: sampleETSUEmails[i],
 				etsuENumber: sampleENumbers[i],
