@@ -3,13 +3,15 @@
 
 	let {
 		question,
+		required,
 		existingAnswer,
 		value = $bindable(existingAnswer ?? undefined),
 		onchange,
 		readonly = false,
 		error = $bindable<string | null>(null)
 	}: {
-		question: QuestionVersion & { required: boolean };
+		question: QuestionVersion;
+		required: boolean;
 		existingAnswer: number | null | undefined;
 		value?: number | null | undefined;
 		onchange?: (value: number | null | undefined) => void;
@@ -86,7 +88,7 @@
 <div>
 	<label for={question.id} class="mb-1 block text-sm font-medium text-gray-700">
 		{question.prompt}
-		{#if question.required}<span class="text-red-500">*</span>{/if}
+		{#if required}<span class="text-red-500">*</span>{/if}
 	</label>
 	{#if readonly}
 		<div class="w-full rounded-md border border-gray-300 bg-gray-100 px-3 py-2 text-gray-700">

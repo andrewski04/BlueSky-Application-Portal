@@ -22,6 +22,7 @@
 	let editFormPopup = $state(false);
 	let name = $state(applicationForm?.name || '');
 	let description = $state(applicationForm?.description || '');
+	let adminName = $state(applicationForm?.adminName || '');
 
 	// Date range checkbox states
 	let noOpenDate = $state(!applicationForm?.openDate);
@@ -74,8 +75,8 @@
 		return now.toISOString().slice(0, 16);
 	}
 
-	// Clear input values when checkboxes are checked
-	$effect(() => {
+	// Functions to handle checkbox changes
+	function handleNoOpenDateChange() {
 		if (noOpenDate) {
 			if (openDateInput) {
 				openDateInput.value = '';
@@ -92,9 +93,9 @@
 					: currentDate(0, 0);
 			}
 		}
-	});
+	}
 
-	$effect(() => {
+	function handleNoCloseDateChange() {
 		if (noCloseDate) {
 			if (closeDateInput) {
 				closeDateInput.value = '';
@@ -111,24 +112,27 @@
 					: currentDate(23, 59);
 			}
 		}
-	});
+	}
 
 	function handleEditGroup(group: any) {
 		editingGroup = { id: group.id, name: group.name, description: group.description || '' };
 	}
 
-	// Update local groups when server data changes
-	$effect(() => {
+	// Functions to update state when needed
+	function updateLocalGroups() {
 		if (groups) {
 			localGroups = [...groups];
 		}
-	});
+	}
 
-	// Update checkbox states when applicationForm changes
-	$effect(() => {
+	function updateCheckboxStates() {
 		noOpenDate = !applicationForm?.openDate;
 		noCloseDate = !applicationForm?.closeDate;
-	});
+	}
+
+	// Initialize state when component loads
+	updateLocalGroups();
+	updateCheckboxStates();
 
 	const notypecheck = (x: any) => x;
 </script>
@@ -208,6 +212,7 @@
 								aria-label="Edit published form"
 								onclick={() => {
 									editFormPopup = true;
+									updateCheckboxStates();
 								}}
 							>
 								<img src="/icons/edit.svg" alt="Edit" class="h-5 w-5" />
@@ -225,12 +230,20 @@
 				</div>
 
 				<!-- Metadata Grid -->
-				<div class="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
+				<div class="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-6">
 					<div class="rounded-lg bg-gray-50 p-4">
 						<h3 class="mb-1 text-sm font-semibold tracking-wide text-gray-600 uppercase">
 							Form ID
 						</h3>
 						<p class="font-mono text-sm text-gray-800">{applicationForm.id}</p>
+					</div>
+					<div class="rounded-lg bg-gray-50 p-4">
+						<h3 class="mb-1 text-sm font-semibold tracking-wide text-gray-600 uppercase">
+							Admin Name
+						</h3>
+						<p class="text-sm text-gray-800">
+							{applicationForm.adminName || 'No admin name set'}
+						</p>
 					</div>
 					<div class="rounded-lg bg-gray-50 p-4">
 						<h3 class="mb-1 text-sm font-semibold tracking-wide text-gray-600 uppercase">
@@ -367,11 +380,23 @@
 					</form>
 
 					{#if !applicationForm?.archived}
-						<button class="btn-blue px-6 py-2 text-lg" onclick={() => (showDateRange = true)}>
+						<button
+							class="btn-blue px-6 py-2 text-lg"
+							onclick={() => {
+								showDateRange = true;
+								updateCheckboxStates();
+							}}
+						>
 							Edit Date Range
 						</button>
 
-						<button class="btn-blue px-6 py-2 text-lg" onclick={() => (showGroup = true)}>
+						<button
+							class="btn-blue px-6 py-2 text-lg"
+							onclick={() => {
+								showGroup = true;
+								updateLocalGroups();
+							}}
+						>
 							Edit Group
 						</button>
 					{/if}
@@ -435,7 +460,21 @@
 {/if}
 
 {#if editFormPopup}
-	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+	<div
+		class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+		role="dialog"
+		onclick={(e) => {
+			if (e.target === e.currentTarget) {
+				editFormPopup = false;
+			}
+		}}
+		onkeydown={(e) => {
+			if (e.key === 'Escape') {
+				editFormPopup = false;
+			}
+		}}
+		tabindex="-1"
+	>
 		<div class="w-full max-w-xl rounded-lg bg-white p-6 shadow-2xl">
 			<h2 class="mb-2 text-center text-2xl font-bold">Edit Published Form</h2>
 			<form
@@ -445,11 +484,19 @@
 				use:enhance={(formData) => {
 					const newName = formData.formData.get('name');
 					const newDescription = formData.formData.get('description');
+					const newAdminName = formData.formData.get('adminName');
 					return async ({ result }) => {
 						if (result.type === 'success') {
 							editFormPopup = false;
 							name = newName as string;
 							description = (newDescription as string) || '';
+							adminName = (newAdminName as string) || '';
+							// Update the applicationForm object so the UI reflects the changes immediately
+							if (applicationForm) {
+								applicationForm.name = newName as string;
+								applicationForm.description = (newDescription as string) || '';
+								applicationForm.adminName = (newAdminName as string) || '';
+							}
 							addNotif(result.data?.message as string, 'success');
 						} else if (result.type === 'failure') {
 							addNotif(result.data?.error as string, 'error');
@@ -458,7 +505,9 @@
 				}}
 			>
 				<div class="form-group flex flex-col gap-2">
-					<label for="name" class="font-semibold">Name<span class="text-red-600">*</span></label>
+					<label for="name" class="font-semibold"
+						>Display Name<span class="text-red-600">*</span></label
+					>
 					<input
 						type="text"
 						id="name"
@@ -466,6 +515,20 @@
 						class="form-control rounded border-1 border-blue-500 px-4 py-2 text-lg focus:ring-2 focus:ring-blue-300 focus:outline-none"
 						value={name}
 						required
+					/>
+				</div>
+				<div class="form-group flex flex-col gap-2">
+					<label for="adminName" class="font-semibold">Admin Name</label>
+					<p class="text-sm text-gray-500">
+						Optional for sorting forms. This will not be displayed to students.
+					</p>
+					<input
+						type="text"
+						id="adminName"
+						name="adminName"
+						class="form-control rounded border-1 border-blue-500 px-4 py-2 text-lg focus:ring-2 focus:ring-blue-300 focus:outline-none"
+						value={adminName}
+						placeholder="Admin-only name for sorting forms"
 					/>
 				</div>
 				<div class="description flex flex-col gap-2">
@@ -495,7 +558,25 @@
 {/if}
 <!-- Date Range Modal -->
 {#if showDateRange && applicationForm}
-	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+	<div
+		class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+		role="dialog"
+		onclick={(e) => {
+			if (e.target === e.currentTarget) {
+				showDateRange = false;
+				noOpenDate = !applicationForm?.openDate;
+				noCloseDate = !applicationForm?.closeDate;
+			}
+		}}
+		onkeydown={(e) => {
+			if (e.key === 'Escape') {
+				showDateRange = false;
+				noOpenDate = !applicationForm?.openDate;
+				noCloseDate = !applicationForm?.closeDate;
+			}
+		}}
+		tabindex="-1"
+	>
 		<div class="relative w-full max-w-xl rounded-lg bg-white p-6 shadow-2xl">
 			<h2 class="mb-2 text-center text-2xl font-bold">Edit Date Range</h2>
 			<p class="mb-2 text-center text-sm text-gray-500">
@@ -594,6 +675,7 @@
 							id="noOpenDate"
 							bind:checked={noOpenDate}
 							class="rounded border-gray-300"
+							onclick={handleNoOpenDateChange}
 						/>
 						<label for="noOpenDate" class="font-semibold">No Open Date</label>
 					</div>
@@ -627,6 +709,7 @@
 							id="noCloseDate"
 							bind:checked={noCloseDate}
 							class="rounded border-gray-300"
+							onclick={handleNoCloseDateChange}
 						/>
 						<label for="noCloseDate" class="font-semibold">No Close Date</label>
 					</div>
@@ -656,7 +739,23 @@
 
 <!-- Group Modal -->
 {#if showGroup && groups}
-	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+	<div
+		class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+		role="dialog"
+		onclick={(e) => {
+			if (e.target === e.currentTarget) {
+				showGroup = false;
+				resetGroupForms();
+			}
+		}}
+		onkeydown={(e) => {
+			if (e.key === 'Escape') {
+				showGroup = false;
+				resetGroupForms();
+			}
+		}}
+		tabindex="-1"
+	>
 		<div class="relative w-full max-w-4xl rounded-lg bg-white p-6 shadow-2xl">
 			<div class="mb-4 flex items-center justify-between">
 				<h2 class="text-2xl font-bold">Group Management</h2>
@@ -700,6 +799,7 @@
 										// Reset form
 										newGroup.name = '';
 										newGroup.description = '';
+										updateLocalGroups();
 										addNotif('Group created successfully', 'success');
 									} else if (result.type === 'failure') {
 										addNotif(result.data?.error as string, 'error');
@@ -759,6 +859,7 @@
 
 										// Clear editing state
 										editingGroup = null;
+										updateLocalGroups();
 										addNotif('Group updated successfully', 'success');
 									} else if (result.type === 'failure') {
 										addNotif(result.data?.error as string, 'error');
@@ -853,6 +954,7 @@
 																}
 																return g;
 															});
+															updateLocalGroups();
 															addNotif('Form added to group successfully', 'success');
 														} else if (result.type === 'failure') {
 															addNotif(result.data?.error as string, 'error');
@@ -882,6 +984,7 @@
 																}
 																return g;
 															});
+															updateLocalGroups();
 															addNotif('Form removed from group successfully', 'success');
 														} else if (result.type === 'failure') {
 															addNotif(result.data?.error as string, 'error');
@@ -910,6 +1013,7 @@
 														if (applicationForm?.group?.id === groupId) {
 															applicationForm.group = null;
 														}
+														updateLocalGroups();
 														addNotif('Group deleted successfully', 'success');
 													} else if (result.type === 'failure') {
 														addNotif(result.data?.error as string, 'error');

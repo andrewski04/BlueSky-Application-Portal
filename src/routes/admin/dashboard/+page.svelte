@@ -242,6 +242,15 @@
 						<div class="ml-4">
 							<p class="text-sm font-medium text-gray-600">Total Submissions</p>
 							<p class="text-2xl font-semibold text-gray-900">{totalSubmissions}</p>
+							<p class="text-xs text-gray-500">
+								{(() => {
+									const submitted =
+										submissionStats.find((s) => s.status === 'SUBMITTED')?._count.status || 0;
+									const draft =
+										submissionStats.find((s) => s.status === 'DRAFT')?._count.status || 0;
+									return `${submitted} submitted, ${draft} draft`;
+								})()}
+							</p>
 						</div>
 					</div>
 				</div>
@@ -532,7 +541,7 @@
 								>
 									<span class={day.isToday ? 'font-bold' : ''}>{day.day}</span>
 									{#if day.events.length > 0}
-										<div class="absolute bottom-1 left-1/2 -translate-x-1/2 transform">
+										<div class="absolute bottom-0.5 left-1/2 -translate-x-1/2 transform">
 											<div class="h-2 w-2 rounded-full bg-blue-500"></div>
 										</div>
 									{/if}
@@ -615,29 +624,6 @@
 								>
 									Create announcement
 								</button>
-							</div>
-						{/if}
-					</div>
-				</div>
-
-				<!-- Submission Statistics -->
-				<div class="content-card">
-					<div class="section-header p-6">
-						<h3 class="text-lg font-semibold text-gray-800">Submission Statistics</h3>
-					</div>
-					<div class="p-6 pt-0">
-						{#if submissionStats.length > 0}
-							<div class="space-y-3">
-								{#each submissionStats as stat}
-									<div class="flex items-center justify-between">
-										<span class="text-sm text-gray-600">{getStatusText(stat.status)}</span>
-										<span class="text-sm font-medium text-gray-900">{stat._count.status}</span>
-									</div>
-								{/each}
-							</div>
-						{:else}
-							<div class="py-4 text-center">
-								<p class="text-sm text-gray-500">No submissions yet</p>
 							</div>
 						{/if}
 					</div>

@@ -5,8 +5,8 @@
 
 	type FormQuestion = Prisma.QuestionLinkDraftGetPayload<{
 		include: {
-			questionDraft: { include: { options: true } };
-			questionVersion: { include: { options: true } };
+			questionDraft: { include: { options: { include: { questionOptionGroup: true } } } };
+			questionVersion: { include: { options: { include: { questionOptionGroup: true } } } };
 		};
 	}>;
 
@@ -27,12 +27,32 @@
 	} = $props();
 
 	function getQuestionData() {
-		return question.questionDraft || question.questionVersion;
+		const questionData = question.questionDraft || question.questionVersion;
+		const groupSet = new Set<string>();
+		const optionSet = new Set<string>();
+
+		for (const opt of questionData.options) {
+			if (opt.questionOptionGroup?.text) {
+				groupSet.add(opt.questionOptionGroup.text);
+			}
+			optionSet.add(opt.text);
+		}
+
+		return {
+			...questionData,
+			optionGroups: Array.from(groupSet),
+			options: Array.from(optionSet)
+		};
 	}
 
 	function needsOptions(type: string): boolean {
 		return ['MULTIPLE_CHOICE', 'DROPDOWN', 'CHECKBOX'].includes(type);
 	}
+
+	function needsOptionGroups(type: string): boolean {
+		return ['MULTIPLE_CHOICE_GRID', 'CHECKBOX_GRID'].includes(type);
+	}
+
 	function needsLengthValidation(type: string): boolean {
 		return ['TEXT', 'PARAGRAPH'].includes(type);
 	}
@@ -161,10 +181,45 @@
 							>
 								{index + 1}
 							</span>
-							<span class="text-sm text-gray-800">{option.text}</span>
+							<span class="text-sm text-gray-800">{option}</span>
 						</div>
 					{/each}
 				</div>
+			</div>
+		{/if}
+
+		{#if needsOptionGroups(getQuestionData().type) && getQuestionData().options.length > 0}
+			<div class="">
+				<table class="w-full table-fixed">
+					<thead>
+						<tr class="border-b border-gray-300 pb-3">
+							<th class=" pb-3 text-left"></th>
+							{#each getQuestionData().options as option}
+								<th class="truncate px-4 pb-3 text-center text-xs font-medium text-gray-600">
+									{option}
+								</th>
+							{/each}
+						</tr>
+					</thead>
+					<tbody>
+						{#each getQuestionData().optionGroups as optionGroup}
+							<tr class="transition-colors hover:bg-white">
+								<td class="truncate py-2 pr-4 text-sm font-medium text-gray-700">
+									{optionGroup}
+								</td>
+								{#each getQuestionData().options as option, index}
+									<td class="px-2 py-2 text-center">
+										<span
+											class="mx-auto flex h-6 w-6 items-center justify-center rounded-full bg-blue-100 text-xs font-semibold text-blue-700"
+										>
+											{index + 1}
+										</span>
+									</td>
+								{/each}
+							</tr>
+						{/each}
+					</tbody>
+				</table>
 			</div>
 		{/if}
 

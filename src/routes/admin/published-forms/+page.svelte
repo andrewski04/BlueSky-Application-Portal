@@ -27,7 +27,7 @@
 
 	// Sorting state
 	let sortKey = $state<
-		'id' | 'name' | 'publishedAt' | 'status' | 'responses' | 'openDate' | 'closeDate'
+		'id' | 'name' | 'adminName' | 'publishedAt' | 'status' | 'responses' | 'openDate' | 'closeDate'
 	>('publishedAt');
 	let sortDirection = $state<'asc' | 'desc'>('desc');
 
@@ -55,6 +55,7 @@
 			forms = forms.filter((form) => {
 				return (
 					form.name?.toLowerCase().includes(q) ||
+					form.adminName?.toLowerCase().includes(q) ||
 					form.id?.toLowerCase().includes(q) ||
 					form.description?.toLowerCase().includes(q)
 				);
@@ -152,7 +153,7 @@
 				<div class="flex items-end justify-between px-6 pt-4">
 					<input
 						type="text"
-						placeholder="Search by name, id, or description..."
+						placeholder="Search by display name, private name, id, or description..."
 						bind:value={search}
 						class="search-input w-full max-w-xs px-3 py-2 text-sm focus:outline-none"
 					/>
@@ -209,7 +210,17 @@
 										class="cursor-pointer p-4 text-left font-semibold tracking-wide text-nowrap text-gray-700 uppercase select-none"
 										onclick={() => setSort('name')}
 									>
-										Name {sortKey === 'name' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
+										Display Name {sortKey === 'name' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
+									</th>
+									<th
+										class="cursor-pointer p-4 text-left font-semibold tracking-wide text-nowrap text-gray-700 uppercase select-none"
+										onclick={() => setSort('adminName')}
+									>
+										Private Name {sortKey === 'adminName'
+											? sortDirection === 'asc'
+												? '▲'
+												: '▼'
+											: ''}
 									</th>
 
 									<th
@@ -260,6 +271,7 @@
 									<tr class="hover:bg-gray-100">
 										<td class="px-4 py-4 text-sm text-black">{form.id.slice(0, 6)}...</td>
 										<td class="px-4 py-4 text-sm text-black">{form.name}</td>
+										<td class="px-4 py-4 text-sm text-black">{form.adminName || 'N/A'}</td>
 										<td class="px-4 py-4 text-sm text-black"
 											>{form.publishedAt.toLocaleDateString()} <br />
 											{form.publishedAt.toLocaleTimeString()}</td

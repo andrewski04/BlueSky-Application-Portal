@@ -237,14 +237,18 @@ export const actions = {
 		const slug = data.get('slug') as string;
 
 		if (!sectionId || !type || !prompt || !slug) {
-			return { type: 'error', error: 'Missing required fields' };
+			return fail(400, { error: 'Missing required fields' });
 		}
 
 		try {
-			// Get the current display order for the section
-			const currentOrder = await prisma.questionLinkDraft.count({
-				where: { sectionId }
+			// Get the current maximum display order for the section
+			const maxOrderResult = await prisma.questionLinkDraft.findFirst({
+				where: { sectionId },
+				orderBy: { displayOrder: 'desc' },
+				select: { displayOrder: true }
 			});
+
+			const currentOrder = (maxOrderResult?.displayOrder ?? -1) + 1;
 
 			// Create the question draft
 			const questionDraft = await prisma.questionDraft.create({
@@ -265,9 +269,12 @@ export const actions = {
 				}
 			});
 
-			// Create options if provided
 			const optionsJson = data.get('options') as string;
-			if (optionsJson) {
+			const optionGroupsJson = data.get('optionGroups') as string;
+
+			// Create options if provided
+			// If option groups are provided, options are created in the option groups
+			if (optionsJson && !optionGroupsJson) {
 				const options = JSON.parse(optionsJson) as string[];
 				await prisma.questionOptionDraft.createMany({
 					data: options.map((text, index) => ({
@@ -277,6 +284,31 @@ export const actions = {
 						slug: slugify(text.trim())
 					}))
 				});
+			}
+
+			// Create option groups if provided
+			if (optionGroupsJson) {
+				const optionGroups = JSON.parse(optionGroupsJson) as string[];
+				const options = JSON.parse(optionsJson) as string[];
+
+				for (const optionGroup of optionGroups) {
+					await prisma.questionOptionGroupDraft.create({
+						data: {
+							text: optionGroup.trim(),
+							displayOrder: optionGroups.indexOf(optionGroup),
+							questionOptions: {
+								createMany: {
+									data: options.map((text, index) => ({
+										questionId: questionDraft.id,
+										text: text.trim(),
+										displayOrder: index,
+										slug: slugify(text.trim())
+									}))
+								}
+							}
+						}
+					});
+				}
 			}
 
 			// Create the question link
@@ -293,6 +325,9 @@ export const actions = {
 							options: {
 								orderBy: {
 									displayOrder: 'asc'
+								},
+								include: {
+									questionOptionGroup: true
 								}
 							}
 						}
@@ -302,6 +337,9 @@ export const actions = {
 							options: {
 								orderBy: {
 									displayOrder: 'asc'
+								},
+								include: {
+									questionOptionGroup: true
 								}
 							}
 						}
@@ -322,7 +360,7 @@ export const actions = {
 			return { type: 'success', question: questionLink };
 		} catch (error) {
 			log.error('Error creating question', error);
-			return { type: 'error', error: 'Failed to create question' };
+			return fail(500, { error: 'Failed to create question' });
 		}
 	},
 	updateQuestion: async ({ request, locals, params }) => {
@@ -336,7 +374,7 @@ export const actions = {
 		const slug = data.get('slug') as string;
 
 		if (!questionId || !type || !prompt || !slug) {
-			return { type: 'error', error: 'Missing required fields' };
+			return fail(400, { error: 'Missing required fields' });
 		}
 
 		try {
@@ -365,18 +403,46 @@ export const actions = {
 				where: { questionId }
 			});
 
-			// Create new options if provided
 			const optionsJson = data.get('options') as string;
-			if (optionsJson) {
+			const optionGroupsJson = data.get('optionGroups') as string;
+
+			// Create options if provided
+			// If option groups are provided, options are created in the option groups
+			if (optionsJson && !optionGroupsJson) {
 				const options = JSON.parse(optionsJson) as string[];
 				await prisma.questionOptionDraft.createMany({
 					data: options.map((text, index) => ({
-						questionId,
+						questionId: questionId,
 						text: text.trim(),
 						displayOrder: index,
 						slug: slugify(text.trim())
 					}))
 				});
+			}
+
+			// Create option groups if provided
+			if (optionGroupsJson) {
+				const optionGroups = JSON.parse(optionGroupsJson) as string[];
+				const options = JSON.parse(optionsJson) as string[];
+
+				for (const optionGroup of optionGroups) {
+					await prisma.questionOptionGroupDraft.create({
+						data: {
+							text: optionGroup.trim(),
+							displayOrder: optionGroups.indexOf(optionGroup),
+							questionOptions: {
+								createMany: {
+									data: options.map((text, index) => ({
+										questionId: questionId,
+										text: text.trim(),
+										displayOrder: index,
+										slug: slugify(text.trim())
+									}))
+								}
+							}
+						}
+					});
+				}
 			}
 
 			// Update the question link required field
@@ -394,6 +460,9 @@ export const actions = {
 							options: {
 								orderBy: {
 									displayOrder: 'asc'
+								},
+								include: {
+									questionOptionGroup: true
 								}
 							}
 						}
@@ -401,6 +470,9 @@ export const actions = {
 					questionVersion: {
 						include: {
 							options: {
+								include: {
+									questionOptionGroup: true
+								},
 								orderBy: {
 									displayOrder: 'asc'
 								}
@@ -423,7 +495,7 @@ export const actions = {
 			return { type: 'success', question: questionLink };
 		} catch (error) {
 			log.error('Error updating question', error);
-			return { type: 'error', error: 'Failed to update question' };
+			return fail(500, { error: 'Failed to update question' });
 		}
 	},
 	deleteQuestion: async ({ request, locals, params }) => {
@@ -454,7 +526,7 @@ export const actions = {
 			return { type: 'success' };
 		} catch (error) {
 			log.error('Error deleting question', error);
-			return { type: 'error', error: 'Failed to delete question' };
+			return fail(500, { error: 'Failed to delete question' });
 		}
 	},
 	reorderSections: async ({ request, locals, params }) => {

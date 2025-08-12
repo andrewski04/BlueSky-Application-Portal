@@ -3,12 +3,14 @@
 
 	let {
 		question,
+		required,
 		existingAnswer,
 		value = $bindable(existingAnswer ?? []),
 		onchange,
 		readonly = false
 	}: {
-		question: QuestionVersion & { options: QuestionOption[]; required: boolean };
+		question: QuestionVersion & { options: QuestionOption[] };
+		required: boolean;
 		existingAnswer: string[] | null | undefined;
 		value?: string[];
 		onchange?: (value: string[]) => void;
@@ -26,7 +28,7 @@
 	<fieldset>
 		<legend class="mb-2 block text-sm font-medium text-gray-700">
 			{question.prompt}
-			{#if question.required}<span class="text-red-500">*</span>{/if}
+			{#if required}<span class="text-red-500">*</span>{/if}
 		</legend>
 
 		<div class="space-y-2">

@@ -1,33 +1,139 @@
 <script lang="ts">
-	import type { PageData } from './$types';
 	import AdminNavBar from '$lib/components/dashboard/AdminNavBar.svelte';
-	import { page } from '$app/state';
+	import SearchableDropdown from '$lib/components/util/SearchableDropdown.svelte';
 	import { goto } from '$app/navigation';
+	import { onMount } from 'svelte';
 
-	let { data }: { data: PageData } = $props();
-	let { error, applicationResponses } = data;
-
-	// Add search state
+	// Local state for form inputs
 	let search = $state('');
-
-	// Add status filter state
 	let statusFilter = $state<'all' | 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'REJECTED'>('all');
-
-	// Filtered responses state
-	let filteredResponses = $state(applicationResponses || []);
-
-	// Sorting state
-	let sortKey = $state<'id' | 'user' | 'updatedAt' | 'status' | 'form' | 'group'>('updatedAt');
+	let groupFilter = $state<string>('all');
+	let formFilter = $state<string>('all');
+	let dateFromFilter = $state<string>('');
+	let dateToFilter = $state<string>('');
+	let sortKey = $state<'id' | 'user' | 'updatedAt' | 'submittedAt' | 'status' | 'form' | 'group'>(
+		'updatedAt'
+	);
 	let sortDirection = $state<'asc' | 'desc'>('desc');
+
+	// Data state
+	let applicationResponses = $state<any[]>([]);
+	let pagination = $state<any>(null);
+	let error = $state<string | null>(null);
+	let loading = $state(false);
+	let availableGroups = $state<any[]>([]);
+	let availableForms = $state<Array<{ id: string; name: string; adminName?: string }>>([]);
 
 	const sortKeyMap = {
 		id: 'ID',
 		user: 'User',
 		updatedAt: 'Last Opened',
+		submittedAt: 'Submitted Date',
 		status: 'Status',
 		form: 'Form Name',
 		group: 'Group'
 	};
+
+	// Function to fetch data from the API
+	async function fetchData() {
+		error = null;
+
+		try {
+			const params = new URLSearchParams();
+			if (search) params.set('search', search);
+			if (statusFilter !== 'all') params.set('status', statusFilter);
+			if (groupFilter !== 'all') params.set('group', groupFilter);
+			if (formFilter !== 'all') params.set('form', formFilter);
+			if (dateFromFilter) params.set('dateFrom', dateFromFilter);
+			if (dateToFilter) params.set('dateTo', dateToFilter);
+			if (sortKey !== 'updatedAt') params.set('sort', sortKey);
+			if (sortDirection !== 'desc') params.set('direction', sortDirection);
+
+			// Get current page from URL or pagination state
+			const urlParams = new URLSearchParams(window.location.search);
+			const currentPage = urlParams.get('page')
+				? parseInt(urlParams.get('page')!)
+				: pagination?.currentPage || 1;
+			if (currentPage > 1) params.set('page', currentPage.toString());
+
+			const url = `/admin/submissions?${params.toString()}`;
+			const response = await fetch(url);
+			if (!response.ok) {
+				throw new Error('Failed to fetch data');
+			}
+
+			const data = await response.json();
+
+			// Parse dates in the response data
+			if (data.applicationResponses) {
+				applicationResponses = data.applicationResponses.map((response: any) => ({
+					...response,
+					updatedAt: response.updatedAt ? new Date(response.updatedAt) : null,
+					submittedAt: response.submittedAt ? new Date(response.submittedAt) : null,
+					form: {
+						...response.form,
+						closeDate: response.form.closeDate ? new Date(response.form.closeDate) : null
+					}
+				}));
+			} else {
+				applicationResponses = [];
+			}
+
+			// Update available filter options
+			if (data.availableGroups) availableGroups = data.availableGroups;
+			if (data.availableForms) availableForms = data.availableForms;
+
+			pagination = data.pagination;
+			error = data.error || null;
+		} catch (err) {
+			error = 'An error occurred while loading the application responses.';
+			console.error('Error fetching data:', err);
+		} finally {
+			loading = false;
+		}
+	}
+
+	// Initialize component on mount
+	onMount(() => {
+		loading = true;
+
+		// Initialize state from URL parameters
+		const urlParams = new URLSearchParams(window.location.search);
+		search = urlParams.get('search') || '';
+		statusFilter =
+			(urlParams.get('status') as 'all' | 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'REJECTED') || 'all';
+		groupFilter = urlParams.get('group') || 'all';
+		formFilter = urlParams.get('form') || 'all';
+		dateFromFilter = urlParams.get('dateFrom') || '';
+		dateToFilter = urlParams.get('dateTo') || '';
+		sortKey =
+			(urlParams.get('sort') as
+				| 'id'
+				| 'user'
+				| 'updatedAt'
+				| 'submittedAt'
+				| 'status'
+				| 'form'
+				| 'group') || 'updatedAt';
+		sortDirection = (urlParams.get('direction') as 'asc' | 'desc') || 'desc';
+
+		// Initialize pagination state from URL
+		const pageParam = urlParams.get('page');
+		if (pageParam) {
+			const pageNum = parseInt(pageParam);
+			if (!isNaN(pageNum) && pageNum > 0) {
+				pagination = {
+					currentPage: pageNum,
+					totalPages: 0,
+					totalCount: 0,
+					limit: 20
+				};
+			}
+		}
+
+		// Fetch initial data
+		fetchData();
+	});
 
 	function setSort(key: typeof sortKey) {
 		if (sortKey === key) {
@@ -36,51 +142,139 @@
 			sortKey = key;
 			sortDirection = 'asc';
 		}
+		updateURL();
 	}
 
-	$effect(() => {
-		let responses = applicationResponses || [];
-		if (search) {
-			const q = search.toLowerCase();
-			responses = responses.filter((response) => {
-				return (
-					response.user.firstName?.toLowerCase().includes(q) ||
-					response.user.lastName?.toLowerCase().includes(q) ||
-					response.id?.toLowerCase().includes(q) ||
-					response.status?.toLowerCase().includes(q)
-				);
-			});
-		}
-		// Status filter
-		if (statusFilter !== 'all') {
-			responses = responses.filter((response) => response.status === statusFilter);
-		}
-		// Sorting
-		responses = [...responses].sort((a, b) => {
-			let aVal: any;
-			let bVal: any;
+	async function updateURL() {
+		const params = new URLSearchParams();
+		if (search) params.set('search', search);
+		if (statusFilter !== 'all') params.set('status', statusFilter);
+		if (groupFilter !== 'all') params.set('group', groupFilter);
+		if (formFilter !== 'all') params.set('form', formFilter);
+		if (dateFromFilter) params.set('dateFrom', dateFromFilter);
+		if (dateToFilter) params.set('dateTo', dateToFilter);
+		if (sortKey !== 'updatedAt') params.set('sort', sortKey);
+		if (sortDirection !== 'desc') params.set('direction', sortDirection);
 
-			if (sortKey === 'user') {
-				aVal = `${a.user.lastName}, ${a.user.firstName}`;
-				bVal = `${b.user.lastName}, ${b.user.firstName}`;
-			} else if (sortKey === 'updatedAt') {
-				aVal = a.updatedAt ? a.updatedAt.getTime() : 0;
-				bVal = b.updatedAt ? b.updatedAt.getTime() : 0;
-			} else if (sortKey === 'group') {
-				aVal = a.form?.group?.name ?? 'No group';
-				bVal = b.form?.group?.name ?? 'No group';
-			} else {
-				aVal = a[sortKey as keyof typeof a];
-				bVal = b[sortKey as keyof typeof b];
-			}
-			if (aVal == null) return 1;
-			if (bVal == null) return -1;
-			if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
-			if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
-			return 0;
-		});
-		filteredResponses = responses;
-	});
+		// Get current page from pagination state or default to 1
+		const currentPage = pagination?.currentPage || 1;
+		if (currentPage > 1) params.set('page', currentPage.toString());
+
+		const url = params.toString() ? `?${params.toString()}` : '';
+		await goto(`/admin/submissions${url}`, { replaceState: true });
+		// Fetch new data after URL update
+		await fetchData();
+	}
+
+	async function goToPage(pageNum: number) {
+		if (!pagination) return;
+
+		if (pageNum >= 1 && pageNum <= pagination.totalPages) {
+			// Update pagination state immediately for better UX
+			pagination.currentPage = pageNum;
+
+			const params = new URLSearchParams();
+			if (search) params.set('search', search);
+			if (statusFilter !== 'all') params.set('status', statusFilter);
+			if (sortKey !== 'updatedAt') params.set('sort', sortKey);
+			if (sortDirection !== 'desc') params.set('direction', sortDirection);
+			if (pageNum > 1) params.set('page', pageNum.toString());
+
+			const url = params.toString() ? `?${params.toString()}` : '';
+			await goto(`/admin/submissions${url}`);
+			// Fetch new data after navigation
+			await fetchData();
+		}
+	}
+
+	async function handleSearch() {
+		// Reset to first page when searching
+		if (pagination) {
+			pagination.currentPage = 1;
+		} else {
+			// Initialize pagination if it doesn't exist
+			pagination = {
+				currentPage: 1,
+				totalPages: 0,
+				totalCount: 0,
+				limit: 20
+			};
+		}
+
+		// Update URL without losing focus
+		await updateURL();
+	}
+
+	async function handleFilter() {
+		// Reset to first page when filtering
+		if (pagination) {
+			pagination.currentPage = 1;
+		} else {
+			// Initialize pagination if it doesn't exist
+			pagination = {
+				currentPage: 1,
+				totalPages: 0,
+				totalCount: 0,
+				limit: 20
+			};
+		}
+
+		const params = new URLSearchParams();
+		if (search) params.set('search', search);
+		if (statusFilter !== 'all') params.set('status', statusFilter);
+		if (groupFilter !== 'all') params.set('group', groupFilter);
+		if (formFilter !== 'all') params.set('form', formFilter);
+		if (dateFromFilter) params.set('dateFrom', dateFromFilter);
+		if (dateToFilter) params.set('dateTo', dateToFilter);
+		if (sortKey !== 'updatedAt') params.set('sort', sortKey);
+		if (sortDirection !== 'desc') params.set('direction', sortDirection);
+
+		const url = params.toString() ? `?${params.toString()}` : '';
+		await goto(`/admin/submissions${url}`);
+		// Fetch new data after filtering
+		await fetchData();
+	}
+
+	async function clearFilters() {
+		search = '';
+		statusFilter = 'all';
+		groupFilter = 'all';
+		formFilter = 'all';
+		dateFromFilter = '';
+		dateToFilter = '';
+		await handleFilter();
+	}
+
+	// Debounced search function
+	let searchTimeout: NodeJS.Timeout;
+	function debouncedSearch() {
+		clearTimeout(searchTimeout);
+		searchTimeout = setTimeout(async () => {
+			// Use fetchData directly instead of handleSearch to avoid navigation
+			await fetchData();
+		}, 500);
+	}
+
+	function getPageNumbers() {
+		if (!pagination) return [];
+
+		const totalPages = pagination.totalPages;
+		const currentPage = pagination.currentPage;
+		const maxPagesToShow = 5;
+
+		if (totalPages <= maxPagesToShow) {
+			return Array.from({ length: totalPages }, (_, i) => i + 1);
+		}
+
+		let startPage = Math.max(1, currentPage - Math.floor(maxPagesToShow / 2));
+		const endPage = Math.min(totalPages, startPage + maxPagesToShow - 1);
+
+		if (endPage - startPage + 1 < maxPagesToShow) {
+			startPage = Math.max(1, endPage - maxPagesToShow + 1);
+		}
+
+		return Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i);
+	}
 </script>
 
 <svelte:head>
@@ -123,46 +317,184 @@
 				</h2>
 			</div>
 
-			<!-- Search bar and status filter -->
-			<div class="flex items-end justify-between px-6 pt-4">
-				<input
-					type="text"
-					placeholder="Search by name, id, or status..."
-					bind:value={search}
-					class="search-input w-full max-w-xs px-3 py-2 text-sm focus:outline-none"
-				/>
-				<select
-					bind:value={statusFilter}
-					class="rounded border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 focus:border-blue-500 focus:outline-none"
-				>
-					<option value="all">All Statuses</option>
-					<option value="DRAFT">Draft</option>
-					<option value="SUBMITTED">Submitted</option>
-					<option value="APPROVED">Approved</option>
-					<option value="REJECTED">Rejected</option>
-				</select>
+			<!-- Search bar and filters -->
+			<div class="px-6 pt-4">
+				<!-- Search row -->
+				<div class="mb-4 flex items-center space-x-2">
+					<input
+						type="text"
+						placeholder="Search by name, email, or id..."
+						bind:value={search}
+						oninput={debouncedSearch}
+						onkeydown={(e) => e.key === 'Enter' && handleSearch()}
+						class="search-input w-full max-w-xs px-3 py-2 text-sm focus:outline-none"
+					/>
+					<button onclick={handleSearch} class="btn-blue px-4 py-2 text-sm">
+						<span class="w-full text-center">Search</span>
+					</button>
+				</div>
+
+				<!-- Filter row -->
+				<div class="flex flex-wrap items-center gap-4">
+					<!-- Status Filter -->
+					<select
+						bind:value={statusFilter}
+						onchange={async () => await handleFilter()}
+						class="rounded border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 focus:border-blue-500 focus:outline-none"
+					>
+						<option value="all">All Statuses</option>
+						<option value="DRAFT">Draft</option>
+						<option value="SUBMITTED">Submitted</option>
+						<option value="APPROVED">Approved</option>
+						<option value="REJECTED">Rejected</option>
+					</select>
+
+					<!-- Group Filter -->
+					<SearchableDropdown
+						options={[{ id: 'all', name: 'All Groups' }, ...availableGroups]}
+						value={groupFilter}
+						placeholder="All Groups"
+						width="min-w-[250px]"
+						onChange={async (newValue) => {
+							groupFilter = newValue;
+							await handleFilter();
+						}}
+					/>
+
+					<!-- Form Filter -->
+					<SearchableDropdown
+						options={[{ id: 'all', name: 'All Forms' }, ...availableForms]}
+						value={formFilter}
+						placeholder="All Forms"
+						width="min-w-[300px]"
+						onChange={async (newValue) => {
+							formFilter = newValue;
+							await handleFilter();
+						}}
+					/>
+
+					<!-- Date Range Filters -->
+					<div class="flex items-center space-x-2">
+						<input
+							type="date"
+							bind:value={dateFromFilter}
+							onchange={async () => await handleFilter()}
+							placeholder="From Date"
+							class="rounded border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 focus:border-blue-500 focus:outline-none"
+						/>
+						<span class="text-sm text-gray-500">to</span>
+						<input
+							type="date"
+							bind:value={dateToFilter}
+							onchange={async () => await handleFilter()}
+							placeholder="To Date"
+							class="rounded border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 focus:border-blue-500 focus:outline-none"
+						/>
+					</div>
+
+					<!-- Clear Filters Button -->
+					<button
+						onclick={clearFilters}
+						class="rounded border border-gray-300 bg-white px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 focus:border-blue-500 focus:outline-none"
+					>
+						Clear Filters
+					</button>
+				</div>
 			</div>
+
+			<!-- Results count and pagination info -->
+			{#if pagination}
+				<div class="px-6 py-2 text-sm text-gray-600">
+					Showing {(pagination.currentPage - 1) * pagination.limit + 1} to {Math.min(
+						pagination.currentPage * pagination.limit,
+						pagination.totalCount
+					)} of {pagination.totalCount} submissions
+				</div>
+			{/if}
+
+			<!-- Top Pagination Controls -->
+			{#if pagination && pagination.totalPages > 1}
+				<div class="flex items-center justify-between border-t border-gray-200 px-6 pt-2">
+					<!-- First button on the left -->
+					<button
+						onclick={async () => await goToPage(1)}
+						disabled={pagination.currentPage === 1}
+						class="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+					>
+						First
+					</button>
+
+					<!-- Center section with Previous, Page Numbers, and Next -->
+					<div class="flex items-center space-x-2">
+						<button
+							onclick={async () => await goToPage(pagination.currentPage - 1)}
+							disabled={pagination.currentPage === 1}
+							class="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+						>
+							Previous
+						</button>
+
+						<div class="flex items-center space-x-1">
+							{#each getPageNumbers() as pageNum}
+								<button
+									onclick={async () => await goToPage(pageNum)}
+									class="rounded-md px-3 py-2 text-sm font-medium {pageNum ===
+									pagination.currentPage
+										? 'bg-blue-600 text-white'
+										: 'border border-gray-300 bg-white text-gray-500 hover:bg-gray-50'}"
+								>
+									{pageNum}
+								</button>
+							{/each}
+						</div>
+
+						<button
+							onclick={async () => await goToPage(pagination.currentPage + 1)}
+							disabled={pagination.currentPage === pagination.totalPages}
+							class="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+						>
+							Next
+						</button>
+					</div>
+
+					<!-- Last button on the right -->
+					<button
+						onclick={async () => await goToPage(pagination.totalPages)}
+						disabled={pagination.currentPage === pagination.totalPages}
+						class="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+					>
+						Last
+					</button>
+				</div>
+			{/if}
+
 			{#if error}
 				<p class="mb-4 text-center font-bold text-red-500">{error}</p>
 			{/if}
 
-			<hr class="mt-4 h-px border-0 bg-[rgb(59,130,246)]/10" />
+			<hr class="mt-2 h-px border-0 bg-[rgb(59,130,246)]/10" />
 
 			<!--	Table	-->
 			<div class="w-full rounded-b-lg shadow-md">
-				<div class="space-y-4 rounded-b-lg">
-					{#if !filteredResponses || filteredResponses.length === 0}
-						<p class="pb-4 text-center text-gray-500">No application submissions found</p>
-					{/if}
-				</div>
-				{#if filteredResponses && filteredResponses.length > 0}
+				{#if loading}
+					<div class="flex items-center justify-center py-8">
+						<div class="h-8 w-8 animate-spin rounded-full border-b-2 border-blue-600"></div>
+						<span class="ml-2 text-gray-600">Loading...</span>
+					</div>
+				{:else if !applicationResponses || applicationResponses.length === 0}
+					<div class="space-y-4 rounded-b-lg">
+						<p class="py-4 text-center text-gray-500">
+							No application submissions found. Check the search and filter options.
+						</p>
+					</div>
+				{:else}
 					<table class="min-w-full divide-y divide-gray-200">
 						<thead class="bg-gray-50">
 							<tr>
 								{#each Object.keys(sortKeyMap) as key}
 									<th
 										class="cursor-pointer p-4 text-left font-semibold tracking-wide text-nowrap text-gray-700 uppercase select-none"
-										onclick={() => setSort(key as typeof sortKey)}
+										onclick={async () => await setSort(key as typeof sortKey)}
 									>
 										{sortKeyMap[key as keyof typeof sortKeyMap]}
 										{sortKey === key ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
@@ -176,22 +508,58 @@
 							</tr>
 						</thead>
 						<tbody class="divide-y divide-gray-200 bg-white">
-							{#each filteredResponses as response}
+							{#each applicationResponses as response}
 								<tr class="hover:bg-gray-100">
 									<td class="px-4 py-4 text-sm text-black">{response.id.slice(0, 6)}...</td>
 
-									<td class="px-4 py-4 text-sm text-black"
-										>{response.user.lastName}, {response.user.firstName}</td
-									>
-									<td class="px-6 py-4 text-sm text-gray-900"
-										>{response.updatedAt?.toLocaleDateString('en-US', {
-											year: 'numeric',
-											month: 'short',
-											day: 'numeric',
-											hour: '2-digit',
-											minute: '2-digit'
-										}) ?? 'N/A'}</td
-									>
+									<td class="px-4 py-4 text-sm text-black">
+										<div>
+											<div>{response.user.lastName}, {response.user.firstName}</div>
+											<div class="text-xs text-gray-500">{response.user.email}</div>
+										</div>
+									</td>
+									<td class="px-6 py-4 text-sm text-gray-900">
+										{#if response.updatedAt}
+											<div>
+												<div>
+													{response.updatedAt.toLocaleDateString('en-US', {
+														year: 'numeric',
+														month: 'short',
+														day: 'numeric'
+													})}
+												</div>
+												<div class="text-xs text-gray-500">
+													{response.updatedAt.toLocaleTimeString('en-US', {
+														hour: '2-digit',
+														minute: '2-digit'
+													})}
+												</div>
+											</div>
+										{:else}
+											N/A
+										{/if}
+									</td>
+									<td class="px-6 py-4 text-sm text-gray-900">
+										{#if response.submittedAt}
+											<div>
+												<div>
+													{response.submittedAt.toLocaleDateString('en-US', {
+														year: 'numeric',
+														month: 'short',
+														day: 'numeric'
+													})}
+												</div>
+												<div class="text-xs text-gray-500">
+													{response.submittedAt.toLocaleTimeString('en-US', {
+														hour: '2-digit',
+														minute: '2-digit'
+													})}
+												</div>
+											</div>
+										{:else}
+											N/A
+										{/if}
+									</td>
 									<td class="px-4 py-4 text-sm text-black">
 										{#if response.status === 'DRAFT'}
 											<span class="rounded-lg bg-yellow-300 px-2 py-1 text-yellow-800">Draft</span>
@@ -335,6 +703,62 @@
 					</table>
 				{/if}
 			</div>
+
+			<!-- Pagination Controls -->
+			{#if pagination && pagination.totalPages > 1}
+				<div class="flex items-center justify-between border-t border-gray-200 px-6 py-4">
+					<!-- First button on the left -->
+					<button
+						onclick={async () => await goToPage(1)}
+						disabled={pagination.currentPage === 1}
+						class="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+					>
+						First
+					</button>
+
+					<!-- Center section with Previous, Page Numbers, and Next -->
+					<div class="flex items-center space-x-2">
+						<button
+							onclick={async () => await goToPage(pagination.currentPage - 1)}
+							disabled={pagination.currentPage === 1}
+							class="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+						>
+							Previous
+						</button>
+
+						<div class="flex items-center space-x-1">
+							{#each getPageNumbers() as pageNum}
+								<button
+									onclick={async () => await goToPage(pageNum)}
+									class="rounded-md px-3 py-2 text-sm font-medium {pageNum ===
+									pagination.currentPage
+										? 'bg-blue-600 text-white'
+										: 'border border-gray-300 bg-white text-gray-500 hover:bg-gray-50'}"
+								>
+									{pageNum}
+								</button>
+							{/each}
+						</div>
+
+						<button
+							onclick={async () => await goToPage(pagination.currentPage + 1)}
+							disabled={pagination.currentPage === pagination.totalPages}
+							class="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+						>
+							Next
+						</button>
+					</div>
+
+					<!-- Last button on the right -->
+					<button
+						onclick={async () => await goToPage(pagination.totalPages)}
+						disabled={pagination.currentPage === pagination.totalPages}
+						class="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+					>
+						Last
+					</button>
+				</div>
+			{/if}
 		</div>
 	</div>
 </div>

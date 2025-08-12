@@ -1,0 +1,87 @@
+.form-builder-card {
+	background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.9) 100%);
+	box-shadow:
+		0 8px 32px rgba(59, 130, 246, 0.1),
+		0 4px 16px rgba(0, 0, 0, 0.05);
+	border: 1px solid rgba(59, 130, 246, 0.1);
+	backdrop-filter: blur(10px);
+	border-radius: 16px;
+}
+
+.question-editor-card {
+	background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.9) 100%);
+
+	border: 1px solid rgba(59, 130, 246, 0.1);
+	backdrop-filter: blur(10px);
+	border-radius: 16px;
+}
+
+.form-builder-input {
+	background: rgba(255, 255, 255, 0.8);
+	border-radius: 8px;
+	border: 1px solid rgba(59, 130, 246, 0.5);
+}
+
+.form-builder-input:focus {
+	background: rgba(255, 255, 255, 1);
+	box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+}
+
+.draggable-item:hover {
+	transform: translateY(-1px);
+}
+
+.draggable-item:active {
+	transform: translateY(0);
+}
+
+.drag-over {
+	border: 2px dashed rgba(59, 130, 246, 0.5);
+	border-radius: 8px;
+}
+
+/* Sortable visual feedback */
+.sortable-ghost {
+	opacity: 0.5;
+	background: rgba(59, 130, 246, 0.1);
+}
+
+.sortable-chosen {
+	background: rgba(59, 130, 246, 0.05);
+	box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+}
+
+.dragging .draggable-item {
+	cursor: grabbing;
+}
+
+.cursor-move {
+	user-select: none;
+	transition: color 0.2s ease;
+}
+
+.cursor-move:hover {
+	color: rgba(59, 130, 246, 0.8);
+}
+
+.dragging .cursor-move {
+	color: rgba(59, 130, 246, 1);
+}
+
+/* Question drag handle styling */
+.question-drag-handle {
+	cursor: move;
+	transition: all 0.2s ease;
+	padding: 2px;
+	border-radius: 4px;
+	user-select: none;
+}
+
+.question-drag-handle:hover {
+	background-color: rgba(59, 130, 246, 0.1);
+	color: rgba(59, 130, 246, 0.8);
+}
+
+.dragging .question-drag-handle {
+	color: rgba(59, 130, 246, 1);
+}

@@ -3,12 +3,14 @@
 
 	let {
 		question,
+		required,
 		existingAnswer,
 		value = $bindable(existingAnswer ?? undefined),
 		onchange,
 		readonly = false
 	}: {
-		question: QuestionVersion & { options: QuestionOption[]; required: boolean };
+		question: QuestionVersion & { options: QuestionOption[] };
+		required: boolean;
 		existingAnswer: string | null | undefined;
 		value?: string | null | undefined;
 		onchange?: (value: string | null | undefined) => void;
@@ -25,7 +27,7 @@
 <div>
 	<label for={question.id} class="mb-1 block text-sm font-medium text-gray-700">
 		{question.prompt}
-		{#if question.required}<span class="text-red-500">*</span>{/if}
+		{#if required}<span class="text-red-500">*</span>{/if}
 	</label>
 	{#if readonly}
 		{@const selectedOption = question.options.find((opt) => opt.id === value)}

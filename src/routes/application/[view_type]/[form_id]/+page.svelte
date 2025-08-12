@@ -17,6 +17,7 @@
 	import NumberQuestion from '$lib/components/application/NumberQuestion.svelte';
 	import ParagraphQuestion from '$lib/components/application/ParagraphQuestion.svelte';
 	import TextQuestion from '$lib/components/application/TextQuestion.svelte';
+	import GridQuestion from '$lib/components/application/GridQuestion.svelte';
 	import { readable } from 'svelte/store';
 
 	const { data }: { data: PageData } = $props();
@@ -57,6 +58,8 @@
 					case 'DATE':
 						existingAnswer = question.Answer[0]?.valueDate;
 						break;
+					case 'MULTIPLE_CHOICE_GRID':
+					case 'CHECKBOX_GRID':
 					case 'CHECKBOX':
 						existingAnswer =
 							question.Answer[0]?.selectedOptions?.map(
@@ -380,19 +383,23 @@
 			<div class=" mx-auto rounded-lg bg-gray-200 p-3 shadow-lg md:p-6">
 				<!-- Application Information -->
 				<div class="mb-8 rounded-lg border-t-4 border-blue-600 bg-white p-8 shadow-lg">
-					<div class="flex flex-col items-center gap-6 lg:flex-row">
+					<div class="flex flex-col items-center gap-6 lg:flex-row lg:justify-center">
 						<div class="flex-1 text-center">
-							{#if isReadOnly || isAdminPreview}
-								<div class="mx-auto mb-4 w-fit rounded-lg bg-red-50 p-4 shadow-md">
-									<p class="text-center text-2xl font-bold text-red-600">{readOnlyMessage}</p>
-								</div>
-							{/if}
 							<h1 class="mb-4 text-3xl font-bold text-gray-800">{applicationWithAnswers.name}</h1>
 
 							{#if applicationWithAnswers.description}
 								<h2 class="mb-4 text-xl font-semibold text-blue-600">
 									{applicationWithAnswers.description}
 								</h2>
+							{/if}
+							{#if isReadOnly || isAdminPreview}
+								<div class="mb-6 flex flex-col items-center gap-6 lg:flex-row lg:justify-center">
+									<button onclick={() => history.back()} class="btn-red">Back</button>
+
+									<div class="w-fit rounded-lg bg-red-50 p-4 shadow-md">
+										<p class="text-center text-2xl font-bold text-red-600">{readOnlyMessage}</p>
+									</div>
+								</div>
 							{/if}
 
 							<!-- Contact and Deadline Information -->
@@ -500,83 +507,107 @@
 							{/if}
 						</div>
 
-						{#each section.questions.map( (q) => ({ required: q.required, answer: q.Answer[0], ...q.questionVersion }) ) as question}
+						{#each section.questions as question}
 							<div class="relative mb-6">
-								{#if question.type === 'TEXT'}
+								{#if question.questionVersion.type === 'TEXT'}
 									<TextQuestion
-										onchange={(value) => handleQuestionChange(question.id, value)}
-										{question}
-										existingAnswer={question.answer?.valueText}
+										onchange={(value) => handleQuestionChange(question.questionVersion.id, value)}
+										question={question.questionVersion}
+										required={question.required}
+										existingAnswer={question.Answer[0]?.valueText}
 										readonly={isReadOnly}
 									/>
-								{:else if question.type === 'PARAGRAPH'}
+								{:else if question.questionVersion.type === 'PARAGRAPH'}
 									<ParagraphQuestion
-										onchange={(value) => handleQuestionChange(question.id, value)}
-										{question}
-										existingAnswer={question.answer?.valueText}
+										onchange={(value) => handleQuestionChange(question.questionVersion.id, value)}
+										question={question.questionVersion}
+										required={question.required}
+										existingAnswer={question.Answer[0]?.valueText}
 										readonly={isReadOnly}
 									/>
-								{:else if question.type === 'NUMBER'}
+								{:else if question.questionVersion.type === 'NUMBER'}
 									<NumberQuestion
-										onchange={(value) => handleQuestionChange(question.id, value)}
-										{question}
-										existingAnswer={question.answer?.valueNumber}
+										onchange={(value) => handleQuestionChange(question.questionVersion.id, value)}
+										question={question.questionVersion}
+										required={question.required}
+										existingAnswer={question.Answer[0]?.valueNumber}
 										readonly={isReadOnly}
 									/>
-								{:else if question.type === 'DATE'}
+								{:else if question.questionVersion.type === 'DATE'}
 									<DateQuestion
-										onchange={(value) => handleQuestionChange(question.id, value)}
-										{question}
-										existingAnswer={question.answer?.valueDate}
+										onchange={(value) => handleQuestionChange(question.questionVersion.id, value)}
+										question={question.questionVersion}
+										required={question.required}
+										existingAnswer={question.Answer[0]?.valueDate}
 										readonly={isReadOnly}
 									/>
-								{:else if question.type === 'CHECKBOX'}
+								{:else if question.questionVersion.type === 'CHECKBOX'}
 									<CheckboxQuestion
-										onchange={(value) => handleQuestionChange(question.id, value)}
-										{question}
-										existingAnswer={question.answer?.selectedOptions?.map(
+										onchange={(value) => handleQuestionChange(question.questionVersion.id, value)}
+										question={question.questionVersion}
+										required={question.required}
+										existingAnswer={question.Answer[0]?.selectedOptions?.map(
 											(opt: { option: { id: string } }) => opt.option.id
 										) ?? []}
 										readonly={isReadOnly}
 									/>
-								{:else if question.type === 'MULTIPLE_CHOICE'}
+								{:else if question.questionVersion.type === 'MULTIPLE_CHOICE'}
 									<MultipleChoiceQuestion
-										onchange={(value) => handleQuestionChange(question.id, value)}
-										{question}
-										existingAnswer={question.answer?.selectedOptions[0]?.option.id}
+										onchange={(value) => handleQuestionChange(question.questionVersion.id, value)}
+										question={question.questionVersion}
+										required={question.required}
+										existingAnswer={question.Answer[0]?.selectedOptions[0]?.option.id}
 										readonly={isReadOnly}
 									/>
-								{:else if question.type === 'DROPDOWN'}
+								{:else if question.questionVersion.type === 'DROPDOWN'}
 									<DropdownQuestion
-										{question}
-										onchange={(value) => handleQuestionChange(question.id, value)}
-										existingAnswer={question.answer?.selectedOptions[0]?.option.id}
+										onchange={(value) => handleQuestionChange(question.questionVersion.id, value)}
+										question={question.questionVersion}
+										required={question.required}
+										existingAnswer={question.Answer[0]?.selectedOptions[0]?.option.id}
 										readonly={isReadOnly}
 									/>
-								{:else if question.type === 'FILE_UPLOAD'}
+								{:else if question.questionVersion.type === 'FILE_UPLOAD'}
 									<FileUploadQuestion
-										onchange={(value) => handleQuestionChange(question.id, value)}
-										{question}
-										existingAnswer={question.answer?.fileUploadId}
+										onchange={(value) => handleQuestionChange(question.questionVersion.id, value)}
+										question={question.questionVersion}
+										required={question.required}
+										existingAnswer={question.Answer[0]?.fileUploadId}
 										readonly={isReadOnly}
 										adminPreview={isAdminPreview}
+									/>
+								{:else if question.questionVersion.type === 'MULTIPLE_CHOICE_GRID' || question.questionVersion.type === 'CHECKBOX_GRID'}
+									<GridQuestion
+										onchange={(value) => handleQuestionChange(question.questionVersion.id, value)}
+										question={question.questionVersion}
+										required={question.required}
+										existingAnswer={question.Answer[0]?.selectedOptions?.map(
+											(opt: { option: { id: string } }) => opt.option.id
+										) ?? []}
+										readonly={isReadOnly}
 									/>
 								{/if}
 
 								<!-- Individual question save status indicator -->
-								{#if questionSaveStatus[question.id] && !isReadOnly && !isAdminPreview}
+								{#if questionSaveStatus[question.questionVersion.id] && !isReadOnly && !isAdminPreview}
 									<div
 										class="absolute -top-2 right-2 rounded-full px-2 py-1 text-xs font-semibold"
-										class:bg-green-200={questionSaveStatus[question.id] === 'Saved'}
-										class:text-green-800={questionSaveStatus[question.id] === 'Saved'}
-										class:bg-yellow-200={questionSaveStatus[question.id] === 'Saving'}
-										class:text-yellow-800={questionSaveStatus[question.id] === 'Saving'}
-										class:bg-red-200={questionSaveStatus[question.id] === 'Unsaved'}
-										class:text-red-800={questionSaveStatus[question.id] === 'Unsaved'}
-										class:bg-gray-200={questionSaveStatus[question.id] === 'Unanswered'}
-										class:text-gray-800={questionSaveStatus[question.id] === 'Unanswered'}
+										class:bg-green-200={questionSaveStatus[question.questionVersion.id] === 'Saved'}
+										class:text-green-800={questionSaveStatus[question.questionVersion.id] ===
+											'Saved'}
+										class:bg-yellow-200={questionSaveStatus[question.questionVersion.id] ===
+											'Saving'}
+										class:text-yellow-800={questionSaveStatus[question.questionVersion.id] ===
+											'Saving'}
+										class:bg-red-200={questionSaveStatus[question.questionVersion.id] === 'Unsaved'}
+										class:text-red-800={questionSaveStatus[question.questionVersion.id] ===
+											'Unsaved'}
+										class:bg-gray-200={questionSaveStatus[question.questionVersion.id] ===
+											'Unanswered'}
+										class:text-gray-800={questionSaveStatus[question.questionVersion.id] ===
+											'Unanswered'}
 									>
-										{questionSaveStatus[question.id]}
+										{questionSaveStatus[question.questionVersion.id]}
 									</div>
 								{:else if !isReadOnly && !isAdminPreview}
 									<div

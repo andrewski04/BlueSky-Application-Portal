@@ -6,6 +6,7 @@
 	import DateQuestion from '$lib/components/application/DateQuestion.svelte';
 	import DropdownQuestion from '$lib/components/application/DropdownQuestion.svelte';
 	import FileUploadQuestion from '$lib/components/application/FileUploadQuestion.svelte';
+	import GridQuestion from '$lib/components/application/GridQuestion.svelte';
 	import MultipleChoiceQuestion from '$lib/components/application/MultipleChoiceQuestion.svelte';
 	import NumberQuestion from '$lib/components/application/NumberQuestion.svelte';
 	import ParagraphQuestion from '$lib/components/application/ParagraphQuestion.svelte';
@@ -125,56 +126,73 @@
 						<p class="mb-6 text-gray-700">{section.description}</p>
 					{/if}
 
-					{#each section.questions.map( (q) => ({ required: q.required, answer: q.Answer[0], ...q.questionVersion }) ) as question}
+					{#each section.questions as question}
 						<div class="mb-4 rounded-md border border-gray-100 bg-gray-50 p-4 shadow-sm">
-							{#if question.type === 'TEXT'}
+							{#if question.questionVersion.type === 'TEXT'}
 								<TextQuestion
-									{question}
-									existingAnswer={question.answer?.valueText}
+									question={question.questionVersion}
+									required={question.required}
+									existingAnswer={question.Answer[0]?.valueText}
 									readonly={true}
 								/>
-							{:else if question.type === 'PARAGRAPH'}
+							{:else if question.questionVersion.type === 'PARAGRAPH'}
 								<ParagraphQuestion
-									{question}
-									existingAnswer={question.answer?.valueText}
+									question={question.questionVersion}
+									required={question.required}
+									existingAnswer={question.Answer[0]?.valueText}
 									readonly={true}
 								/>
-							{:else if question.type === 'NUMBER'}
+							{:else if question.questionVersion.type === 'NUMBER'}
 								<NumberQuestion
-									{question}
-									existingAnswer={question.answer?.valueNumber}
+									question={question.questionVersion}
+									required={question.required}
+									existingAnswer={question.Answer[0]?.valueNumber}
 									readonly={true}
 								/>
-							{:else if question.type === 'DATE'}
+							{:else if question.questionVersion.type === 'DATE'}
 								<DateQuestion
-									{question}
-									existingAnswer={question.answer?.valueDate}
+									question={question.questionVersion}
+									required={question.required}
+									existingAnswer={question.Answer[0]?.valueDate}
 									readonly={true}
 								/>
-							{:else if question.type === 'CHECKBOX'}
+							{:else if question.questionVersion.type === 'CHECKBOX'}
 								<CheckboxQuestion
-									{question}
-									existingAnswer={question.answer?.selectedOptions.map(
+									question={question.questionVersion}
+									required={question.required}
+									existingAnswer={question.Answer[0]?.selectedOptions?.map(
 										(opt: { option: { id: string } }) => opt.option.id
-									)}
+									) ?? []}
 									readonly={true}
 								/>
-							{:else if question.type === 'MULTIPLE_CHOICE'}
+							{:else if question.questionVersion.type === 'MULTIPLE_CHOICE'}
 								<MultipleChoiceQuestion
-									{question}
-									existingAnswer={question.answer?.selectedOptions[0]?.option.id}
+									question={question.questionVersion}
+									required={question.required}
+									existingAnswer={question.Answer[0]?.selectedOptions[0]?.option.id}
 									readonly={true}
 								/>
-							{:else if question.type === 'DROPDOWN'}
+							{:else if question.questionVersion.type === 'DROPDOWN'}
 								<DropdownQuestion
-									{question}
-									existingAnswer={question.answer?.selectedOptions[0]?.option.id}
+									question={question.questionVersion}
+									required={question.required}
+									existingAnswer={question.Answer[0]?.selectedOptions[0]?.option.id}
 									readonly={true}
 								/>
-							{:else if question.type === 'FILE_UPLOAD'}
+							{:else if question.questionVersion.type === 'FILE_UPLOAD'}
 								<FileUploadQuestion
-									{question}
-									existingAnswer={question.answer?.fileUploadId}
+									question={question.questionVersion}
+									required={question.required}
+									existingAnswer={question.Answer[0]?.fileUploadId}
+									readonly={true}
+								/>
+							{:else if question.questionVersion.type === 'MULTIPLE_CHOICE_GRID' || question.questionVersion.type === 'CHECKBOX_GRID'}
+								<GridQuestion
+									question={question.questionVersion}
+									required={question.required}
+									existingAnswer={question.Answer[0]?.selectedOptions?.map(
+										(opt: { option: { id: string } }) => opt.option.id
+									) ?? []}
 									readonly={true}
 								/>
 							{/if}

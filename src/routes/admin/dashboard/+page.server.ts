@@ -84,11 +84,11 @@ export const load = (async ({ locals }) => {
 		};
 	}
 
-	// Get recent submissions (last 10)
+	// Get recent submissions (last 5)
 	const recentSubmissionsResult = await prismaResult(
 		prisma.applicationResponse.findMany({
 			orderBy: { updatedAt: 'desc' },
-			take: 10,
+			take: 5,
 			select: {
 				id: true,
 				status: true,

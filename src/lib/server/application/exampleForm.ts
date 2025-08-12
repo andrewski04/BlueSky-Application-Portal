@@ -1,6 +1,49 @@
 import { prisma, prismaResult } from '$lib/server/prisma';
 
 export async function createExampleForm() {
+	// First, create the option groups for the grid question
+	const professionalMaturityGroup = await prisma.questionOptionGroupDraft.create({
+		data: {
+			text: 'Professional maturity',
+			displayOrder: 0
+		}
+	});
+
+	const selfAssessmentAbilityGroup = await prisma.questionOptionGroupDraft.create({
+		data: {
+			text: 'Ability to self-assess and seek support',
+			displayOrder: 1
+		}
+	});
+
+	const enthusiasmFieldGroup = await prisma.questionOptionGroupDraft.create({
+		data: {
+			text: 'Enthusiasm for the field',
+			displayOrder: 2
+		}
+	});
+
+	const interpersonalSkillsGroup = await prisma.questionOptionGroupDraft.create({
+		data: {
+			text: 'Interpersonal skills/relationship building',
+			displayOrder: 3
+		}
+	});
+
+	const leadershipAbilityGroup = await prisma.questionOptionGroupDraft.create({
+		data: {
+			text: 'Demonstrated interest in and ability to lead',
+			displayOrder: 4
+		}
+	});
+
+	const persistenceAdversityGroup = await prisma.questionOptionGroupDraft.create({
+		data: {
+			text: 'Persistence through adversity',
+			displayOrder: 5
+		}
+	});
+
 	return await prismaResult(
 		prisma.applicationFormDraft.create({
 			data: {
@@ -102,16 +145,198 @@ export async function createExampleForm() {
 										required: true,
 										questionDraft: {
 											create: {
-												slug: 'professional-maturity',
-												type: 'DROPDOWN',
-												prompt: 'Professional maturity',
+												slug: 'self-assessment-grid',
+												type: 'MULTIPLE_CHOICE_GRID',
+												prompt:
+													'Please rate yourself on the following qualities and skills (1 = Low, 5 = High):',
 												options: {
 													create: [
-														{ slug: '1', text: '1', displayOrder: 0 },
-														{ slug: '2', text: '2', displayOrder: 1 },
-														{ slug: '3', text: '3', displayOrder: 2 },
-														{ slug: '4', text: '4', displayOrder: 3 },
-														{ slug: '5', text: '5', displayOrder: 4 }
+														// Professional maturity row
+														{
+															slug: 'professional-maturity-1',
+															text: '1',
+															displayOrder: 0,
+															questionOptionGroupId: professionalMaturityGroup.id
+														},
+														{
+															slug: 'professional-maturity-2',
+															text: '2',
+															displayOrder: 1,
+															questionOptionGroupId: professionalMaturityGroup.id
+														},
+														{
+															slug: 'professional-maturity-3',
+															text: '3',
+															displayOrder: 2,
+															questionOptionGroupId: professionalMaturityGroup.id
+														},
+														{
+															slug: 'professional-maturity-4',
+															text: '4',
+															displayOrder: 3,
+															questionOptionGroupId: professionalMaturityGroup.id
+														},
+														{
+															slug: 'professional-maturity-5',
+															text: '5',
+															displayOrder: 4,
+															questionOptionGroupId: professionalMaturityGroup.id
+														},
+														// Ability to self-assess row
+														{
+															slug: 'self-assess-1',
+															text: '1',
+															displayOrder: 5,
+															questionOptionGroupId: selfAssessmentAbilityGroup.id
+														},
+														{
+															slug: 'self-assess-2',
+															text: '2',
+															displayOrder: 6,
+															questionOptionGroupId: selfAssessmentAbilityGroup.id
+														},
+														{
+															slug: 'self-assess-3',
+															text: '3',
+															displayOrder: 7,
+															questionOptionGroupId: selfAssessmentAbilityGroup.id
+														},
+														{
+															slug: 'self-assess-4',
+															text: '4',
+															displayOrder: 8,
+															questionOptionGroupId: selfAssessmentAbilityGroup.id
+														},
+														{
+															slug: 'self-assess-5',
+															text: '5',
+															displayOrder: 9,
+															questionOptionGroupId: selfAssessmentAbilityGroup.id
+														},
+														// Enthusiasm for the field row
+														{
+															slug: 'enthusiasm-1',
+															text: '1',
+															displayOrder: 10,
+															questionOptionGroupId: enthusiasmFieldGroup.id
+														},
+														{
+															slug: 'enthusiasm-2',
+															text: '2',
+															displayOrder: 11,
+															questionOptionGroupId: enthusiasmFieldGroup.id
+														},
+														{
+															slug: 'enthusiasm-3',
+															text: '3',
+															displayOrder: 12,
+															questionOptionGroupId: enthusiasmFieldGroup.id
+														},
+														{
+															slug: 'enthusiasm-4',
+															text: '4',
+															displayOrder: 13,
+															questionOptionGroupId: enthusiasmFieldGroup.id
+														},
+														{
+															slug: 'enthusiasm-5',
+															text: '5',
+															displayOrder: 14,
+															questionOptionGroupId: enthusiasmFieldGroup.id
+														},
+														// Interpersonal skills row
+														{
+															slug: 'interpersonal-skills-1',
+															text: '1',
+															displayOrder: 15,
+															questionOptionGroupId: interpersonalSkillsGroup.id
+														},
+														{
+															slug: 'interpersonal-skills-2',
+															text: '2',
+															displayOrder: 16,
+															questionOptionGroupId: interpersonalSkillsGroup.id
+														},
+														{
+															slug: 'interpersonal-skills-3',
+															text: '3',
+															displayOrder: 17,
+															questionOptionGroupId: interpersonalSkillsGroup.id
+														},
+														{
+															slug: 'interpersonal-skills-4',
+															text: '4',
+															displayOrder: 18,
+															questionOptionGroupId: interpersonalSkillsGroup.id
+														},
+														{
+															slug: 'interpersonal-skills-5',
+															text: '5',
+															displayOrder: 19,
+															questionOptionGroupId: interpersonalSkillsGroup.id
+														},
+														// Leadership ability row
+														{
+															slug: 'leadership-1',
+															text: '1',
+															displayOrder: 20,
+															questionOptionGroupId: leadershipAbilityGroup.id
+														},
+														{
+															slug: 'leadership-2',
+															text: '2',
+															displayOrder: 21,
+															questionOptionGroupId: leadershipAbilityGroup.id
+														},
+														{
+															slug: 'leadership-3',
+															text: '3',
+															displayOrder: 22,
+															questionOptionGroupId: leadershipAbilityGroup.id
+														},
+														{
+															slug: 'leadership-4',
+															text: '4',
+															displayOrder: 23,
+															questionOptionGroupId: leadershipAbilityGroup.id
+														},
+														{
+															slug: 'leadership-5',
+															text: '5',
+															displayOrder: 24,
+															questionOptionGroupId: leadershipAbilityGroup.id
+														},
+														// Persistence through adversity row
+														{
+															slug: 'persistence-1',
+															text: '1',
+															displayOrder: 25,
+															questionOptionGroupId: persistenceAdversityGroup.id
+														},
+														{
+															slug: 'persistence-2',
+															text: '2',
+															displayOrder: 26,
+															questionOptionGroupId: persistenceAdversityGroup.id
+														},
+														{
+															slug: 'persistence-3',
+															text: '3',
+															displayOrder: 27,
+															questionOptionGroupId: persistenceAdversityGroup.id
+														},
+														{
+															slug: 'persistence-4',
+															text: '4',
+															displayOrder: 28,
+															questionOptionGroupId: persistenceAdversityGroup.id
+														},
+														{
+															slug: 'persistence-5',
+															text: '5',
+															displayOrder: 29,
+															questionOptionGroupId: persistenceAdversityGroup.id
+														}
 													]
 												}
 											}
@@ -119,106 +344,6 @@ export async function createExampleForm() {
 									},
 									{
 										displayOrder: 1,
-										required: true,
-										questionDraft: {
-											create: {
-												slug: 'self-assessment-ability',
-												type: 'DROPDOWN',
-												prompt: 'Ability to self-assess and seek support',
-												options: {
-													create: [
-														{ slug: '1', text: '1', displayOrder: 0 },
-														{ slug: '2', text: '2', displayOrder: 1 },
-														{ slug: '3', text: '3', displayOrder: 2 },
-														{ slug: '4', text: '4', displayOrder: 3 },
-														{ slug: '5', text: '5', displayOrder: 4 }
-													]
-												}
-											}
-										}
-									},
-									{
-										displayOrder: 2,
-										required: true,
-										questionDraft: {
-											create: {
-												slug: 'enthusiasm-field',
-												type: 'DROPDOWN',
-												prompt: 'Enthusiasm for the field',
-												options: {
-													create: [
-														{ slug: '1', text: '1', displayOrder: 0 },
-														{ slug: '2', text: '2', displayOrder: 1 },
-														{ slug: '3', text: '3', displayOrder: 2 },
-														{ slug: '4', text: '4', displayOrder: 3 },
-														{ slug: '5', text: '5', displayOrder: 4 }
-													]
-												}
-											}
-										}
-									},
-									{
-										displayOrder: 3,
-										required: true,
-										questionDraft: {
-											create: {
-												slug: 'interpersonal-skills',
-												type: 'DROPDOWN',
-												prompt: 'Interpersonal skills/relationship building',
-												options: {
-													create: [
-														{ slug: '1', text: '1', displayOrder: 0 },
-														{ slug: '2', text: '2', displayOrder: 1 },
-														{ slug: '3', text: '3', displayOrder: 2 },
-														{ slug: '4', text: '4', displayOrder: 3 },
-														{ slug: '5', text: '5', displayOrder: 4 }
-													]
-												}
-											}
-										}
-									},
-									{
-										displayOrder: 4,
-										required: true,
-										questionDraft: {
-											create: {
-												slug: 'leadership-ability',
-												type: 'DROPDOWN',
-												prompt: 'Demonstrated interest in and ability to lead',
-												options: {
-													create: [
-														{ slug: '1', text: '1', displayOrder: 0 },
-														{ slug: '2', text: '2', displayOrder: 1 },
-														{ slug: '3', text: '3', displayOrder: 2 },
-														{ slug: '4', text: '4', displayOrder: 3 },
-														{ slug: '5', text: '5', displayOrder: 4 }
-													]
-												}
-											}
-										}
-									},
-									{
-										displayOrder: 5,
-										required: true,
-										questionDraft: {
-											create: {
-												slug: 'persistence-adversity',
-												type: 'DROPDOWN',
-												prompt: 'Persistence through adversity',
-												options: {
-													create: [
-														{ slug: '1', text: '1', displayOrder: 0 },
-														{ slug: '2', text: '2', displayOrder: 1 },
-														{ slug: '3', text: '3', displayOrder: 2 },
-														{ slug: '4', text: '4', displayOrder: 3 },
-														{ slug: '5', text: '5', displayOrder: 4 }
-													]
-												}
-											}
-										}
-									},
-									{
-										displayOrder: 6,
 										required: true,
 										questionDraft: {
 											create: {
@@ -232,7 +357,7 @@ export async function createExampleForm() {
 										}
 									},
 									{
-										displayOrder: 7,
+										displayOrder: 2,
 										required: true,
 										questionDraft: {
 											create: {
@@ -246,7 +371,7 @@ export async function createExampleForm() {
 										}
 									},
 									{
-										displayOrder: 8,
+										displayOrder: 3,
 										required: true,
 										questionDraft: {
 											create: {

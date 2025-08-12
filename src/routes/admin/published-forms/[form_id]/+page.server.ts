@@ -60,6 +60,7 @@ export const actions = {
 		const formData = await request.formData();
 		const name = formData.get('name');
 		const description = formData.get('description');
+		const adminName = formData.get('adminName');
 
 		if (!name || typeof name !== 'string') {
 			return fail(400, { success: false, error: 'Name is required.' });
@@ -67,11 +68,18 @@ export const actions = {
 		if (description && typeof description !== 'string') {
 			return fail(400, { success: false, error: 'Description must be a string.' });
 		}
+		if (adminName && typeof adminName !== 'string') {
+			return fail(400, { success: false, error: 'Admin name must be a string.' });
+		}
 
 		const result = await prismaResult(
 			prisma.applicationFormPublished.update({
 				where: { id: params.form_id },
-				data: { name: name.trim(), description: description?.toString().trim() || null }
+				data: {
+					name: name.trim(),
+					description: description?.toString().trim() || null,
+					adminName: adminName?.toString().trim() || null
+				}
 			})
 		);
 

@@ -19,8 +19,8 @@
 		include: {
 			questions: {
 				include: {
-					questionDraft: { include: { options: true } };
-					questionVersion: { include: { options: true } };
+					questionDraft: { include: { options: { include: { questionOptionGroup: true } } } };
+					questionVersion: { include: { options: { include: { questionOptionGroup: true } } } };
 				};
 			};
 		};
@@ -50,6 +50,7 @@
 	let questionMaxDate = $state<string>('');
 	let questionAcceptedTypes = $state('');
 	let questionMaxFileSize = $state<number | null>(null);
+	let questionOptionGroups = $state<string[]>(['', '']);
 
 	// Question selection and edit state
 	let selectedQuestion = $state<FormSectionWithQuestions['questions'][0] | null>(null);
@@ -251,7 +252,17 @@
 
 	// Helper functions for question form
 	function needsOptions(type: string): boolean {
-		return ['MULTIPLE_CHOICE', 'DROPDOWN', 'CHECKBOX'].includes(type);
+		return [
+			'MULTIPLE_CHOICE',
+			'DROPDOWN',
+			'CHECKBOX',
+			'MULTIPLE_CHOICE_GRID',
+			'CHECKBOX_GRID'
+		].includes(type);
+	}
+
+	function needsOptionGroups(type: string): boolean {
+		return ['MULTIPLE_CHOICE_GRID', 'CHECKBOX_GRID'].includes(type);
 	}
 
 	function needsLengthValidation(type: string): boolean {
@@ -270,19 +281,42 @@
 		return type === 'FILE_UPLOAD';
 	}
 
-	function addOption() {
-		questionOptions = [...questionOptions, ''];
-	}
-
 	function removeOption(index: number) {
 		if (questionOptions.length > 2) {
 			questionOptions = questionOptions.filter((_, i) => i !== index);
+			if (questionOptions[questionOptions.length - 1] != '') {
+				questionOptions = [...questionOptions, ''];
+			}
 		}
 	}
 
 	function updateOption(index: number, value: string) {
+		if (questionOptions[index] === '' && value != '' && index === questionOptions.length - 1) {
+			questionOptions = [...questionOptions, ''];
+		}
 		questionOptions[index] = value;
 		questionOptions = [...questionOptions]; // Trigger reactivity
+	}
+
+	function removeOptionGroup(index: number) {
+		if (questionOptionGroups.length > 2) {
+			questionOptionGroups = questionOptionGroups.filter((_, i) => i !== index);
+			if (questionOptionGroups[questionOptionGroups.length - 1] != '') {
+				questionOptionGroups = [...questionOptionGroups, ''];
+			}
+		}
+	}
+
+	function updateOptionGroup(index: number, value: string) {
+		if (
+			questionOptionGroups[index] === '' &&
+			value != '' &&
+			index === questionOptionGroups.length - 1
+		) {
+			questionOptionGroups = [...questionOptionGroups, ''];
+		}
+		questionOptionGroups[index] = value;
+		questionOptionGroups = [...questionOptionGroups]; // Trigger reactivity
 	}
 
 	function resetQuestionForm() {
@@ -291,6 +325,7 @@
 		questionPrompt = '';
 		questionRequired = false;
 		questionOptions = ['', ''];
+		questionOptionGroups = ['', ''];
 		questionMinLength = null;
 		questionMaxLength = null;
 		questionMinValue = null;
@@ -304,6 +339,7 @@
 	}
 
 	function selectQuestion(question: FormSectionWithQuestions['questions'][0]) {
+		resetQuestionForm();
 		selectedQuestion = question;
 		isEditingQuestion = true;
 
@@ -331,10 +367,36 @@
 				: null;
 
 			// Handle options
-			if (questionData.options && questionData.options.length > 0) {
+			if (
+				questionData.options &&
+				questionData.options.length > 0 &&
+				!questionData.options[0].questionOptionGroup
+			) {
 				questionOptions = questionData.options.map((opt: any) => opt.text);
+				questionOptions = [...questionOptions, ''];
 			} else {
 				questionOptions = ['', ''];
+			}
+
+			if (
+				questionData.options &&
+				questionData.options.length > 0 &&
+				questionData.options[0].questionOptionGroup
+			) {
+				const groupSet = new Set<string>();
+				const optionSet = new Set<string>();
+
+				for (const opt of questionData.options) {
+					if (opt.questionOptionGroup?.text) {
+						groupSet.add(opt.questionOptionGroup.text);
+					}
+					optionSet.add(opt.text);
+				}
+
+				questionOptionGroups = Array.from(groupSet);
+				questionOptions = Array.from(optionSet);
+				questionOptions = [...questionOptions, ''];
+				questionOptionGroups = [...questionOptionGroups, ''];
 			}
 		}
 	}
@@ -377,6 +439,11 @@
 			formData.append('options', JSON.stringify(validOptions));
 		}
 
+		if (needsOptionGroups(questionType)) {
+			const validOptionGroups = questionOptionGroups.filter((opt) => opt.trim() !== '');
+			formData.append('optionGroups', JSON.stringify(validOptionGroups));
+		}
+
 		const response = await fetch('?/updateQuestion', {
 			method: 'POST',
 			body: formData,
@@ -385,45 +452,45 @@
 			}
 		});
 
-		if (response.ok) {
-			const result = deserialize(await response.text());
+		const result = deserialize(await response.text());
 
-			if (result.type === 'success' && result.data) {
-				// Update the question in the current section
-				if (currentSectionCopy && result.data.question && selectedQuestion) {
-					const questionIndex = currentSectionCopy.questions.findIndex(
+		if (result.type === 'success' && result.data) {
+			// Update the question in the current section
+			if (currentSectionCopy && result.data.question && selectedQuestion) {
+				const questionIndex = currentSectionCopy.questions.findIndex(
+					(q: any) => q.questionDraftId === selectedQuestion!.questionDraftId
+				);
+
+				if (questionIndex !== -1) {
+					currentSectionCopy.questions[questionIndex] = result.data
+						.question as FormSectionWithQuestions['questions'][0];
+				}
+			}
+
+			// Also update the original section in the form to keep it in sync
+			if (draftForm && selectedQuestion) {
+				const sectionIndex = draftForm.sections.findIndex((s) => s.id === currentSectionCopy!.id);
+				if (sectionIndex !== -1) {
+					const questionIndex = draftForm.sections[sectionIndex].questions.findIndex(
 						(q: any) => q.questionDraftId === selectedQuestion!.questionDraftId
 					);
-
 					if (questionIndex !== -1) {
-						currentSectionCopy.questions[questionIndex] = result.data
+						draftForm.sections[sectionIndex].questions[questionIndex] = result.data
 							.question as FormSectionWithQuestions['questions'][0];
 					}
 				}
-
-				// Also update the original section in the form to keep it in sync
-				if (draftForm && selectedQuestion) {
-					const sectionIndex = draftForm.sections.findIndex((s) => s.id === currentSectionCopy!.id);
-					if (sectionIndex !== -1) {
-						const questionIndex = draftForm.sections[sectionIndex].questions.findIndex(
-							(q: any) => q.questionDraftId === selectedQuestion!.questionDraftId
-						);
-						if (questionIndex !== -1) {
-							draftForm.sections[sectionIndex].questions[questionIndex] = result.data
-								.question as FormSectionWithQuestions['questions'][0];
-						}
-					}
-				}
-
-				checkForChanges();
-				resetQuestionForm();
-				error = '';
-			} else {
-				error = 'Error updating question';
 			}
+
+			addNotif('Question updated successfully', 'success');
+			checkForChanges();
+			resetQuestionForm();
+			error = '';
+		} else if (result.type === 'failure') {
+			error = (result.data?.error as string) || 'Error updating question';
+			addNotif(error, 'error');
 		} else {
-			error = 'Error updating question, please try again.';
-			console.error(error);
+			error = 'An unknown error occurred';
+			addNotif(error, 'error');
 		}
 	}
 
@@ -441,41 +508,40 @@
 			}
 		});
 
-		if (response.ok) {
-			const result = deserialize(await response.text());
+		const result = deserialize(await response.text());
 
-			if (result.type === 'success') {
-				// Remove the question from the current section
-				if (currentSectionCopy) {
-					currentSectionCopy.questions = currentSectionCopy.questions.filter(
-						(q: any) => q.questionDraftId !== question.questionDraftId
-					);
-					questionsCount = currentSectionCopy.questions.length;
-				}
-
-				// Also remove from the original section in the form
-				if (draftForm) {
-					const sectionIndex = draftForm.sections.findIndex((s) => s.id === currentSectionCopy!.id);
-					if (sectionIndex !== -1) {
-						draftForm.sections[sectionIndex].questions = draftForm.sections[
-							sectionIndex
-						].questions.filter((q: any) => q.questionDraftId !== question.questionDraftId);
-					}
-				}
-
-				// If we were editing this question, reset the form
-				if (selectedQuestion && selectedQuestion.questionDraftId === question.questionDraftId) {
-					resetQuestionForm();
-				}
-
-				checkForChanges();
-				error = '';
-			} else {
-				error = 'Error deleting question';
+		if (result.type === 'success') {
+			// Remove the question from the current section
+			if (currentSectionCopy) {
+				currentSectionCopy.questions = currentSectionCopy.questions.filter(
+					(q: any) => q.questionDraftId !== question.questionDraftId
+				);
+				questionsCount = currentSectionCopy.questions.length;
 			}
+
+			// Also remove from the original section in the form
+			if (draftForm) {
+				const sectionIndex = draftForm.sections.findIndex((s) => s.id === currentSectionCopy!.id);
+				if (sectionIndex !== -1) {
+					draftForm.sections[sectionIndex].questions = draftForm.sections[
+						sectionIndex
+					].questions.filter((q: any) => q.questionDraftId !== question.questionDraftId);
+				}
+			}
+
+			// If we were editing this question, reset the form
+			if (selectedQuestion && selectedQuestion.questionDraftId === question.questionDraftId) {
+				resetQuestionForm();
+			}
+			addNotif('Question deleted successfully', 'success');
+			checkForChanges();
+			error = '';
+		} else if (result.type === 'failure') {
+			error = (result.data?.error as string) || 'Error deleting question';
+			addNotif(error, 'error');
 		} else {
-			error = 'Error deleting question, please try again.';
-			console.error(error);
+			error = 'An unknown error occurred';
+			addNotif(error, 'error');
 		}
 	}
 
@@ -517,6 +583,11 @@
 			formData.append('options', JSON.stringify(validOptions));
 		}
 
+		if (needsOptionGroups(questionType)) {
+			const validOptionGroups = questionOptionGroups.filter((opt) => opt.trim() !== '');
+			formData.append('optionGroups', JSON.stringify(validOptionGroups));
+		}
+
 		const response = await fetch('?/createQuestion', {
 			method: 'POST',
 			body: formData,
@@ -525,40 +596,41 @@
 			}
 		});
 
-		if (response.ok) {
-			const result = deserialize(await response.text());
+		const result = deserialize(await response.text());
 
-			if (result.type === 'success' && result.data) {
-				// Add the new question to the current section
-				if (currentSectionCopy && result.data.question) {
-					// Create a completely new section object to trigger reactivity
-					const updatedSection = {
-						...currentSectionCopy,
-						questions: [...currentSectionCopy.questions, result.data.question as any]
-					};
-					currentSectionCopy = updatedSection;
-					questionsCount = currentSectionCopy.questions.length;
-				}
-
-				// Also update the original section in the form to keep it in sync
-				if (draftForm) {
-					const sectionIndex = draftForm.sections.findIndex((s) => s.id === currentSectionCopy!.id);
-					if (sectionIndex !== -1) {
-						draftForm.sections[sectionIndex].questions = [
-							...draftForm.sections[sectionIndex].questions,
-							result.data.question as any
-						];
-					}
-				}
-
-				checkForChanges();
-				resetQuestionForm();
-				error = '';
-			} else {
-				error = 'Error creating question';
+		if (result.type === 'success' && result.data) {
+			// Add the new question to the current section
+			if (currentSectionCopy && result.data.question) {
+				// Create a completely new section object to trigger reactivity
+				const updatedSection = {
+					...currentSectionCopy,
+					questions: [...currentSectionCopy.questions, result.data.question as any]
+				};
+				currentSectionCopy = updatedSection;
+				questionsCount = currentSectionCopy.questions.length;
 			}
+
+			// Also update the original section in the form to keep it in sync
+			if (draftForm) {
+				const sectionIndex = draftForm.sections.findIndex((s) => s.id === currentSectionCopy!.id);
+				if (sectionIndex !== -1) {
+					draftForm.sections[sectionIndex].questions = [
+						...draftForm.sections[sectionIndex].questions,
+						result.data.question as any
+					];
+				}
+			}
+			addNotif('Question added successfully', 'success');
+			checkForChanges();
+			resetQuestionForm();
+			error = '';
+		} else if (result.type === 'failure') {
+			error = (result.data?.error as string) || 'Error creating question';
+			addNotif(error, 'error');
+			console.error(error);
 		} else {
-			error = 'Error creating question, please try again.';
+			error = 'An unknown error occurred';
+			addNotif(error, 'error');
 			console.error(error);
 		}
 	}
@@ -672,100 +744,7 @@
 <svelte:head>
 	<title>Edit Form Draft</title>
 	<style>
-		.form-builder-card {
-			background: linear-gradient(
-				135deg,
-				rgba(255, 255, 255, 0.95) 0%,
-				rgba(248, 250, 252, 0.9) 100%
-			);
-			box-shadow:
-				0 8px 32px rgba(59, 130, 246, 0.1),
-				0 4px 16px rgba(0, 0, 0, 0.05);
-			border: 1px solid rgba(59, 130, 246, 0.1);
-			backdrop-filter: blur(10px);
-			border-radius: 16px;
-		}
-
-		.question-editor-card {
-			background: linear-gradient(
-				135deg,
-				rgba(255, 255, 255, 0.95) 0%,
-				rgba(248, 250, 252, 0.9) 100%
-			);
-
-			border: 1px solid rgba(59, 130, 246, 0.1);
-			backdrop-filter: blur(10px);
-			border-radius: 16px;
-		}
-
-		.form-builder-input {
-			background: rgba(255, 255, 255, 0.8);
-			border-radius: 8px;
-		}
-
-		.form-builder-input:focus {
-			background: rgba(255, 255, 255, 1);
-			box-shadow: 0 0 0 2px rgba(173, 173, 173, 0.5);
-		}
-
-		.draggable-item:hover {
-			transform: translateY(-1px);
-		}
-
-		.draggable-item:active {
-			transform: translateY(0);
-		}
-
-		.drag-over {
-			border: 2px dashed rgba(59, 130, 246, 0.5);
-			border-radius: 8px;
-		}
-
-		/* Sortable visual feedback */
-		.sortable-ghost {
-			opacity: 0.5;
-			background: rgba(59, 130, 246, 0.1);
-		}
-
-		.sortable-chosen {
-			background: rgba(59, 130, 246, 0.05);
-			box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
-		}
-
-		.dragging .draggable-item {
-			cursor: grabbing;
-		}
-
-		.cursor-move {
-			user-select: none;
-			transition: color 0.2s ease;
-		}
-
-		.cursor-move:hover {
-			color: rgba(59, 130, 246, 0.8);
-		}
-
-		.dragging .cursor-move {
-			color: rgba(59, 130, 246, 1);
-		}
-
-		/* Question drag handle styling */
-		.question-drag-handle {
-			cursor: move;
-			transition: all 0.2s ease;
-			padding: 2px;
-			border-radius: 4px;
-			user-select: none;
-		}
-
-		.question-drag-handle:hover {
-			background-color: rgba(59, 130, 246, 0.1);
-			color: rgba(59, 130, 246, 0.8);
-		}
-
-		.dragging .question-drag-handle {
-			color: rgba(59, 130, 246, 1);
-		}
+		@import './editor.css';
 	</style>
 </svelte:head>
 
@@ -776,71 +755,18 @@
 		<div class="flex min-h-0 flex-1 overflow-hidden">
 			<!-- Left Sidebar (section navigation)-->
 			<div class="w-1/6 overflow-y-auto border-r border-gray-200 bg-gray-100">
-				<div class="flex flex-col items-center justify-center gap-4 p-4">
-					<form
-						method="POST"
-						action="?/createSection"
-						class="flex w-full max-w-md flex-col items-center gap-3"
-						use:enhance={({ formElement, formData, cancel }) => {
-							nProgress.start();
-							// If the input is empty or 'Untitled Section', auto-generate the next name
-							const input = formElement.querySelector(
-								'input[name="name"]'
-							) as HTMLInputElement | null;
-
-							if (newSectionName.trim() && sectionNameExists(newSectionName)) {
-								sectionNameError = 'A section with this name already exists.';
-								nProgress.done();
-								cancel();
-							} else {
-								sectionNameError = '';
-							}
-
-							if (input && (!input.value.trim() || input.value.trim() === 'Untitled Section')) {
-								const newName = getNextUntitledSectionName();
-								formData.set('name', newName); // Ensure the correct name is sent
-							}
-							return async ({ result, update }) => {
-								if (result.type === 'success' && result.data) {
-									draftForm.sections = [
-										...draftForm.sections,
-										{
-											...(result.data.section as FormSectionWithQuestions),
-											questions: []
-										}
-									];
-									setCurrentSection(draftForm.sections[draftForm.sections.length - 1]);
-									addNotif('Section created successfully', 'success');
-									nProgress.done();
-								} else if (result.type === 'failure') {
-									sectionNameError = (result.data?.error as string) || 'Error creating section';
-									addNotif(sectionNameError, 'error');
-									nProgress.done();
-								}
-							};
-						}}
+				<div class="mt-4 flex flex-row justify-center gap-4 px-1">
+					<a
+						href={`/admin/form-drafts/${draftForm.id}`}
+						class="btn-red flex-shrink-0 px-4 py-2 text-center">Back to Draft</a
 					>
-						<input
-							type="text"
-							name="name"
-							maxlength={50}
-							placeholder="Untitled Section"
-							class="w-full rounded-md border border-gray-300 px-4 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
-							bind:value={newSectionName}
-							oninput={() => {
-								sectionNameError = '';
-							}}
-						/>
-						{#if sectionNameError}
-							<p class="rounded-md bg-red-100 px-2 py-1 text-center text-sm text-red-800">
-								{sectionNameError}
-							</p>
-						{/if}
-						<button class="btn-green px-4 py-2"> Add Section </button>
-					</form>
+					<a
+						href={`/application/preview/${draftForm.id}`}
+						class="btn-blue flex-shrink-0 px-4 py-2 text-center">Preview Form</a
+					>
 				</div>
 
-				<hr class="mx-4 mb-4 border-gray-400" />
+				<hr class="m-4 border-gray-400" />
 
 				<h2 class="mb-2 text-center text-lg font-bold">Sections</h2>
 				<div class="space-y-2" bind:this={sectionList}>
@@ -914,6 +840,73 @@
 							</form>
 						</div>
 					{/each}
+				</div>
+				<div class="flex flex-col items-stretch justify-center gap-4 p-4">
+					<form
+						method="POST"
+						action="?/createSection"
+						class="flex w-full max-w-md flex-row items-stretch gap-3"
+						use:enhance={({ formElement, formData, cancel }) => {
+							nProgress.start();
+							// If the input is empty or 'Untitled Section', auto-generate the next name
+							const input = formElement.querySelector(
+								'input[name="name"]'
+							) as HTMLInputElement | null;
+
+							if (newSectionName.trim() && sectionNameExists(newSectionName)) {
+								sectionNameError = 'A section with this name already exists.';
+								nProgress.done();
+								cancel();
+							} else {
+								sectionNameError = '';
+							}
+
+							if (input && (!input.value.trim() || input.value.trim() === 'Untitled Section')) {
+								const newName = getNextUntitledSectionName();
+								formData.set('name', newName); // Ensure the correct name is sent
+							}
+							return async ({ result, update }) => {
+								if (result.type === 'success' && result.data) {
+									draftForm.sections = [
+										...draftForm.sections,
+										{
+											...(result.data.section as FormSectionWithQuestions),
+											questions: []
+										}
+									];
+									setCurrentSection(draftForm.sections[draftForm.sections.length - 1]);
+									addNotif('Section created successfully', 'success');
+									nProgress.done();
+								} else if (result.type === 'failure') {
+									sectionNameError = (result.data?.error as string) || 'Error creating section';
+									addNotif(sectionNameError, 'error');
+									nProgress.done();
+								}
+							};
+						}}
+					>
+						<div class="flex flex-1 flex-col gap-2">
+							<input
+								type="text"
+								name="name"
+								maxlength={50}
+								placeholder="Untitled Section"
+								class="w-full rounded-md border border-gray-300 px-4 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+								bind:value={newSectionName}
+								oninput={() => {
+									sectionNameError = '';
+								}}
+							/>
+							{#if sectionNameError}
+								<p class="rounded-md bg-red-100 px-2 py-1 text-center text-sm text-red-800">
+									{sectionNameError}
+								</p>
+							{/if}
+						</div>
+						<button class="btn-green flex h-[42px] w-20 flex-shrink-0 items-center justify-center"
+							>Add</button
+						>
+					</form>
 				</div>
 			</div>
 
@@ -1064,7 +1057,7 @@
 								/>
 							</label>
 
-							<!-- Options for multiple choice, dropdown, checkbox -->
+							<!-- Options for multiple choice, dropdown, checkbox, multiple choice grid, checkbox grid -->
 							{#if needsOptions(questionType)}
 								<div class="mt-4">
 									<span class="mb-2 block text-sm font-medium text-gray-700">Options</span>
@@ -1088,13 +1081,34 @@
 											{/if}
 										</div>
 									{/each}
-									<button
-										type="button"
-										onclick={addOption}
-										class="text-sm text-blue-600 transition-colors hover:text-blue-800 hover:underline"
-									>
-										+ Add another option
-									</button>
+								</div>
+							{/if}
+
+							<!-- Option groups for multiple choice grid, checkbox grid -->
+							{#if needsOptionGroups(questionType)}
+								<div class="mt-4">
+									<span class="mb-2 block text-sm font-medium text-gray-700">Rows</span>
+									{#each questionOptionGroups as option, index}
+										<div class="mb-2 flex max-w-full gap-2">
+											<input
+												type="text"
+												value={option}
+												oninput={(e) =>
+													updateOptionGroup(index, (e.target as HTMLInputElement).value)}
+												class="form-builder-input flex-1 p-2"
+												placeholder="Row {index + 1}"
+											/>
+											{#if questionOptionGroups.length > 2}
+												<button
+													type="button"
+													onclick={() => removeOptionGroup(index)}
+													class="rounded px-3 py-2 text-red-600 transition-colors hover:bg-red-100"
+												>
+													×
+												</button>
+											{/if}
+										</div>
+									{/each}
 								</div>
 							{/if}
 
@@ -1205,28 +1219,42 @@
 								/>
 								<span class="text-sm font-medium text-gray-700">Required</span>
 							</label>
-
-							<button
-								onclick={isEditingQuestion ? updateQuestion : createQuestion}
-								disabled={!questionPrompt.trim()}
-								class="btn-blue mt-6 w-full font-medium shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
-							>
-								{isEditingQuestion ? 'Update Question' : 'Add Question'}
-							</button>
 						</div>
 
+						<!-- 
 						<div class="question-editor-card p-4">
 							<button
 								class="w-full text-center font-medium text-blue-600 transition-colors hover:text-blue-800"
 							>
 								Open Question Library
 							</button>
-						</div>
+						</div> -->
 					</div>
-
-					<!-- Preview Form button - positioned at bottom -->
-					<div class="mt-4 flex justify-center">
-						<a href={`/application/preview/${draftForm.id}`} class="btn-blue">Preview Form</a>
+					<div class="sticky bottom-0 flex flex-row gap-2 pt-2">
+						{#if isEditingQuestion}
+							<button
+								onclick={createQuestion}
+								disabled={!questionPrompt.trim()}
+								class="btn-blue w-4/6 p-1 font-medium shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
+							>
+								Copy Question
+							</button>
+							<button
+								onclick={updateQuestion}
+								disabled={!questionPrompt.trim()}
+								class="btn-green w-full font-medium shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
+							>
+								Save Question
+							</button>
+						{:else}
+							<button
+								onclick={createQuestion}
+								disabled={!questionPrompt.trim()}
+								class="btn-blue w-full font-medium shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
+							>
+								Add Question
+							</button>
+						{/if}
 					</div>
 				{:else}
 					<div class="flex flex-1 items-center justify-center">

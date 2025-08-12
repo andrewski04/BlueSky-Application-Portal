@@ -7,7 +7,7 @@ import { FormDraftWithSectionsWithQuestionsWithOptions } from './formDraftArgs';
 // Creates new QuestionTemplate if no templateId is provided
 async function questionDraftToVersion(
 	draft: Prisma.QuestionDraftGetPayload<{
-		include: { options: true };
+		include: { options: { include: { questionOptionGroup: true } } };
 	}>
 ): Promise<Result<QuestionVersion>> {
 	// create or reuse template
@@ -33,7 +33,7 @@ async function questionDraftToVersion(
 	const nextVersion =
 		(await prisma.questionVersion.count({ where: { templateId: template.id } })) + 1;
 
-	// create question version + its options
+	// create question version
 	const version = await prisma.questionVersion.create({
 		data: {
 			templateId: template.id,
@@ -48,19 +48,65 @@ async function questionDraftToVersion(
 			minDate: draft.minDate,
 			maxDate: draft.maxDate,
 			acceptedTypes: draft.acceptedTypes,
-			maxFileSizeBytes: draft.maxFileSizeBytes,
-			options: draft.options.length
-				? {
-						createMany: {
-							data: draft.options.map((o) => ({
-								text: o.text,
-								displayOrder: o.displayOrder,
-								slug: o.slug
-							}))
-						}
-					}
-				: undefined
+			maxFileSizeBytes: draft.maxFileSizeBytes
 		}
+	});
+
+	// Create option groups for this specific question draft
+	// Each question gets its own unique groups, even if they have the same text
+	const optionsWithGroups = draft.options.filter((o) => o.questionOptionGroup);
+
+	// Group options by their group within this question
+	// Multiple options can belong to the same group (same text + displayOrder)
+	const optionsByGroup = new Map<string, typeof draft.options>();
+
+	for (const option of optionsWithGroups) {
+		if (option.questionOptionGroup) {
+			// Create a unique key for this group within this question
+			const groupKey = `${option.questionOptionGroup.text}-${option.questionOptionGroup.displayOrder}`;
+			if (!optionsByGroup.has(groupKey)) {
+				optionsByGroup.set(groupKey, []);
+			}
+			optionsByGroup.get(groupKey)!.push(option);
+		}
+	}
+
+	// Create option groups first and store their IDs
+	const groupIdMap = new Map<string, string>();
+	for (const [groupKey, groupOptions] of optionsByGroup) {
+		const firstOption = groupOptions[0];
+		if (firstOption?.questionOptionGroup) {
+			const group = await prisma.questionOptionGroup.create({
+				data: {
+					text: firstOption.questionOptionGroup.text,
+					displayOrder: firstOption.questionOptionGroup.displayOrder
+				}
+			});
+			groupIdMap.set(groupKey, group.id);
+		}
+	}
+
+	// Create all options with proper group relationships
+	await prisma.questionOption.createMany({
+		data: draft.options.map((o) => {
+			const optionData: Prisma.QuestionOptionCreateManyInput = {
+				questionId: version.id,
+				text: o.text,
+				displayOrder: o.displayOrder,
+				slug: o.slug
+			};
+
+			// If this option has a group, set the groupId
+			if (o.questionOptionGroup) {
+				const groupKey = `${o.questionOptionGroup.text}-${o.questionOptionGroup.displayOrder}`;
+				const groupId = groupIdMap.get(groupKey);
+				if (groupId) {
+					optionData.questionOptionGroupId = groupId;
+				}
+			}
+
+			return optionData;
+		})
 	});
 
 	// update current version in template
@@ -88,7 +134,7 @@ export async function publishFormFromDraft(
 						questions: {
 							orderBy: { displayOrder: 'asc' },
 							include: {
-								questionDraft: { include: { options: true } },
+								questionDraft: { include: { options: { include: { questionOptionGroup: true } } } },
 								questionVersion: true
 							}
 						}
@@ -181,7 +227,10 @@ type appPub = Prisma.ApplicationFormPublishedGetPayload<{
 						};
 						questionVersion: {
 							include: {
-								options: { orderBy: { displayOrder: 'asc' } };
+								options: {
+									orderBy: { displayOrder: 'asc' };
+									include: { questionOptionGroup: true };
+								};
 							};
 						};
 					};

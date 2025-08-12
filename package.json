@@ -22,7 +22,9 @@
 		"docs": "npm --prefix docs start",
 		"docs:build": "npm --prefix docs run build",
 		"init-minio": "node scripts/init-minio.js",
-		"cleanup-files": "node scripts/cleanup-orphaned-files.js"
+		"cleanup-files": "node scripts/cleanup-orphaned-files.js",
+		"generate-test-data": "node scripts/generate-test-data.js",
+		"cleanup-test-data": "node scripts/cleanup-test-data.js"
 	},
 	"devDependencies": {
 		"@eslint/compat": "^1.2.5",

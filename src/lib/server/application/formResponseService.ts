@@ -19,13 +19,18 @@ export async function getApplicationFormWithAnswers(applicationId: string, formI
 								Answer: {
 									where: { applicationId },
 									include: {
-										selectedOptions: { include: { option: true } },
+										selectedOptions: {
+											include: { option: true }
+										},
 										FileUpload: true
 									}
 								},
 								questionVersion: {
 									include: {
-										options: { orderBy: { displayOrder: 'asc' } }
+										options: {
+											orderBy: { displayOrder: 'asc' },
+											include: { questionOptionGroup: true }
+										}
 									}
 								}
 							},
@@ -159,6 +164,7 @@ function validateAnswer(
 		case QuestionType.MULTIPLE_CHOICE:
 		case QuestionType.DROPDOWN:
 		case QuestionType.CHECKBOX:
+		case QuestionType.MULTIPLE_CHOICE_GRID:
 			return validateChoiceAnswer(answer.selectedOptions);
 
 		default:
@@ -304,7 +310,9 @@ export async function saveApplicationQuestion(
 		const optionIds: string[] =
 			qVer.type === QuestionType.CHECKBOX ||
 			qVer.type === QuestionType.MULTIPLE_CHOICE ||
-			qVer.type === QuestionType.DROPDOWN
+			qVer.type === QuestionType.DROPDOWN ||
+			qVer.type === QuestionType.MULTIPLE_CHOICE_GRID ||
+			qVer.type === QuestionType.CHECKBOX_GRID
 				? Array.isArray(value)
 					? value.map(String)
 					: value != null

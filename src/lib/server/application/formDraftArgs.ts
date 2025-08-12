@@ -9,8 +9,8 @@ export const FormDraftWithSectionsWithQuestionsWithOptions =
 					questions: {
 						orderBy: { displayOrder: 'asc' },
 						include: {
-							questionDraft: { include: { options: true } },
-							questionVersion: { include: { options: true } }
+							questionDraft: { include: { options: { include: { questionOptionGroup: true } } } },
+							questionVersion: { include: { options: { include: { questionOptionGroup: true } } } }
 						}
 					}
 				}
@@ -28,7 +28,7 @@ export const FormPublishedWithSectionsWithQuestionsWithOptions =
 					questions: {
 						orderBy: { displayOrder: 'asc' },
 						include: {
-							questionVersion: { include: { options: true } }
+							questionVersion: { include: { options: { include: { questionOptionGroup: true } } } }
 						}
 					}
 				}

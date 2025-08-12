@@ -6,5 +6,7 @@ export const QuestionTypeMap = {
 	CHECKBOX: 'Checkbox Question',
 	FILE_UPLOAD: 'File Upload',
 	DATE: 'Date Response',
-	NUMBER: 'Number Response'
+	NUMBER: 'Number Response',
+	MULTIPLE_CHOICE_GRID: 'Multiple Choice Grid',
+	CHECKBOX_GRID: 'Checkbox Grid'
 };

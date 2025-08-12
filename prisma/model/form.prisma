@@ -7,19 +7,15 @@ enum QuestionType {
   TEXT
   PARAGRAPH
   MULTIPLE_CHOICE
+  MULTIPLE_CHOICE_GRID
   DROPDOWN
   CHECKBOX
+  CHECKBOX_GRID
   FILE_UPLOAD
   DATE
   NUMBER
 }
 
-enum ApplicationStatus {
-  DRAFT
-  SUBMITTED
-  APPROVED
-  REJECTED
-}
 
 enum ColorScheme {
   BLUE
@@ -54,6 +50,7 @@ model QuestionTemplate {
   versions     QuestionVersion[] @relation("Template")
 }
 
+
 model QuestionVersion {
   id                 String            @id @default(cuid(2))
   templateId         String
@@ -82,6 +79,13 @@ model QuestionVersion {
   @@unique([templateId, version])
 }
 
+model QuestionOptionGroup {
+  id String @id @default(cuid(2))
+  questionOptions QuestionOption[] @relation("QuestionOptionGroup")
+  text String
+  displayOrder Int
+}
+
 model QuestionOption {
   id                    String                  @id @default(cuid(2))
   questionId            String
@@ -89,6 +93,10 @@ model QuestionOption {
   text                  String
   displayOrder          Int
   slug                  String
+
+  questionOptionGroup   QuestionOptionGroup? @relation("QuestionOptionGroup", fields: [questionOptionGroupId], references: [id])
+  questionOptionGroupId String?
+
   AnswerOptionSelection AnswerOptionSelection[]
 }
 
@@ -140,6 +148,13 @@ model QuestionDraft {
   QuestionLink      QuestionLinkDraft?      
 }
 
+model QuestionOptionGroupDraft {
+  id String @id @default(cuid(2))
+  questionOptions QuestionOptionDraft[] @relation("QuestionOptionGroup")
+  text String
+  displayOrder Int
+}
+
 model QuestionOptionDraft {
   id           String        @id @default(cuid(2))
   questionId   String
@@ -147,6 +162,9 @@ model QuestionOptionDraft {
   text         String
   displayOrder Int
   slug         String
+
+  questionOptionGroup QuestionOptionGroupDraft? @relation("QuestionOptionGroup", fields: [questionOptionGroupId], references: [id])
+  questionOptionGroupId String?
 }
 
 /// Stores order of questions inside a draft section.
@@ -182,6 +200,7 @@ model ApplicationFormGroup {
 model ApplicationFormPublished {
   id          String                 @id @default(cuid(2))
   name        String
+  adminName   String?
   description String?
   archived    Boolean                @default(false) /// hide/show to students and admins
   active      Boolean                @default(true) /// hide/show to students
