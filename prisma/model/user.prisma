@@ -23,6 +23,8 @@ model User {
   createdAt           DateTime              @default(now())
   ApplicationResponse ApplicationResponse[]
   Announcement        Announcement[]
+  ApplicationReview   ApplicationReview[]
+  ApplicationComment  ApplicationComment[]
 }
 
 /**

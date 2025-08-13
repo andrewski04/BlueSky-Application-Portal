@@ -291,29 +291,48 @@ async function createQuestionTemplates() {
 		'TEXT',
 		'PARAGRAPH',
 		'MULTIPLE_CHOICE',
+		'MULTIPLE_CHOICE_GRID',
 		'DROPDOWN',
 		'CHECKBOX',
+		'CHECKBOX_GRID',
+		'FILE_UPLOAD',
 		'DATE',
 		'NUMBER'
 	];
 
-	for (let i = 0; i < 10; i++) {
+	let templatesCreated = 0;
+	let attempts = 0;
+	const maxAttempts = 50; // Prevent infinite loops
+
+	while (templatesCreated < 10 && attempts < maxAttempts) {
+		attempts++;
 		const type = getRandomElement(questionTypes);
+
+		// For grid questions, we'll skip creating them in templates since they need published option groups
+		// Grid questions will only be created in the actual form drafts
+		if (type === 'MULTIPLE_CHOICE_GRID' || type === 'CHECKBOX_GRID') {
+			continue; // Skip this iteration and try again
+		}
+
 		const template = await prisma.questionTemplate.create({
 			data: {
-				slug: `template-${i + 1}`,
-				displayName: `Question Template ${i + 1}`,
+				slug: `template-${templatesCreated + 1}`,
+				displayName: `Question Template ${templatesCreated + 1}`,
 				inLibrary: Math.random() > 0.3,
 				versions: {
 					create: {
 						version: 1,
 						prompt: getRandomElement(sampleQuestionPrompts),
 						type,
-						slug: `template-${i + 1}-v1`,
-						minLength: type === 'TEXT' ? 10 : null,
-						maxLength: type === 'TEXT' ? 500 : null,
+						slug: `template-${templatesCreated + 1}-v1`,
+						minLength: type === 'TEXT' || type === 'PARAGRAPH' ? 10 : null,
+						maxLength: type === 'TEXT' || type === 'PARAGRAPH' ? 500 : null,
 						minValue: type === 'NUMBER' ? 0 : null,
 						maxValue: type === 'NUMBER' ? 100 : null,
+						minDate: type === 'DATE' ? new Date('2010-01-01') : null,
+						maxDate: type === 'DATE' ? new Date('2030-12-31') : null,
+						acceptedTypes: type === 'FILE_UPLOAD' ? '.pdf,.doc,.docx' : null,
+						maxFileSizeBytes: type === 'FILE_UPLOAD' ? 10 * 1024 * 1024 : null,
 						options:
 							type === 'MULTIPLE_CHOICE' || type === 'DROPDOWN' || type === 'CHECKBOX'
 								? {
@@ -339,6 +358,7 @@ async function createQuestionTemplates() {
 		});
 
 		templates.push(template);
+		templatesCreated++;
 		console.log(`Created question template: ${template.displayName}`);
 	}
 
@@ -351,6 +371,19 @@ async function createFormDrafts() {
 	const drafts = [];
 
 	for (let i = 0; i < 5; i++) {
+		// Create option groups for grid questions
+		// Each grid question needs its own set of option groups
+		const gridOptionGroups = [];
+		for (let j = 0; j < 3; j++) {
+			const group = await prisma.questionOptionGroupDraft.create({
+				data: {
+					text: `Assessment Category ${j + 1}`,
+					displayOrder: j
+				}
+			});
+			gridOptionGroups.push(group);
+		}
+
 		const draft = await prisma.applicationFormDraft.create({
 			data: {
 				createdAt: getRandomDateInPastWeeks(4),
@@ -372,15 +405,11 @@ async function createFormDrafts() {
 										required: true,
 										questionDraft: {
 											create: {
-												slug: 'contact-permission',
-												type: 'MULTIPLE_CHOICE',
-												prompt: 'Can ETSU and its affiliates contact you via email or phone?',
-												options: {
-													create: [
-														{ slug: 'yes', text: 'Yes', displayOrder: 0 },
-														{ slug: 'no', text: 'No', displayOrder: 1 }
-													]
-												}
+												slug: 'full-name',
+												type: 'TEXT',
+												prompt: 'What is your full name?',
+												minLength: 2,
+												maxLength: 100
 											}
 										}
 									},
@@ -394,6 +423,23 @@ async function createFormDrafts() {
 												prompt: 'What is your primary motivation for pursuing this program?',
 												minLength: 100,
 												maxLength: 1000
+											}
+										}
+									},
+									{
+										displayOrder: 2,
+										required: true,
+										questionDraft: {
+											create: {
+												slug: 'contact-permission',
+												type: 'MULTIPLE_CHOICE',
+												prompt: 'Can ETSU and its affiliates contact you via email or phone?',
+												options: {
+													create: [
+														{ slug: 'yes', text: 'Yes', displayOrder: 0 },
+														{ slug: 'no', text: 'No', displayOrder: 1 }
+													]
+												}
 											}
 										}
 									}
@@ -426,8 +472,21 @@ async function createFormDrafts() {
 										required: false,
 										questionDraft: {
 											create: {
+												slug: 'graduation-date',
+												type: 'DATE',
+												prompt: 'Expected or actual graduation date',
+												minDate: new Date('2010-01-01'),
+												maxDate: new Date('2030-12-31')
+											}
+										}
+									},
+									{
+										displayOrder: 2,
+										required: false,
+										questionDraft: {
+											create: {
 												slug: 'programming-experience',
-												type: 'MULTIPLE_CHOICE',
+												type: 'DROPDOWN',
 												prompt: 'How would you rate your programming experience?',
 												options: {
 													create: [
@@ -436,6 +495,253 @@ async function createFormDrafts() {
 														{ slug: 'advanced', text: 'Advanced', displayOrder: 2 }
 													]
 												}
+											}
+										}
+									}
+								]
+							}
+						},
+						{
+							slug: 'skills-assessment',
+							name: 'Skills Assessment',
+							description: 'Please rate your skills in various areas.',
+							displayOrder: 2,
+							colorScheme: 'PURPLE',
+							questions: {
+								create: [
+									{
+										displayOrder: 0,
+										required: true,
+										questionDraft: {
+											create: {
+												slug: 'skills-grid',
+												type: 'MULTIPLE_CHOICE_GRID',
+												prompt: 'Please rate yourself on the following skills (1 = Low, 5 = High):',
+												options: {
+													create: [
+														// First category options
+														{
+															slug: 'category1-1',
+															text: '1',
+															displayOrder: 0,
+															questionOptionGroupId: gridOptionGroups[0].id
+														},
+														{
+															slug: 'category1-2',
+															text: '2',
+															displayOrder: 1,
+															questionOptionGroupId: gridOptionGroups[0].id
+														},
+														{
+															slug: 'category1-3',
+															text: '3',
+															displayOrder: 2,
+															questionOptionGroupId: gridOptionGroups[0].id
+														},
+														{
+															slug: 'category1-4',
+															text: '4',
+															displayOrder: 3,
+															questionOptionGroupId: gridOptionGroups[0].id
+														},
+														{
+															slug: 'category1-5',
+															text: '5',
+															displayOrder: 4,
+															questionOptionGroupId: gridOptionGroups[0].id
+														},
+														// Second category options
+														{
+															slug: 'category2-1',
+															text: '1',
+															displayOrder: 0,
+															questionOptionGroupId: gridOptionGroups[1].id
+														},
+														{
+															slug: 'category2-2',
+															text: '2',
+															displayOrder: 1,
+															questionOptionGroupId: gridOptionGroups[1].id
+														},
+														{
+															slug: 'category2-3',
+															text: '3',
+															displayOrder: 2,
+															questionOptionGroupId: gridOptionGroups[1].id
+														},
+														{
+															slug: 'category2-4',
+															text: '4',
+															displayOrder: 3,
+															questionOptionGroupId: gridOptionGroups[1].id
+														},
+														{
+															slug: 'category2-5',
+															text: '5',
+															displayOrder: 4,
+															questionOptionGroupId: gridOptionGroups[1].id
+														},
+														// Third category options
+														{
+															slug: 'category3-1',
+															text: '1',
+															displayOrder: 0,
+															questionOptionGroupId: gridOptionGroups[2].id
+														},
+														{
+															slug: 'category3-2',
+															text: '2',
+															displayOrder: 1,
+															questionOptionGroupId: gridOptionGroups[2].id
+														},
+														{
+															slug: 'category3-3',
+															text: '3',
+															displayOrder: 2,
+															questionOptionGroupId: gridOptionGroups[2].id
+														},
+														{
+															slug: 'category3-4',
+															text: '4',
+															displayOrder: 3,
+															questionOptionGroupId: gridOptionGroups[2].id
+														},
+														{
+															slug: 'category3-5',
+															text: '5',
+															displayOrder: 4,
+															questionOptionGroupId: gridOptionGroups[2].id
+														}
+													]
+												}
+											}
+										}
+									},
+									{
+										displayOrder: 1,
+										required: false,
+										questionDraft: {
+											create: {
+												slug: 'technologies',
+												type: 'CHECKBOX',
+												prompt: 'Which technologies are you familiar with? (Select all that apply)',
+												options: {
+													create: [
+														{ slug: 'python', text: 'Python', displayOrder: 0 },
+														{ slug: 'java', text: 'Java', displayOrder: 1 },
+														{ slug: 'javascript', text: 'JavaScript', displayOrder: 2 },
+														{ slug: 'html-css', text: 'HTML/CSS', displayOrder: 3 },
+														{ slug: 'sql', text: 'SQL', displayOrder: 4 },
+														{ slug: 'none', text: 'None', displayOrder: 5 }
+													]
+												}
+											}
+										}
+									}
+								]
+							}
+						},
+						{
+							slug: 'checkbox-grid-section',
+							name: 'Checkbox Grid Assessment',
+							description: 'Please indicate which areas you have experience in.',
+							displayOrder: 3,
+							colorScheme: 'ORANGE',
+							questions: {
+								create: [
+									{
+										displayOrder: 0,
+										required: true,
+										questionDraft: {
+											create: {
+												slug: 'experience-grid',
+												type: 'CHECKBOX_GRID',
+												prompt: 'Please indicate your experience level in the following areas:',
+												options: {
+													create: [
+														// First category options
+														{
+															slug: 'exp-cat1-beginner',
+															text: 'Beginner',
+															displayOrder: 0,
+															questionOptionGroupId: gridOptionGroups[0].id
+														},
+														{
+															slug: 'exp-cat1-intermediate',
+															text: 'Intermediate',
+															displayOrder: 1,
+															questionOptionGroupId: gridOptionGroups[0].id
+														},
+														{
+															slug: 'exp-cat1-advanced',
+															text: 'Advanced',
+															displayOrder: 2,
+															questionOptionGroupId: gridOptionGroups[0].id
+														},
+														// Second category options
+														{
+															slug: 'exp-cat2-beginner',
+															text: 'Beginner',
+															displayOrder: 0,
+															questionOptionGroupId: gridOptionGroups[1].id
+														},
+														{
+															slug: 'exp-cat2-intermediate',
+															text: 'Intermediate',
+															displayOrder: 1,
+															questionOptionGroupId: gridOptionGroups[1].id
+														},
+														{
+															slug: 'exp-cat2-advanced',
+															text: 'Advanced',
+															displayOrder: 2,
+															questionOptionGroupId: gridOptionGroups[1].id
+														},
+														// Third category options
+														{
+															slug: 'exp-cat3-beginner',
+															text: 'Beginner',
+															displayOrder: 0,
+															questionOptionGroupId: gridOptionGroups[2].id
+														},
+														{
+															slug: 'exp-cat3-intermediate',
+															text: 'Intermediate',
+															displayOrder: 1,
+															questionOptionGroupId: gridOptionGroups[2].id
+														},
+														{
+															slug: 'exp-cat3-advanced',
+															text: 'Advanced',
+															displayOrder: 2,
+															questionOptionGroupId: gridOptionGroups[2].id
+														}
+													]
+												}
+											}
+										}
+									}
+								]
+							}
+						},
+						{
+							slug: 'file-upload',
+							name: 'Document Upload',
+							description: 'Please upload required documents.',
+							displayOrder: 4,
+							colorScheme: 'TEAL',
+							questions: {
+								create: [
+									{
+										displayOrder: 0,
+										required: true,
+										questionDraft: {
+											create: {
+												slug: 'resume-upload',
+												type: 'FILE_UPLOAD',
+												prompt: 'Upload your resume or CV',
+												acceptedTypes: '.pdf,.doc,.docx',
+												maxFileSizeBytes: 10 * 1024 * 1024 // 10MB
 											}
 										}
 									}
@@ -494,7 +800,11 @@ async function createPublishedForms(drafts, groups) {
 							include: {
 								questionDraft: {
 									include: {
-										options: true
+										options: {
+											include: {
+												questionOptionGroup: true
+											}
+										}
 									}
 								}
 							}
@@ -511,10 +821,10 @@ async function createPublishedForms(drafts, groups) {
 				name: draft.name,
 				description: draft.description,
 				groupId: group.id,
-				openDate: getRandomDateInPastWeeks(4), // Open within past 4 weeks
+				openDate: getRandomDateInPastWeeks(4),
 				closeDate:
-					Math.random() > 0.3 ? getRandomDateInFutureWeeks(8) : getRandomDateInPastWeeks(2), // 70% future, 30% past
-				active: Math.random() > 0.2, // 80% are active
+					Math.random() > 0.3 ? getRandomDateInFutureWeeks(8) : getRandomDateInPastWeeks(2),
+				active: Math.random() > 0.2,
 				adminName: draft.name + ' (Version 1)',
 				sections: {
 					create: draftWithDetails.sections.map((section) => ({
@@ -545,6 +855,79 @@ async function createPublishedForms(drafts, groups) {
 						}
 					});
 
+					// Handle options for grid questions
+					let optionsData = undefined;
+
+					if (question.questionDraft.options && question.questionDraft.options.length > 0) {
+						// Check if this is a grid question
+						const hasOptionGroups = question.questionDraft.options.some(
+							(opt) => opt.questionOptionGroupId
+						);
+
+						if (hasOptionGroups) {
+							// This is a grid question - each question gets its own unique option groups
+							console.log(`Grid question - creating unique option groups for this question`);
+
+							// Group options by their option group within this question
+							const optionsByGroup = new Map();
+							for (const option of question.questionDraft.options) {
+								if (option.questionOptionGroup) {
+									const groupKey = `${option.questionOptionGroup.text}-${option.questionOptionGroup.displayOrder}`;
+									if (!optionsByGroup.has(groupKey)) {
+										optionsByGroup.set(groupKey, []);
+									}
+									optionsByGroup.get(groupKey).push(option);
+								}
+							}
+
+							// Create option groups first and store their IDs
+							const groupIdMap = new Map();
+							for (const [groupKey, groupOptions] of optionsByGroup) {
+								const firstOption = groupOptions[0];
+								if (firstOption?.questionOptionGroup) {
+									const group = await prisma.questionOptionGroup.create({
+										data: {
+											text: firstOption.questionOptionGroup.text,
+											displayOrder: firstOption.questionOptionGroup.displayOrder
+										}
+									});
+									groupIdMap.set(groupKey, group.id);
+								}
+							}
+
+							// Create options with proper group relationships
+							optionsData = {
+								create: question.questionDraft.options.map((opt) => {
+									const optionData = {
+										text: opt.text,
+										displayOrder: opt.displayOrder,
+										slug: opt.slug
+									};
+
+									// If this option has a group, set the groupId
+									if (opt.questionOptionGroup) {
+										const groupKey = `${opt.questionOptionGroup.text}-${opt.questionOptionGroup.displayOrder}`;
+										const groupId = groupIdMap.get(groupKey);
+										if (groupId) {
+											optionData.questionOptionGroupId = groupId;
+										}
+									}
+
+									return optionData;
+								})
+							};
+						} else {
+							// Regular question with options
+							optionsData = {
+								create: question.questionDraft.options.map((opt) => ({
+									text: opt.text,
+									displayOrder: opt.displayOrder,
+									slug: opt.slug
+								}))
+							};
+						}
+					}
+
 					// Create a QuestionVersion from the draft question
 					const questionVersion = await prisma.questionVersion.create({
 						data: {
@@ -561,15 +944,7 @@ async function createPublishedForms(drafts, groups) {
 							maxDate: question.questionDraft.maxDate,
 							acceptedTypes: question.questionDraft.acceptedTypes,
 							maxFileSizeBytes: question.questionDraft.maxFileSizeBytes,
-							options: question.questionDraft.options
-								? {
-										create: question.questionDraft.options.map((opt) => ({
-											text: opt.text,
-											displayOrder: opt.displayOrder,
-											slug: opt.slug
-										}))
-									}
-								: undefined
+							options: optionsData
 						}
 					});
 
@@ -694,6 +1069,48 @@ async function createSubmissions(users, publishedForms) {
 											};
 										}
 										break;
+									case 'MULTIPLE_CHOICE_GRID':
+									case 'CHECKBOX_GRID':
+										if (question.options.length > 0) {
+											// For grid questions, we need to handle the option groups
+											// Get unique option groups from the question
+											const optionGroups = [
+												...new Set(question.options.map((opt) => opt.questionOptionGroupId))
+											];
+
+											// For each option group, select one option (for multiple choice grid) or multiple (for checkbox grid)
+											const selectedOptions = [];
+											for (const groupId of optionGroups) {
+												const groupOptions = question.options.filter(
+													(opt) => opt.questionOptionGroupId === groupId
+												);
+												if (question.type === 'MULTIPLE_CHOICE_GRID') {
+													// Select one option per group for multiple choice grid
+													const selectedOption = getRandomElement(groupOptions);
+													selectedOptions.push(selectedOption);
+												} else {
+													// Select 1-3 options per group for checkbox grid
+													const numToSelect = Math.min(
+														Math.floor(Math.random() * 3) + 1,
+														groupOptions.length
+													);
+													const groupSelectedOptions = getRandomElements(groupOptions, numToSelect);
+													selectedOptions.push(...groupSelectedOptions);
+												}
+											}
+
+											answerData.selectedOptions = {
+												create: selectedOptions.map((option) => ({
+													optionId: option.id
+												}))
+											};
+										}
+										break;
+									case 'FILE_UPLOAD':
+										// For file uploads, we'll create a placeholder answer
+										// In a real scenario, this would reference an actual uploaded file
+										answerData.valueText = 'Sample file uploaded';
+										break;
 								}
 
 								return answerData;
@@ -709,6 +1126,75 @@ async function createSubmissions(users, publishedForms) {
 	}
 
 	return submissions;
+}
+
+async function createApplicationReviews(users, submissions) {
+	console.log('Creating application reviews and comments...');
+
+	const reviews = [];
+	const comments = [];
+	const adminUsers = users.filter((u) => u.role === 'ADMIN');
+
+	// Only create reviews/comments for submitted applications
+	const submittedApplications = submissions.filter((s) => s.status === 'SUBMITTED');
+
+	for (const application of submittedApplications) {
+		// 40% chance of getting reviewed, 60% stay as SUBMITTED
+		if (Math.random() > 0.6) {
+			// Select 1-2 random admin reviewers
+			const numReviewers = Math.random() > 0.5 ? 1 : 2;
+			const selectedReviewers = getRandomElements(adminUsers, numReviewers);
+
+			for (const reviewer of selectedReviewers) {
+				// Create review
+				const review = await prisma.applicationReview.create({
+					data: {
+						applicationId: application.id,
+						reviewerId: reviewer.id,
+						rating: Math.floor(Math.random() * 5) + 1 // 1-5 rating
+					}
+				});
+				reviews.push(review);
+
+				// 50% chance of adding a comment (so some reviews have no comments)
+				if (Math.random() > 0.5) {
+					const sampleComments = [
+						'Strong application overall. Good academic background.',
+						'Well-written responses. Shows clear motivation.',
+						'Could benefit from more specific examples in responses.',
+						'Excellent technical skills demonstrated.',
+						'Good fit for the program. Recommend approval.',
+						'Some areas need improvement, but shows potential.',
+						'Very thorough application. Impressive background.',
+						'Responses are thoughtful and well-articulated.',
+						'Meets all requirements. Strong candidate.',
+						'Good potential, but some concerns about experience level.'
+					];
+
+					const comment = await prisma.applicationComment.create({
+						data: {
+							applicationId: application.id,
+							reviewerId: reviewer.id,
+							comment: getRandomElement(sampleComments)
+						}
+					});
+					comments.push(comment);
+				}
+			}
+
+			// Update application status to UNDER_REVIEW
+			await prisma.applicationResponse.update({
+				where: { id: application.id },
+				data: { status: 'UNDER_REVIEW' }
+			});
+		}
+		// Applications that don't get reviewed stay as SUBMITTED
+	}
+
+	console.log(`Created ${reviews.length} application reviews`);
+	console.log(`Created ${comments.length} application comments`);
+
+	return { reviews, comments };
 }
 
 async function createAnnouncements(users) {
@@ -746,6 +1232,7 @@ async function main() {
 		const formGroups = await createFormGroups();
 		const publishedForms = await createPublishedForms(formDrafts, formGroups);
 		const submissions = await createSubmissions(users, publishedForms);
+		const { reviews, comments } = await createApplicationReviews(users, submissions);
 		const announcements = await createAnnouncements(users);
 
 		console.log('\n=== Test Data Generation Complete ===');
@@ -755,6 +1242,8 @@ async function main() {
 		console.log(`Created ${formGroups.length} form groups`);
 		console.log(`Created ${publishedForms.length} published forms`);
 		console.log(`Created ${submissions.length} submissions`);
+		console.log(`Created ${reviews.length} application reviews`);
+		console.log(`Created ${comments.length} application comments`);
 		console.log(`Created ${announcements.length} announcements`);
 		console.log('\nYou can now test the application with this sample data!');
 	} catch (error) {

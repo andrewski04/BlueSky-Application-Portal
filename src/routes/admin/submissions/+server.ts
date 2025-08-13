@@ -14,7 +14,7 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 	const page = parseInt(url.searchParams.get('page') || '1');
 	const limit = 20; // Show 20 responses per page
 	const search = url.searchParams.get('search') || '';
-	const statusFilter = url.searchParams.get('status') || 'SUBMITTED';
+	const statusFilter = url.searchParams.get('status') || 'all';
 	const groupFilter = url.searchParams.get('group') || 'all';
 	const formFilter = url.searchParams.get('form') || 'all';
 	const dateFromFilter = url.searchParams.get('dateFrom') || '';
@@ -45,7 +45,7 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 	}
 
 	if (statusFilter !== 'all') {
-		where.status = statusFilter as 'DRAFT' | 'SUBMITTED';
+		where.status = statusFilter as 'DRAFT' | 'SUBMITTED' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED';
 	}
 
 	if (groupFilter !== 'all') {

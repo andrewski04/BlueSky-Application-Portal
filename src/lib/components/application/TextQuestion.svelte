@@ -46,7 +46,7 @@
 
 	{#if readonly}
 		<div
-			class="w-full rounded-md border border-gray-300 bg-gray-100 px-3 py-2 break-words whitespace-pre-wrap text-gray-700"
+			class="min-h-[2.5rem] w-full min-w-[5rem] rounded-md border border-gray-300 bg-gray-100 px-3 py-2 break-all whitespace-pre-wrap text-gray-700"
 		>
 			{value || 'N/A'}
 		</div>

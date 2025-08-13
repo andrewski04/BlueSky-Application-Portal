@@ -19,7 +19,83 @@ async function cleanupTestData() {
 
 		// Delete in reverse order of dependencies to avoid foreign key constraint errors
 
-		// 1. Delete submissions and answers
+		// 1. Delete reviews and comments first (they reference ApplicationResponse)
+		console.log('Deleting application reviews and comments...');
+		const deletedReviews = await prisma.applicationReview.deleteMany({
+			where: {
+				application: {
+					user: {
+						email: {
+							in: [
+								'admin1@etsu.edu',
+								'admin2@etsu.edu',
+								'admin3@etsu.edu',
+								'john.smith@example.com',
+								'sarah.johnson@example.com',
+								'michael.brown@example.com',
+								'emily.davis@example.com',
+								'david.wilson@example.com',
+								'lisa.anderson@example.com',
+								'james.taylor@example.com',
+								'jennifer.martinez@example.com',
+								'robert.garcia@example.com',
+								'amanda.rodriguez@example.com',
+								'christopher.lee@example.com',
+								'jessica.white@example.com',
+								'daniel.harris@example.com',
+								'ashley.clark@example.com',
+								'matthew.lewis@example.com',
+								'nicole.hall@example.com',
+								'andrew.young@example.com',
+								'stephanie.king@example.com',
+								'joshua.wright@example.com',
+								'megan.green@example.com'
+							]
+						}
+					}
+				}
+			}
+		});
+		console.log(`Deleted ${deletedReviews.count} application reviews`);
+
+		const deletedComments = await prisma.applicationComment.deleteMany({
+			where: {
+				application: {
+					user: {
+						email: {
+							in: [
+								'admin1@etsu.edu',
+								'admin2@etsu.edu',
+								'admin3@etsu.edu',
+								'john.smith@example.com',
+								'sarah.johnson@example.com',
+								'michael.brown@example.com',
+								'emily.davis@example.com',
+								'david.wilson@example.com',
+								'lisa.anderson@example.com',
+								'james.taylor@example.com',
+								'jennifer.martinez@example.com',
+								'robert.garcia@example.com',
+								'amanda.rodriguez@example.com',
+								'christopher.lee@example.com',
+								'jessica.white@example.com',
+								'daniel.harris@example.com',
+								'ashley.clark@example.com',
+								'matthew.lewis@example.com',
+								'nicole.hall@example.com',
+								'andrew.young@example.com',
+								'stephanie.king@example.com',
+								'joshua.wright@example.com',
+								'megan.green@example.com'
+							]
+						}
+					}
+				}
+			}
+		});
+		console.log(`Deleted ${deletedComments.count} application comments`);
+
+		// 2. Delete submissions and answers
 		console.log('Deleting submissions and answers...');
 		const deletedAnswers = await prisma.answer.deleteMany({
 			where: {
@@ -93,7 +169,7 @@ async function cleanupTestData() {
 		});
 		console.log(`Deleted ${deletedSubmissions.count} submissions`);
 
-		// 2. Delete published form questions and sections
+		// 3. Delete published form questions and sections
 		console.log('Deleting published form questions and sections...');
 		const deletedPublishedQuestions = await prisma.questionLinkPublished.deleteMany({
 			where: {
@@ -141,7 +217,7 @@ async function cleanupTestData() {
 		});
 		console.log(`Deleted ${deletedPublishedSections.count} published form sections`);
 
-		// 3. Delete published forms
+		// 4. Delete published forms
 		console.log('Deleting published forms...');
 		const deletedPublishedForms = await prisma.applicationFormPublished.deleteMany({
 			where: {
@@ -163,7 +239,7 @@ async function cleanupTestData() {
 		});
 		console.log(`Deleted ${deletedPublishedForms.count} published forms`);
 
-		// 4. Delete form groups
+		// 5. Delete form groups
 		console.log('Deleting form groups...');
 		const deletedFormGroups = await prisma.applicationFormGroup.deleteMany({
 			where: {
@@ -174,7 +250,7 @@ async function cleanupTestData() {
 		});
 		console.log(`Deleted ${deletedFormGroups.count} form groups`);
 
-		// 5. Delete draft form questions and sections
+		// 6. Delete draft form questions and sections
 		console.log('Deleting draft form questions and sections...');
 		const deletedDraftQuestions = await prisma.questionLinkDraft.deleteMany({
 			where: {
@@ -222,7 +298,7 @@ async function cleanupTestData() {
 		});
 		console.log(`Deleted ${deletedDraftSections.count} draft form sections`);
 
-		// 6. Delete draft forms
+		// 7. Delete draft forms
 		console.log('Deleting draft forms...');
 		const deletedDraftForms = await prisma.applicationFormDraft.deleteMany({
 			where: {
@@ -244,7 +320,7 @@ async function cleanupTestData() {
 		});
 		console.log(`Deleted ${deletedDraftForms.count} draft forms`);
 
-		// 7. Delete question templates and versions
+		// 8. Delete question templates and versions
 		console.log('Deleting question templates and versions...');
 		const deletedQuestionOptions = await prisma.questionOption.deleteMany({
 			where: {
@@ -279,7 +355,7 @@ async function cleanupTestData() {
 		});
 		console.log(`Deleted ${deletedQuestionTemplates.count} question templates`);
 
-		// 8. Delete announcements
+		// 9. Delete announcements
 		console.log('Deleting announcements...');
 		const deletedAnnouncements = await prisma.announcement.deleteMany({
 			where: {
@@ -296,7 +372,7 @@ async function cleanupTestData() {
 		});
 		console.log(`Deleted ${deletedAnnouncements.count} announcements`);
 
-		// 9. Delete users
+		// 10. Delete users
 		console.log('Deleting test users...');
 		const deletedUsers = await prisma.user.deleteMany({
 			where: {

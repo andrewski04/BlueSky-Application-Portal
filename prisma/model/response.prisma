@@ -1,8 +1,47 @@
+/// ─────────────────────────────────────────────────────────────────────────────
+/// APPLICATION REVIEW
+/// ─────────────────────────────────────────────────────────────────────────────
 
 enum ApplicationStatus {
   DRAFT
   SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
 }
+
+model ApplicationReview {
+  id String @id @default(cuid(2))
+
+  applicationId String
+  application   ApplicationResponse @relation(fields: [applicationId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  rating Int
+
+  reviewerId String
+  reviewer   User @relation(fields: [reviewerId], references: [id], onDelete: Cascade)
+
+  @@unique([applicationId, reviewerId])
+}
+
+model ApplicationComment {
+  id String @id @default(cuid(2))
+
+  applicationId String
+  application   ApplicationResponse @relation(fields: [applicationId], references: [id])
+
+  comment String
+
+  reviewerId String
+  reviewer   User @relation(fields: [reviewerId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 
 /// ─────────────────────────────────────────────────────────────────────────────
 /// APPLICATION RESPONSES
@@ -23,6 +62,9 @@ model ApplicationResponse {
 
   formGroupId String?
   formGroup ApplicationFormGroup? @relation(fields: [formGroupId], references: [id])
+
+  reviews ApplicationReview[]
+  comments ApplicationComment[]
 
   @@unique([userId, formId])
   @@index([formId])

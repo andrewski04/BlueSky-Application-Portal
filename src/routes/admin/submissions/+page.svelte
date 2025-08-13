@@ -6,7 +6,9 @@
 
 	// Local state for form inputs
 	let search = $state('');
-	let statusFilter = $state<'all' | 'DRAFT' | 'SUBMITTED'>('SUBMITTED');
+	let statusFilter = $state<
+		'all' | 'DRAFT' | 'SUBMITTED' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED'
+	>('SUBMITTED');
 	let groupFilter = $state<string>('all');
 	let formFilter = $state<string>('all');
 	let dateFromFilter = $state<string>('');
@@ -42,7 +44,7 @@
 		try {
 			const params = new URLSearchParams();
 			if (search) params.set('search', search);
-			if (statusFilter !== 'SUBMITTED') params.set('status', statusFilter);
+			if (statusFilter !== 'all') params.set('status', statusFilter);
 			if (groupFilter !== 'all') params.set('group', groupFilter);
 			if (formFilter !== 'all') params.set('form', formFilter);
 			if (dateFromFilter) params.set('dateFrom', dateFromFilter);
@@ -102,7 +104,14 @@
 		// Initialize state from URL parameters
 		const urlParams = new URLSearchParams(window.location.search);
 		search = urlParams.get('search') || '';
-		statusFilter = (urlParams.get('status') as 'all' | 'DRAFT' | 'SUBMITTED') || 'SUBMITTED';
+		statusFilter =
+			(urlParams.get('status') as
+				| 'all'
+				| 'DRAFT'
+				| 'SUBMITTED'
+				| 'UNDER_REVIEW'
+				| 'APPROVED'
+				| 'REJECTED') || 'all';
 		groupFilter = urlParams.get('group') || 'all';
 		formFilter = urlParams.get('form') || 'all';
 		dateFromFilter = urlParams.get('dateFrom') || '';
@@ -150,7 +159,7 @@
 	async function updateURL() {
 		const params = new URLSearchParams();
 		if (search) params.set('search', search);
-		if (statusFilter !== 'SUBMITTED') params.set('status', statusFilter);
+		if (statusFilter !== 'all') params.set('status', statusFilter);
 		if (groupFilter !== 'all') params.set('group', groupFilter);
 		if (formFilter !== 'all') params.set('form', formFilter);
 		if (dateFromFilter) params.set('dateFrom', dateFromFilter);
@@ -178,7 +187,7 @@
 
 			const params = new URLSearchParams();
 			if (search) params.set('search', search);
-			if (statusFilter !== 'SUBMITTED') params.set('status', statusFilter);
+			if (statusFilter !== 'all') params.set('status', statusFilter);
 			if (sortKey !== 'updatedAt') params.set('sort', sortKey);
 			if (sortDirection !== 'desc') params.set('direction', sortDirection);
 			if (pageNum > 1) params.set('page', pageNum.toString());
@@ -224,7 +233,7 @@
 
 		const params = new URLSearchParams();
 		if (search) params.set('search', search);
-		if (statusFilter !== 'SUBMITTED') params.set('status', statusFilter);
+		if (statusFilter !== 'all') params.set('status', statusFilter);
 		if (groupFilter !== 'all') params.set('group', groupFilter);
 		if (formFilter !== 'all') params.set('form', formFilter);
 		if (dateFromFilter) params.set('dateFrom', dateFromFilter);
@@ -241,7 +250,7 @@
 
 	async function clearFilters() {
 		search = '';
-		statusFilter = 'SUBMITTED';
+		statusFilter = 'all';
 		groupFilter = 'all';
 		formFilter = 'all';
 		dateFromFilter = '';
@@ -289,7 +298,7 @@
 <div class="main-container min-h-screen">
 	<AdminNavBar message={`View Student Application Submissions`} />
 
-	<div class="container mx-auto px-4 py-8">
+	<div class="mx-auto max-w-[75%] px-4 py-8">
 		<div class="content-card mb-8">
 			<div class="section-header p-6">
 				<h2 class="flex items-center text-xl font-semibold text-gray-800">
@@ -350,6 +359,9 @@
 						<option value="all">All Statuses</option>
 						<option value="DRAFT">Draft</option>
 						<option value="SUBMITTED">Submitted</option>
+						<option value="UNDER_REVIEW">Under Review</option>
+						<option value="APPROVED">Approved</option>
+						<option value="REJECTED">Rejected</option>
 					</select>
 
 					<!-- Group Filter -->
@@ -579,6 +591,14 @@
 											<span class="rounded-lg bg-yellow-300 px-2 py-1 text-yellow-800">Draft</span>
 										{:else if response.status === 'SUBMITTED'}
 											<span class="rounded-lg bg-blue-300 px-2 py-1 text-blue-800">Submitted</span>
+										{:else if response.status === 'UNDER_REVIEW'}
+											<span class="rounded-lg bg-purple-300 px-2 py-1 text-purple-800">
+												Under Review
+											</span>
+										{:else if response.status === 'APPROVED'}
+											<span class="rounded-lg bg-green-300 px-2 py-1 text-green-800">Approved</span>
+										{:else if response.status === 'REJECTED'}
+											<span class="rounded-lg bg-red-300 px-2 py-1 text-red-800">Rejected</span>
 										{/if}
 									</td>
 									<td class="px-4 py-4 text-sm text-black">
