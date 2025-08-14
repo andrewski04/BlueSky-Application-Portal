@@ -1255,6 +1255,15 @@ async function main() {
 }
 
 // Run the script
-if (import.meta.url === `file://${process.argv[1]}`) {
+const scriptPath = process.argv[1];
+const isRunningDirectly =
+	scriptPath &&
+	(import.meta.url === `file://${scriptPath}` ||
+		import.meta.url.endsWith(scriptPath.replace(/\\/g, '/')));
+
+if (isRunningDirectly) {
+	console.log('About to run main function...');
 	main();
+} else {
+	console.log('Script imported as module, not running main');
 }
