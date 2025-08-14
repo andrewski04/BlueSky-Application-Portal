@@ -94,6 +94,35 @@ export const load = (async ({ locals, params }) => {
 }) satisfies PageServerLoad;
 
 export const actions = {
+	updateStatus: async ({ locals, request, params }) => {
+		requireRole(locals, 'ADMIN');
+
+		const formData = await request.formData();
+		const status = formData.get('status') as string;
+
+		if (
+			!status ||
+			!['DRAFT', 'SUBMITTED', 'UNDER_REVIEW', 'APPROVED', 'REJECTED'].includes(status)
+		) {
+			return fail(400, { success: false, error: 'Invalid status' });
+		}
+
+		const updateResult = await prismaResult(
+			prisma.applicationResponse.update({
+				where: { id: params.submission_id },
+				data: {
+					status: status as 'DRAFT' | 'SUBMITTED' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED',
+					submittedAt: status === 'SUBMITTED' ? new Date() : undefined
+				}
+			})
+		);
+
+		if (updateResult.isErr()) {
+			return fail(500, { success: false, error: 'Failed to update status' });
+		}
+
+		return { success: true, status: updateResult.value.status };
+	},
 	review: async ({ locals, request, params }) => {
 		requireRole(locals, 'ADMIN');
 

@@ -3,6 +3,8 @@
 	import SearchableDropdown from '$lib/components/util/SearchableDropdown.svelte';
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
+	import nProgress from 'nprogress';
+	import Tooltip from '$lib/components/util/Tooltip.svelte';
 
 	// Local state for form inputs
 	let search = $state('');
@@ -13,9 +15,9 @@
 	let formFilter = $state<string>('all');
 	let dateFromFilter = $state<string>('');
 	let dateToFilter = $state<string>('');
-	let sortKey = $state<'id' | 'user' | 'updatedAt' | 'submittedAt' | 'status' | 'form' | 'group'>(
-		'updatedAt'
-	);
+	let sortKey = $state<
+		'id' | 'user' | 'updatedAt' | 'submittedAt' | 'status' | 'form' | 'group' | 'rating'
+	>('updatedAt');
 	let sortDirection = $state<'asc' | 'desc'>('desc');
 	let showAdminSubmissions = $state(false);
 
@@ -26,6 +28,7 @@
 	let loading = $state(false);
 	let availableGroups = $state<any[]>([]);
 	let availableForms = $state<Array<{ id: string; name: string; adminName?: string }>>([]);
+	let isExporting = $state(false);
 
 	const sortKeyMap = {
 		id: 'ID',
@@ -34,7 +37,8 @@
 		submittedAt: 'Submitted Date',
 		status: 'Status',
 		form: 'Form Name',
-		group: 'Group'
+		group: 'Group',
+		rating: 'Rating'
 	};
 
 	// Function to fetch data from the API
@@ -259,6 +263,40 @@
 		await handleFilter();
 	}
 
+	async function exportSubmissions() {
+		try {
+			nProgress.start();
+			isExporting = true;
+
+			// Build the same parameters used for filtering
+			const params = new URLSearchParams();
+			if (search) params.set('search', search);
+			if (statusFilter !== 'all') params.set('status', statusFilter);
+			if (groupFilter !== 'all') params.set('group', groupFilter);
+			if (formFilter !== 'all') params.set('form', formFilter);
+			if (dateFromFilter) params.set('dateFrom', dateFromFilter);
+			if (dateToFilter) params.set('dateTo', dateToFilter);
+			if (showAdminSubmissions) params.set('showAdminSubmissions', 'true');
+
+			// Create the export URL
+			const exportUrl = `/admin/submissions/export?${params.toString()}`;
+
+			// Create a temporary link and trigger download
+			const link = document.createElement('a');
+			link.href = exportUrl;
+			link.download = `submissions-export-${new Date().toISOString().split('T')[0]}.pdf`;
+			document.body.appendChild(link);
+			link.click();
+			document.body.removeChild(link);
+		} catch (error) {
+			console.error('Error exporting submissions:', error);
+			alert('An error occurred while exporting submissions.');
+		} finally {
+			isExporting = false;
+			nProgress.done();
+		}
+	}
+
 	// Debounced search function
 	let searchTimeout: NodeJS.Timeout;
 	function debouncedSearch() {
@@ -298,7 +336,7 @@
 <div class="main-container min-h-screen">
 	<AdminNavBar message={`View Student Application Submissions`} />
 
-	<div class="mx-auto max-w-[75%] px-4 py-8">
+	<div class="mx-auto px-4 py-8 lg:max-w-[80%]">
 		<div class="content-card mb-8">
 			<div class="section-header p-6">
 				<h2 class="flex items-center text-xl font-semibold text-gray-800">
@@ -409,6 +447,51 @@
 
 					<!-- Clear Filters Button -->
 					<button onclick={clearFilters} class="btn-red px-3 py-2 text-sm"> Clear Filters </button>
+
+					<!-- Export Button -->
+					<Tooltip tip="Export all submissions with current filters as a PDF" top>
+						<button
+							onclick={() => {
+								exportSubmissions();
+							}}
+							disabled={isExporting}
+							class="btn-blue px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+						>
+							{#if isExporting}
+								<svg class="mr-2 inline h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+									<circle
+										class="opacity-25"
+										cx="12"
+										cy="12"
+										r="10"
+										stroke="currentColor"
+										stroke-width="4"
+									></circle>
+									<path
+										class="opacity-75"
+										fill="currentColor"
+										d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+									></path>
+								</svg>
+								Generating PDF...
+							{:else}
+								<svg
+									class="mr-2 inline h-4 w-4"
+									fill="none"
+									stroke="currentColor"
+									viewBox="0 0 24 24"
+								>
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+									/>
+								</svg>
+								Export PDF
+							{/if}
+						</button>
+					</Tooltip>
 				</div>
 			</div>
 
@@ -699,6 +782,39 @@
 									</td>
 									<td class="px-4 py-4 text-sm text-black">
 										{response.form.group?.name ?? 'No group'}
+									</td>
+									<td class="px-4 py-4 text-sm text-black">
+										{#if response.aggregateRating !== -1}
+											<div class="space-y-1">
+												<p class="text-sm font-semibold text-blue-600">
+													{response.aggregateRating.toFixed(1)}/10
+												</p>
+
+												<div class="flex">
+													{#each Array(5) as _, i}
+														{#if i < Math.round(response.aggregateRating / 2)}
+															<svg class="h-4 w-4 fill-current text-yellow-400" viewBox="0 0 20 20">
+																<path
+																	d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"
+																/>
+															</svg>
+														{:else}
+															<svg class="h-4 w-4 fill-current text-gray-300" viewBox="0 0 20 20">
+																<path
+																	d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"
+																/>
+															</svg>
+														{/if}
+													{/each}
+												</div>
+												<!-- Review Count -->
+												<div class="text-xs text-gray-500">
+													{response.reviewCount} review{response.reviewCount !== 1 ? 's' : ''}
+												</div>
+											</div>
+										{:else}
+											<div class="text-xs text-gray-400">No reviews</div>
+										{/if}
 									</td>
 									<td class="px-4 py-4 text-sm text-black">
 										<a

@@ -57,7 +57,7 @@ export async function authenticateUserWithMagicToken({
 
 		const createUserResult = await createUserIfNotExists(email);
 		if (createUserResult.isErr()) {
-			return createUserResult.unwrapErr();
+			return createUserResult;
 		}
 		const { user } = createUserResult.unwrap();
 
@@ -67,7 +67,7 @@ export async function authenticateUserWithMagicToken({
 
 		const sessionResult = await createSession(user.id);
 		if (sessionResult.isErr()) {
-			return sessionResult.unwrapErr();
+			return sessionResult;
 		}
 		const { session, token } = sessionResult.unwrap();
 

@@ -33,7 +33,7 @@ export const load = (async ({ locals, params }) => {
 				id: true,
 				name: true,
 				description: true,
-				forms: { select: { id: true } }
+				_count: { select: { forms: true, submissions: true } }
 			}
 		})
 	);
@@ -45,7 +45,7 @@ export const load = (async ({ locals, params }) => {
 	return {
 		user,
 		applicationForm: applicationForm.value,
-		groups: groupResult.value.map((g) => ({ ...g, formCount: g.forms.length }))
+		groups: groupResult.value
 	};
 }) satisfies PageServerLoad;
 
@@ -277,10 +277,26 @@ export const actions = {
 			return fail(400, { success: false, error: 'Group name is required' });
 		}
 
+		// check if group name already exists (case-insensitive and trimmed)
+		const trimmedName = name.trim();
+		const existingGroup = await prismaResult(
+			prisma.applicationFormGroup.findFirst({
+				where: {
+					name: {
+						mode: 'insensitive',
+						equals: trimmedName
+					}
+				}
+			})
+		);
+		if (existingGroup.isOk() && existingGroup.value) {
+			return fail(400, { success: false, error: 'A group with this name already exists' });
+		}
+
 		const result = await prismaResult(
 			prisma.applicationFormGroup.create({
 				data: {
-					name,
+					name: trimmedName,
 					description
 				},
 				select: {
@@ -315,11 +331,28 @@ export const actions = {
 			return fail(400, { success: false, error: 'Group ID and name are required' });
 		}
 
+		// check if group name already exists (case-insensitive and trimmed)
+		const trimmedName = name.trim();
+		const existingGroup = await prismaResult(
+			prisma.applicationFormGroup.findFirst({
+				where: {
+					name: {
+						mode: 'insensitive',
+						equals: trimmedName
+					},
+					id: { not: groupId }
+				}
+			})
+		);
+		if (existingGroup.isOk() && existingGroup.value) {
+			return fail(400, { success: false, error: 'A group with this name already exists' });
+		}
+
 		const result = await prismaResult(
 			prisma.applicationFormGroup.update({
 				where: { id: groupId },
 				data: {
-					name,
+					name: trimmedName,
 					description
 				}
 			})

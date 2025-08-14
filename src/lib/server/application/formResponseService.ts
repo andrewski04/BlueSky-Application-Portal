@@ -20,7 +20,7 @@ export async function getApplicationFormWithAnswers(applicationId: string, formI
 									where: { applicationId },
 									include: {
 										selectedOptions: {
-											include: { option: true }
+											include: { option: { include: { questionOptionGroup: true } } }
 										},
 										FileUpload: true
 									}

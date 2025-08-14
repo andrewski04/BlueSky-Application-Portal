@@ -661,5 +661,66 @@ export const actions = {
 			log.error('Error reordering questions', error);
 			return fail(500, { error: 'Failed to reorder questions' });
 		}
+	},
+	moveQuestionToSection: async ({ request, locals }) => {
+		requireRole(locals, 'ADMIN');
+		const data = await request.formData();
+		const questionId = data.get('questionId') as string;
+		const sectionId = data.get('sectionId') as string;
+
+		if (!questionId || !sectionId) {
+			return fail(400, { error: 'Missing required fields' });
+		}
+
+		const maxOrderResult = await prisma.questionLinkDraft.findFirst({
+			where: { sectionId },
+			orderBy: { displayOrder: 'desc' },
+			select: { displayOrder: true }
+		});
+
+		const currentOrder = (maxOrderResult?.displayOrder ?? -1) + 1;
+
+		try {
+			const questionLink = await prisma.questionLinkDraft.update({
+				where: {
+					questionDraftId: questionId
+				},
+				data: {
+					sectionId: sectionId,
+					displayOrder: currentOrder
+				},
+				include: {
+					questionDraft: {
+						include: {
+							options: {
+								orderBy: {
+									displayOrder: 'asc'
+								},
+								include: {
+									questionOptionGroup: true
+								}
+							}
+						}
+					},
+					questionVersion: {
+						include: {
+							options: {
+								orderBy: {
+									displayOrder: 'asc'
+								},
+								include: {
+									questionOptionGroup: true
+								}
+							}
+						}
+					}
+				}
+			});
+
+			return { type: 'success', question: questionLink };
+		} catch (error) {
+			log.error('Error moving question to section', error);
+			return fail(500, { error: 'Failed to move question to section' });
+		}
 	}
 } satisfies Actions;

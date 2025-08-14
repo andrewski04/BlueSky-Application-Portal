@@ -5,6 +5,18 @@ import { Logger } from '$lib/utils/logger';
 import { prisma, prismaResult } from '$lib/server/prisma';
 import type { Prisma } from '@prisma/client';
 
+// Type for application response with aggregate rating
+type ApplicationResponseWithAggregate = Prisma.ApplicationResponseGetPayload<{
+	include: {
+		user: true;
+		reviews: { select: { rating: true } };
+		form: { include: { group: { select: { name: true } } } };
+	};
+}> & {
+	aggregateRating: number;
+	reviewCount: number;
+};
+
 const log = new Logger('submissions-api');
 
 export const GET: RequestHandler = async ({ locals, url }) => {
@@ -110,6 +122,9 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 				}
 			}
 		};
+	} else if (sortKey === 'rating') {
+		// For rating sorting, we'll need to sort after fetching since it's calculated
+		orderBy = { updatedAt: 'desc' }; // Default fallback
 	} else {
 		orderBy = { [sortKey]: sortDirection as 'asc' | 'desc' };
 	}
@@ -134,6 +149,11 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 			where,
 			include: {
 				user: true,
+				reviews: {
+					select: {
+						rating: true
+					}
+				},
 				form: {
 					include: {
 						group: {
@@ -158,6 +178,39 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 		);
 	}
 
+	// Calculate aggregate review ratings for each response
+	// aggregateRating: -1 = no reviews, 1-10 = average rating
+	// reviewCount: number of reviews submitted
+	const responsesWithAggregates: ApplicationResponseWithAggregate[] =
+		applicationResponses.value.map((response) => {
+			const reviews = response.reviews;
+			let aggregateRating = -1; // Default to -1 if no reviews
+			let reviewCount = 0;
+
+			if (reviews && reviews.length > 0) {
+				reviewCount = reviews.length;
+				const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
+				aggregateRating = Math.round((totalRating / reviews.length) * 10) / 10; // Round to 1 decimal place
+			}
+
+			return {
+				...response,
+				aggregateRating,
+				reviewCount
+			};
+		});
+
+	// Sort by rating if that's the selected sort key
+	if (sortKey === 'rating') {
+		responsesWithAggregates.sort((a, b) => {
+			if (sortDirection === 'asc') {
+				return a.aggregateRating - b.aggregateRating;
+			} else {
+				return b.aggregateRating - a.aggregateRating;
+			}
+		});
+	}
+
 	// Get available groups and forms for filters
 	const [groupsResult, formsResult] = await Promise.all([
 		prismaResult(
@@ -175,7 +228,7 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 	]);
 
 	return json({
-		applicationResponses: applicationResponses.value,
+		applicationResponses: responsesWithAggregates,
 		user,
 		availableGroups: groupsResult.isOk() ? groupsResult.value : [],
 		availableForms: formsResult.isOk() ? formsResult.value : [],

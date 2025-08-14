@@ -5,6 +5,7 @@
 	import { enhance } from '$app/forms';
 	import { addNotif } from '$lib/utils/notify';
 	import DraftQuestionOverview from '$lib/components/form/DraftQuestionOverview.svelte';
+	import { confirm } from '$lib/utils/confirmModal';
 
 	let showDateRange = $state(false);
 	let showGroup = $state(false);
@@ -31,7 +32,16 @@
 	let closeDateInput = $state<HTMLInputElement | null>(null);
 
 	// Local state for groups to apply changes immediately
-	let localGroups = $state(groups ? [...groups] : []);
+	let localGroups = $state(groups || []);
+	let groupSearchQuery = $state('');
+
+	let filteredGroups = $derived(
+		localGroups.filter(
+			(group) =>
+				group.name.toLowerCase().includes(groupSearchQuery.toLowerCase().trim()) ||
+				group.description?.toLowerCase().includes(groupSearchQuery.toLowerCase().trim())
+		)
+	);
 
 	function resetGroupForms() {
 		editingGroup = null;
@@ -120,8 +130,8 @@
 
 	// Functions to update state when needed
 	function updateLocalGroups() {
-		if (groups) {
-			localGroups = [...groups];
+		if (localGroups) {
+			localGroups = localGroups;
 		}
 	}
 
@@ -315,7 +325,17 @@
 							action="?/updatePublishedFormActiveStatus"
 							method="post"
 							class="inline"
-							use:enhance={() => {
+							use:enhance={async ({ cancel }) => {
+								if (
+									!(await confirm(
+										`Are you sure you want to ${applicationForm?.active ? 'disable' : 'enable'} this form? ${applicationForm?.active ? 'The form will not be accessible to users.' : 'The form will be active and accessible to users, if within the date range.'}`,
+										'Confirm',
+										'Cancel',
+										'Confirm Form Activation'
+									))
+								) {
+									cancel();
+								}
 								return async ({ result }) => {
 									if (result.type === 'success') {
 										addNotif(`Form ${applicationForm?.active ? 'disabled' : 'enabled'}`, 'success');
@@ -348,7 +368,14 @@
 						action="?/updatePublishedFormArchiveStatus"
 						method="post"
 						class="inline"
-						use:enhance={() => {
+						use:enhance={async ({ cancel }) => {
+							if (
+								!(await confirm(
+									`Are you sure you want to ${applicationForm?.archived ? 'unarchive' : 'archive'} this form? ${applicationForm?.archived ? '' : 'This will disable the form and it will not be accessible to users.'}`
+								))
+							) {
+								cancel();
+							}
 							return async ({ result }) => {
 								if (result.type === 'success') {
 									addNotif(
@@ -559,20 +586,20 @@
 <!-- Date Range Modal -->
 {#if showDateRange && applicationForm}
 	<div
-		class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+		class="body-overflow-hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50"
 		role="dialog"
 		onclick={(e) => {
 			if (e.target === e.currentTarget) {
 				showDateRange = false;
-				noOpenDate = !applicationForm?.openDate;
-				noCloseDate = !applicationForm?.closeDate;
+				noOpenDate = applicationForm?.openDate ? false : true;
+				noCloseDate = applicationForm?.closeDate ? false : true;
 			}
 		}}
 		onkeydown={(e) => {
 			if (e.key === 'Escape') {
 				showDateRange = false;
-				noOpenDate = !applicationForm?.openDate;
-				noCloseDate = !applicationForm?.closeDate;
+				noOpenDate = applicationForm?.openDate ? false : true;
+				noCloseDate = applicationForm?.closeDate ? false : true;
 			}
 		}}
 		tabindex="-1"
@@ -675,7 +702,10 @@
 							id="noOpenDate"
 							bind:checked={noOpenDate}
 							class="rounded border-gray-300"
-							onclick={handleNoOpenDateChange}
+							onclick={() => {
+								noOpenDate = !noOpenDate;
+								handleNoOpenDateChange();
+							}}
 						/>
 						<label for="noOpenDate" class="font-semibold">No Open Date</label>
 					</div>
@@ -709,7 +739,10 @@
 							id="noCloseDate"
 							bind:checked={noCloseDate}
 							class="rounded border-gray-300"
-							onclick={handleNoCloseDateChange}
+							onclick={() => {
+								noCloseDate = !noCloseDate;
+								handleNoCloseDateChange();
+							}}
 						/>
 						<label for="noCloseDate" class="font-semibold">No Close Date</label>
 					</div>
@@ -740,7 +773,7 @@
 <!-- Group Modal -->
 {#if showGroup && groups}
 	<div
-		class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+		class="body-overflow-hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50"
 		role="dialog"
 		onclick={(e) => {
 			if (e.target === e.currentTarget) {
@@ -756,8 +789,10 @@
 		}}
 		tabindex="-1"
 	>
-		<div class="relative w-full max-w-4xl rounded-lg bg-white p-6 shadow-2xl">
-			<div class="mb-4 flex items-center justify-between">
+		<div
+			class="relative flex h-[80vh] w-full max-w-4xl flex-col rounded-lg bg-white p-6 shadow-2xl"
+		>
+			<div class="mb-2 flex items-center justify-between">
 				<h2 class="text-2xl font-bold">Group Management</h2>
 				<button
 					type="button"
@@ -770,11 +805,15 @@
 					✕
 				</button>
 			</div>
+			<p class="mb-4 text-sm text-gray-500">
+				ⓘ Groups are used to organize submissions. If the form's group is changed, any submitted
+				responses will stay in the old group.
+			</p>
 
-			<div class="space-y-6">
+			<div class="flex min-h-0 flex-1 flex-col space-y-6">
 				<!-- Create New Group -->
 				{#if !editingGroup}
-					<div class="rounded-lg border border-gray-200 p-4">
+					<div class="flex-shrink-0 rounded-lg border border-gray-200 p-4">
 						<h3 class="mb-3 text-lg font-semibold">Create New Group</h3>
 						<form
 							class="flex flex-col gap-4"
@@ -790,8 +829,7 @@
 												id: groupData.id,
 												name: groupData.name,
 												description: groupData.description,
-												formCount: 0,
-												forms: []
+												_count: groupData._count
 											};
 											localGroups = [...localGroups, newGroupData];
 										}
@@ -839,7 +877,7 @@
 
 				<!-- Edit Existing Group -->
 				{#if editingGroup}
-					<div class="rounded-lg border border-gray-200 p-4">
+					<div class="flex-shrink-0 rounded-lg border border-gray-200 p-4">
 						<h3 class="mb-3 text-lg font-semibold">Edit Group</h3>
 						<form
 							class="flex flex-col gap-4"
@@ -859,6 +897,8 @@
 
 										// Clear editing state
 										editingGroup = null;
+										newGroup.name = '';
+										newGroup.description = '';
 										updateLocalGroups();
 										addNotif('Group updated successfully', 'success');
 									} else if (result.type === 'failure') {
@@ -906,20 +946,36 @@
 				{/if}
 
 				<!-- Existing Groups List -->
-				<div class="rounded-lg border border-gray-200 p-4">
-					<h3 class="mb-3 text-lg font-semibold">Existing Groups</h3>
+				<div
+					class="min-h-0 flex-1 overflow-hidden overflow-y-auto rounded-lg border border-gray-200 p-4 pb-4"
+				>
+					<h3 class="mb-3 flex-shrink-0 text-lg font-semibold">Existing Groups</h3>
 					{#if localGroups.length === 0}
 						<p class="text-gray-500">No groups created yet.</p>
 					{:else}
-						<div class="space-y-3">
-							{#each localGroups as group}
-								<div class="flex items-center justify-between rounded border border-gray-200 p-3">
+						<div class="mb-4 max-h-full">
+							<input
+								type="text"
+								placeholder="Search groups"
+								bind:value={groupSearchQuery}
+								class="mb-3 w-full rounded border border-gray-200 p-2 lg:w-[50%]"
+							/>
+							{#if filteredGroups.length === 0}
+								<p class="center text-gray-500">No groups found matching your search.</p>
+							{/if}
+							{#each filteredGroups as group}
+								<div
+									class="mb-3 flex items-center justify-between rounded border border-gray-200 p-3"
+								>
 									<div class="flex-1">
 										<h4 class="font-semibold">{group.name}</h4>
 										{#if group.description}
 											<p class="text-sm text-gray-600">{group.description}</p>
 										{/if}
-										<p class="text-xs text-gray-500">{group.formCount} forms assigned</p>
+										<p class="text-xs text-gray-500">
+											{group._count.forms} forms assigned, {group._count.submissions} submissions
+										</p>
+
 										{#if applicationForm?.group?.id === group.id}
 											<p class="text-xs font-medium text-green-600">
 												✓ Current form is in this group
@@ -947,10 +1003,10 @@
 															// Update form counts
 															localGroups = localGroups.map((g) => {
 																if (g.id === group.id) {
-																	return { ...g, formCount: g.formCount + 1 };
-																}
-																if (g.id === applicationForm?.group?.id) {
-																	return { ...g, formCount: Math.max(0, g.formCount - 1) };
+																	return {
+																		...g,
+																		_count: { ...g._count, forms: g._count.forms + 1 }
+																	};
 																}
 																return g;
 															});
@@ -980,7 +1036,10 @@
 															// Update form counts
 															localGroups = localGroups.map((g) => {
 																if (g.id === group.id) {
-																	return { ...g, formCount: Math.max(0, g.formCount - 1) };
+																	return {
+																		...g,
+																		_count: { ...g._count, forms: Math.max(0, g._count.forms - 1) }
+																	};
 																}
 																return g;
 															});
@@ -1002,7 +1061,18 @@
 											method="POST"
 											action="?/deleteGroup"
 											style="display: inline;"
-											use:enhance={({ formData }) => {
+											use:enhance={async ({ formData, cancel }) => {
+												if (
+													!(await confirm(
+														'Are you sure you want to delete this group? All forms and submissions in this group will be unassigned. This action cannot be undone.',
+														'Delete',
+														'Cancel',
+														'Confirm Group Deletion'
+													))
+												) {
+													cancel();
+												}
+
 												return async ({ result }) => {
 													if (result.type === 'success' && applicationForm) {
 														// Remove from local state after successful server response
@@ -1022,19 +1092,7 @@
 											}}
 										>
 											<input type="hidden" name="groupId" value={group.id} />
-											<button
-												type="submit"
-												class="btn-red rounded px-2 py-1 text-sm"
-												onclick={(e) => {
-													if (
-														!confirm(
-															'Are you sure you want to delete this group? All forms in this group will be unassigned. This action cannot be undone.'
-														)
-													) {
-														e.preventDefault();
-													}
-												}}
-											>
+											<button type="submit" class="btn-red rounded px-2 py-1 text-sm">
 												Delete
 											</button>
 										</form>

@@ -14,6 +14,7 @@
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import Sortable from 'sortablejs';
+	import { confirm } from '$lib/utils/confirmModal';
 
 	type FormSectionWithQuestions = Prisma.FormSectionDraftGetPayload<{
 		include: {
@@ -65,6 +66,10 @@
 	let questionList = $state<HTMLElement | null>(null);
 	let questionSortable = $state<Sortable | null>(null);
 
+	// Track the currently dragged question for cross-section copying
+	let draggedQuestion = $state<FormSectionWithQuestions['questions'][0] | null>(null);
+	let draggedQuestionSectionId = $state<string | null>(null);
+
 	// Helper to check if a section name already exists
 	function sectionNameExists(name: string): boolean {
 		if (!draftForm || !draftForm.sections) return false;
@@ -108,12 +113,13 @@
 					// Add visual feedback that dragging has started
 					document.body.classList.add('dragging');
 				},
-				onEnd: (evt) => {
+				onSort: (evt) => {
 					// Remove visual feedback
 					document.body.classList.remove('dragging');
 
 					handleSectionReorder(evt);
 				},
+
 				dataIdAttr: 'data-id',
 				ghostClass: 'sortable-ghost',
 				chosenClass: 'sortable-chosen'
@@ -148,6 +154,10 @@
 		initSortableQuestions();
 	}
 
+	type SortableEvent = Sortable.SortableEvent & {
+		originalEvent: PointerEvent;
+	};
+
 	function initSortableQuestions() {
 		if (questionList && currentSectionCopy) {
 			// Destroy any existing Sortable instance
@@ -167,13 +177,38 @@
 				onStart: (evt) => {
 					// Add visual feedback that dragging has started
 					document.body.classList.add('dragging');
+					// Track the currently dragged question
+					const questionId = evt.item.getAttribute('data-id');
+					if (questionId && currentSectionCopy) {
+						draggedQuestion =
+							currentSectionCopy.questions.find((q) => q.questionDraftId === questionId) || null;
+						draggedQuestionSectionId = currentSectionCopy.id;
+					}
 				},
 				onEnd: (evt) => {
 					// Remove visual feedback
 					document.body.classList.remove('dragging');
 
-					handleQuestionReorder(evt);
+					// Check if the question was dropped on a section list item
+					// If evt.to has the section-list-item id, it means the question was dropped on a section
+					if (draggedQuestion && draggedQuestionSectionId) {
+						const targetSectionId = ((evt as SortableEvent).originalEvent.target as HTMLElement)
+							.closest('#section-list-item')
+							?.getAttribute('data-id');
+						if (targetSectionId && targetSectionId !== draggedQuestionSectionId) {
+							// Question was dropped on a different section, copy it
+							moveQuestionToSection(draggedQuestion, targetSectionId);
+						}
+					}
+
+					// Clear the dragged question reference
+					draggedQuestion = null;
+					draggedQuestionSectionId = null;
+
+					// Handle normal reordering within the same section
+					handleQuestionReorder(evt as SortableEvent);
 				},
+
 				dataIdAttr: 'data-id',
 				ghostClass: 'sortable-ghost',
 				chosenClass: 'sortable-chosen'
@@ -497,6 +532,17 @@
 	async function deleteQuestion(question: any) {
 		if (!question || !currentSectionCopy) return;
 
+		if (
+			!(await confirm(
+				'Are you sure you want to delete this question? This action cannot be undone.',
+				'Delete Question',
+				'Cancel',
+				'Confirm Question Deletion'
+			))
+		) {
+			return;
+		}
+
 		const formData = new FormData();
 		formData.append('questionId', question.questionDraftId);
 
@@ -635,6 +681,104 @@
 		}
 	}
 
+	// Function to copy a question to a new section
+	async function moveQuestionToSection(
+		questionToCopy: FormSectionWithQuestions['questions'][0],
+		targetSectionId: string
+	) {
+		if (!questionToCopy || !draftForm) return;
+
+		// Validate that the question still exists in the current section
+		if (
+			!currentSectionCopy?.questions.some(
+				(q) => q.questionDraftId === questionToCopy.questionDraftId
+			)
+		) {
+			addNotif('Question no longer exists in this section', 'error');
+			return;
+		}
+
+		const questionData = questionToCopy.questionDraft || questionToCopy.questionVersion;
+		if (!questionData) return;
+
+		// Validate that the target section exists
+		if (!draftForm.sections.some((s) => s.id === targetSectionId)) {
+			addNotif('Target section not found', 'error');
+			return;
+		}
+
+		const formData = new FormData();
+		formData.append('sectionId', targetSectionId);
+		formData.append('questionId', questionToCopy.questionDraftId);
+
+		const response = await fetch('?/moveQuestionToSection', {
+			method: 'POST',
+			body: formData,
+			headers: {
+				'x-sveltekit-action': 'true'
+			}
+		});
+
+		const result = deserialize(await response.text());
+
+		if (result.type === 'success' && result.data) {
+			// Add the new question to the target section
+			if (result.data.question) {
+				const targetSectionIndex = draftForm.sections.findIndex((s) => s.id === targetSectionId);
+				if (targetSectionIndex !== -1) {
+					draftForm.sections[targetSectionIndex].questions = [
+						...draftForm.sections[targetSectionIndex].questions,
+						result.data.question as any
+					];
+				}
+
+				// If the target section is currently selected, update the current section copy
+				if (currentSectionCopy?.id === targetSectionId) {
+					const updatedSection = {
+						...currentSectionCopy,
+						questions: [...currentSectionCopy.questions, result.data.question as any]
+					};
+					currentSectionCopy = updatedSection;
+					questionsCount = currentSectionCopy.questions.length;
+				}
+			}
+
+			// Remove the question from the original section in both places
+			const sourceSectionId = currentSectionCopy?.id;
+			if (sourceSectionId) {
+				// Update the source section in draftForm.sections
+				const sourceSectionIndex = draftForm.sections.findIndex((s) => s.id === sourceSectionId);
+				if (sourceSectionIndex !== -1) {
+					draftForm.sections[sourceSectionIndex].questions = draftForm.sections[
+						sourceSectionIndex
+					].questions.filter((q: any) => q.questionDraftId !== questionToCopy.questionDraftId);
+				}
+
+				// Update currentSectionCopy if it's the source section
+				if (currentSectionCopy) {
+					currentSectionCopy.questions = currentSectionCopy.questions.filter(
+						(q: any) => q.questionDraftId !== questionToCopy.questionDraftId
+					);
+					questionsCount = currentSectionCopy.questions.length;
+				}
+			}
+
+			// Force reactivity by creating a new reference
+			draftForm.sections = [...draftForm.sections];
+
+			addNotif('Question moved successfully', 'success');
+			error = '';
+		} else if (result.type === 'failure') {
+			error = (result.data?.error as string) || 'Error moving question';
+			addNotif(error, 'error');
+			console.error(error);
+		} else {
+			error = 'An unknown error occurred while moving question';
+			addNotif(error, 'error');
+			console.error(error);
+		}
+	}
+
 	// Sortable event handler for section reordering
 	// This function is called when a section is dropped in a new position
 	// The evt object contains oldIndex and newIndex properties from Sortable
@@ -676,8 +820,10 @@
 		}
 	}
 
-	async function handleQuestionReorder(evt: Sortable.SortableEvent) {
+	async function handleQuestionReorder(evt: SortableEvent) {
 		const { oldIndex, newIndex } = evt;
+
+		// Only handle reordering within the same section
 		if (
 			oldIndex === undefined ||
 			newIndex === undefined ||
@@ -775,6 +921,7 @@
 							class="draggable-item flex max-w-full flex-row justify-between"
 							role="listitem"
 							data-id={section.id}
+							id="section-list-item"
 						>
 							<div
 								class="flex cursor-move items-center gap-2 rounded-md px-2 text-gray-400 hover:bg-gray-200"
@@ -808,8 +955,20 @@
 							<form
 								method="POST"
 								action="?/deleteSection"
-								use:enhance={() => {
+								use:enhance={async ({ cancel }) => {
+									if (
+										!(await confirm(
+											'Are you sure you want to delete this section? This action cannot be undone.',
+											'Delete Section',
+											'Cancel',
+											'Confirm Section Deletion'
+										))
+									) {
+										cancel();
+										return;
+									}
 									nProgress.start();
+
 									let isCurrent = false;
 									if (currentSectionCopy?.id === section.id) {
 										isCurrent = true;
@@ -833,7 +992,7 @@
 								<input type="hidden" name="sectionId" value={section.id} />
 								<button
 									aria-label="Delete section"
-									class="h-full rounded px-2 text-left hover:bg-red-400"
+									class="h-full rounded px-2 text-left hover:bg-red-300"
 								>
 									<img alt="Delete section" src="/icons/delete.svg" width="30" height="30" />
 								</button>

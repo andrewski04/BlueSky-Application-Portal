@@ -8,7 +8,7 @@
 			questions: {
 				include: {
 					questionDraft: { include: { options: true } };
-					questionVersion: { include: { options: true } };
+					questionVersion: { include: { options: { include: { questionOptionGroup: true } } } };
 				};
 			};
 		};

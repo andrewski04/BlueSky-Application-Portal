@@ -19,7 +19,7 @@
 			<p class="text-[10px] text-blue-100 opacity-90 md:text-xs">{message}</p>
 		</div>
 		<button
-			class="inbox-button ml-auto cursor-pointer rounded px-2 py-1 text-xs font-semibold text-white transition-all duration-300 md:px-3"
+			class="inbox-button ml-auto hidden cursor-pointer rounded px-2 py-1 text-xs font-semibold text-white transition-all duration-300 md:px-3"
 		>
 			<svg
 				class="mr-1 inline h-3 w-3 md:h-4 md:w-4"

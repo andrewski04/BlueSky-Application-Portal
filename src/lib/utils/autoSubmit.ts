@@ -15,10 +15,15 @@ export function autoSubmit(node: HTMLFormElement) {
 	};
 	window.addEventListener('beforeunload', unload);
 
+	let isDestroyed = false;
+
 	// cleanup listeners on unmount
 	return {
 		destroy() {
-			window.removeEventListener('beforeunload', unload);
+			if (!isDestroyed) {
+				window.removeEventListener('beforeunload', unload);
+				isDestroyed = true;
+			}
 		}
 	};
 }

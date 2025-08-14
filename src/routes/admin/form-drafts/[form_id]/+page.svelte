@@ -6,6 +6,7 @@
 	import { addNotif } from '$lib/utils/notify';
 	import DraftQuestionOverview from '$lib/components/form/DraftQuestionOverview.svelte';
 	import { getColorSchemeClassName } from '$lib/utils/colorScheme';
+	import { confirm } from '$lib/utils/confirmModal';
 
 	let editFormPopup = $state(false);
 
@@ -83,7 +84,7 @@
 							<img src="/icons/edit.svg" alt="Edit" class="h-5 w-5" />
 						</button>
 					</div>
-					<button onclick={() => history.back()} class="btn-red px-4 py-2">Back</button>
+					<a href="/admin/form-drafts" class="btn-red px-3 py-1">Back to Drafts</a>
 				</div>
 
 				<!-- Description -->
@@ -95,13 +96,13 @@
 
 				<!-- Metadata Grid -->
 				<div class="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-					<div class="rounded-lg bg-gray-50 p-4">
+					<div class="rounded-lg p-4">
 						<h3 class="mb-1 text-sm font-semibold tracking-wide text-gray-600 uppercase">
 							Form ID
 						</h3>
 						<p class="font-mono text-sm text-gray-800">{applicationForm.id}</p>
 					</div>
-					<div class="rounded-lg bg-gray-50 p-4">
+					<div class="rounded-lg p-4">
 						<h3 class="mb-1 text-sm font-semibold tracking-wide text-gray-600 uppercase">
 							Created
 						</h3>
@@ -109,7 +110,7 @@
 							{applicationForm.createdAt.toLocaleString('en-US', { timeZoneName: 'shortGeneric' })}
 						</p>
 					</div>
-					<div class="rounded-lg bg-gray-50 p-4">
+					<div class="rounded-lg p-4">
 						<h3 class="mb-1 text-sm font-semibold tracking-wide text-gray-600 uppercase">
 							Last Updated
 						</h3>
@@ -127,8 +128,24 @@
 					>
 						Edit Form
 					</a>
-					<form action="?/deleteDraft" method="post" class="inline">
-						<button type="submit" class="btn-red px-6 py-2 text-lg">Delete Draft</button>
+					<form
+						action="?/deleteDraft"
+						method="post"
+						class="inline"
+						use:enhance={async ({ cancel }) => {
+							if (
+								!(await confirm(
+									'Are you sure you want to delete this draft? This action cannot be undone.',
+									'Delete Draft',
+									'Cancel',
+									'Confirm Draft Deletion'
+								))
+							) {
+								cancel();
+							}
+						}}
+					>
+						<button type="submit" class="btn-red px-6 py-2 text-lg"> Delete Draft </button>
 					</form>
 					<form action="?/publishDraft" method="post" class="inline">
 						<button
@@ -136,9 +153,13 @@
 							disabled={applicationForm?.sections.length === 0}
 							class="btn-blue px-6 py-2 text-lg disabled:cursor-not-allowed disabled:opacity-50"
 						>
-							Publish Form
+							Create Published Copy
 						</button>
 					</form>
+
+					<a href="/application/preview/{applicationForm.id}" class="btn-blue px-6 py-2 text-lg"
+						>Preview Form</a
+					>
 				</div>
 
 				{#if form?.error}
@@ -241,7 +262,7 @@
 		<div class="container mx-auto p-6">
 			<div class="mb-4 flex items-center justify-between">
 				<h1 class="text-3xl font-bold">Form Details</h1>
-				<button onclick={() => history.back()} class="btn-red px-3 py-1">Back</button>
+				<a href="/admin/form-drafts" class="btn-red px-3 py-1">Back to Drafts</a>
 			</div>
 			<div
 				class="mb-6 rounded-md border border-gray-200 bg-white p-6 text-center text-red-500 shadow-sm"

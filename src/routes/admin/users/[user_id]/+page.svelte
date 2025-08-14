@@ -2,7 +2,7 @@
 	import type { PageProps } from './$types';
 	import AdminNavBar from '$lib/components/dashboard/AdminNavBar.svelte';
 	import Tooltip from '$lib/components/util/Tooltip.svelte';
-
+	import { addNotif } from '$lib/utils/notify';
 	let { data }: PageProps = $props();
 	let { currentUser, user, responses } = data;
 
@@ -16,12 +16,7 @@
 
 	function confirmDisableUser() {
 		isDisablingUser = true;
-		// TODO: Implement actual user disable functionality
-		setTimeout(() => {
-			isDisablingUser = false;
-			showDisableConfirmation = false;
-			alert('User disable functionality will be implemented in a future update.');
-		}, 1000);
+		showDisableConfirmation = false;
 	}
 
 	function cancelDisableUser() {

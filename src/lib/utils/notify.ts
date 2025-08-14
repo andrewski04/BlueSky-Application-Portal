@@ -12,7 +12,7 @@ export interface Notif {
 // Create a writable store with an initial value of an empty array.
 // This store will hold all the active Notif notifications.
 export const Notifs = writable<Notif[]>([]);
-let idCounter = 0;
+let idCounter = 1; // Start from 1 instead of 0
 
 /**
  * Adds a new notification.
@@ -38,4 +38,12 @@ export function addNotif(message: string, type: NotifType = 'info', duration: nu
  */
 export function removeNotif(id: number): void {
 	Notifs.update((all) => all.filter((t) => t.id !== id));
+}
+
+/**
+ * Resets the notification system (for testing purposes).
+ */
+export function resetNotifications(): void {
+	idCounter = 1; // Reset to 1 instead of 0
+	Notifs.set([]);
 }

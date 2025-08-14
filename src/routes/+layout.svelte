@@ -4,6 +4,7 @@
 	import NProgress from 'nprogress';
 	import { afterNavigate, beforeNavigate } from '$app/navigation';
 	import Notifier from '$lib/components/util/Notifier.svelte';
+	import ConfirmModal from '$lib/components/util/ConfirmModal.svelte';
 
 	NProgress.configure({ showSpinner: false, parent: '.nprogressbar' });
 
@@ -21,3 +22,4 @@
 {@render children()}
 
 <Notifier />
+<ConfirmModal />

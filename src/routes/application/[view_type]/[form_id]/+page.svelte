@@ -393,9 +393,7 @@
 								</h2>
 							{/if}
 							{#if isReadOnly || isAdminPreview}
-								<div class="mb-6 flex flex-col items-center gap-6 lg:flex-row lg:justify-center">
-									<button onclick={() => history.back()} class="btn-red">Back</button>
-
+								<div class="flex flex-col items-center gap-6 lg:flex-row lg:justify-center">
 									<div class="w-fit rounded-lg bg-red-50 p-4 shadow-md">
 										<p class="text-center text-2xl font-bold text-red-600">{readOnlyMessage}</p>
 									</div>

@@ -41,13 +41,15 @@ export async function createSession(
 		expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24),
 		createdAt: new Date(Date.now())
 	};
-	await prisma.session.create({
-		data: session
-	});
-	if (!session) {
+
+	try {
+		await prisma.session.create({
+			data: session
+		});
+		return ok({ session, token });
+	} catch {
 		return err(new AppError('Error creating session', 'ERR_CREATE_SESSION'));
 	}
-	return ok({ session, token });
 }
 
 /**

@@ -16,6 +16,7 @@
 	import nProgress from 'nprogress';
 	import { addNotif } from '$lib/utils/notify';
 	import type { Prisma } from '@prisma/client';
+	import { confirm } from '$lib/utils/confirmModal';
 
 	type ApplicationComment = Prisma.ApplicationCommentGetPayload<{
 		include: { reviewer: true };
@@ -27,6 +28,7 @@
 
 	let comments = $state(data.comments);
 	let reviewAggregate = $state(data.reviewAggregate);
+	let status = $state(formWithAnswers.status);
 
 	let reviews = $state(initialReviews);
 	let currentReview = $derived(reviews.find((r) => r.reviewer.id === user.id));
@@ -35,6 +37,32 @@
 	let reviewOpen = $state(false);
 	let commentOpen = $state(false);
 	let comment = $state('');
+	let isUpdatingStatus = $state(false);
+	let isExporting = $state(false);
+
+	async function exportSubmission() {
+		try {
+			nProgress.start();
+			isExporting = true;
+
+			// Create the export URL for this specific submission
+			const exportUrl = `/admin/submissions/export?submissionId=${formWithAnswers.id}`;
+
+			// Create a temporary link and trigger download
+			const link = document.createElement('a');
+			link.href = exportUrl;
+			link.download = `submission-${formWithAnswers.user.lastName}-${formWithAnswers.user.firstName}-${new Date().toISOString().split('T')[0]}.pdf`;
+			document.body.appendChild(link);
+			link.click();
+			document.body.removeChild(link);
+		} catch (error) {
+			console.error('Error exporting submission:', error);
+			alert('An error occurred while exporting the submission.');
+		} finally {
+			isExporting = false;
+			nProgress.done();
+		}
+	}
 </script>
 
 <svelte:head>
@@ -54,7 +82,7 @@
 				<!-- Main Content - Submission Details -->
 				<div class="flex-1">
 					<div class="section-header mb-6 rounded-md border border-gray-200 bg-white p-6 shadow-sm">
-						<!-- Header with title and back button -->
+						<!-- Header with title and export button -->
 						<div class="mb-4 flex items-center justify-between">
 							<div class="flex items-center gap-3">
 								<h1 class="text-3xl font-bold text-gray-800">
@@ -62,8 +90,43 @@
 									{formWithAnswers.user.lastName}, {formWithAnswers.user.firstName}
 								</h1>
 							</div>
+							<button
+								onclick={exportSubmission}
+								disabled={isExporting}
+								class="btn-blue flex items-center gap-2 px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+								title="Export this submission as PDF"
+							>
+								{#if isExporting}
+									<svg class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+										<circle
+											class="opacity-25"
+											cx="12"
+											cy="12"
+											r="10"
+											stroke="currentColor"
+											stroke-width="4"
+										></circle>
+										<path
+											class="opacity-75"
+											fill="currentColor"
+											d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+										></path>
+									</svg>
+									Generating PDF...
+								{:else}
+									<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+										/>
+									</svg>
+									Export PDF
+								{/if}
+							</button>
 						</div>
-						{#if !isReadOnly && formWithAnswers.status === 'DRAFT'}
+						{#if !isReadOnly && status === 'DRAFT'}
 							<p class="w-fit rounded-md bg-red-100 p-2 px-4 text-sm text-red-800">
 								This submission is in progress and the applicant can still edit their answers.
 							</p>
@@ -111,21 +174,89 @@
 								<h3 class="mb-1 text-sm font-semibold tracking-wide text-gray-600 uppercase">
 									Status
 								</h3>
-								<p class="text-sm text-gray-800">
-									{#if formWithAnswers.status === 'DRAFT'}
-										<span class="rounded-lg bg-yellow-300 px-2 py-1 text-yellow-800">Draft</span>
-									{:else if formWithAnswers.status === 'SUBMITTED'}
-										<span class="rounded-lg bg-blue-300 px-2 py-1 text-blue-800">Submitted</span>
-									{:else if formWithAnswers.status === 'UNDER_REVIEW'}
-										<span class="rounded-lg bg-purple-300 px-2 py-1 text-purple-800">
-											Under Review
-										</span>
-									{:else if formWithAnswers.status === 'APPROVED'}
-										<span class="rounded-lg bg-green-300 px-2 py-1 text-green-800">Approved</span>
-									{:else if formWithAnswers.status === 'REJECTED'}
-										<span class="rounded-lg bg-red-300 px-2 py-1 text-red-800">Rejected</span>
-									{/if}
-								</p>
+								{#if status !== 'DRAFT'}
+									<!-- Current Status Badge -->
+									<div class="mb-2">
+										<span class="text-xs text-gray-600">Current Status:</span>
+
+										{#if status === 'SUBMITTED'}
+											<span class="ml-2 rounded-lg bg-blue-300 px-2 py-1 text-xs text-blue-800"
+												>Submitted</span
+											>
+										{:else if status === 'UNDER_REVIEW'}
+											<span class="ml-2 rounded-lg bg-purple-300 px-2 py-1 text-xs text-purple-800"
+												>Under Review</span
+											>
+										{:else if status === 'APPROVED'}
+											<span class="ml-2 rounded-lg bg-green-300 px-2 py-1 text-xs text-green-800"
+												>Approved</span
+											>
+										{:else if status === 'REJECTED'}
+											<span class="ml-2 rounded-lg bg-red-300 px-2 py-1 text-xs text-red-800"
+												>Rejected</span
+											>
+										{/if}
+									</div>
+
+									<form
+										method="POST"
+										action="?/updateStatus"
+										class="flex items-stretch gap-2"
+										use:enhance={({ formData }) => {
+											nProgress.start();
+											isUpdatingStatus = true;
+											return async ({ result }) => {
+												isUpdatingStatus = false;
+												if (result.type === 'success') {
+													// Update local state
+													status = (result.data as any)?.status;
+													addNotif('Status updated successfully', 'success');
+												} else if (result.type === 'failure') {
+													addNotif(result.data?.error as string, 'error');
+												}
+												nProgress.done();
+											};
+										}}
+									>
+										<select
+											name="status"
+											class="rounded border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
+										>
+											<option value="DRAFT"> Draft </option>
+											<option value="SUBMITTED" selected={status === 'SUBMITTED'}>
+												Submitted
+											</option>
+											<option value="UNDER_REVIEW" selected={status === 'UNDER_REVIEW'}>
+												Under Review
+											</option>
+											<option value="APPROVED" selected={status === 'APPROVED'}> Approved </option>
+											<option value="REJECTED" selected={status === 'REJECTED'}> Rejected </option>
+										</select>
+										<button
+											type="submit"
+											class="btn-blue rounded px-2 py-1 text-xs"
+											disabled={isUpdatingStatus}
+										>
+											{isUpdatingStatus ? 'Updating...' : 'Update'}
+										</button>
+									</form>
+								{:else}
+									<p class="text-sm text-gray-800">
+										{#if status === 'DRAFT'}
+											<span class="rounded-lg bg-yellow-300 px-2 py-1 text-yellow-800">Draft</span>
+										{:else if status === 'SUBMITTED'}
+											<span class="rounded-lg bg-blue-300 px-2 py-1 text-blue-800">Submitted</span>
+										{:else if status === 'UNDER_REVIEW'}
+											<span class="rounded-lg bg-purple-300 px-2 py-1 text-purple-800">
+												Under Review
+											</span>
+										{:else if status === 'APPROVED'}
+											<span class="rounded-lg bg-green-300 px-2 py-1 text-green-800">Approved</span>
+										{:else if status === 'REJECTED'}
+											<span class="rounded-lg bg-red-300 px-2 py-1 text-red-800">Rejected</span>
+										{/if}
+									</p>
+								{/if}
 							</div>
 							<div class="rounded-lg p-4">
 								<h3 class="mb-1 text-sm font-semibold tracking-wide text-gray-600 uppercase">
@@ -545,17 +676,61 @@ c6.074-6.075,6.074-15.909,0-21.986L285.08,230.397z"
 										{#each comments as comment}
 											<div class="rounded-md border border-gray-100 bg-gray-50 p-4">
 												<div class="mb-2">
-													<div class="mb-2">
-														<span class="text-sm font-medium text-gray-700">
-															{comment.reviewer.firstName}
-															{comment.reviewer.lastName}
-														</span>
+													<div class="mb-2 flex items-center justify-between">
+														<div>
+															<span class="text-sm font-medium text-gray-700">
+																{comment.reviewer.firstName}
+																{comment.reviewer.lastName}
+															</span>
+															{#if comment.reviewer.id === user.id}
+																<span class="ml-1 text-xs text-gray-500"> (You) </span>
+															{:else}
+																<span class="ml-1 text-xs text-gray-500"
+																	>({comment.reviewer.email})</span
+																>
+															{/if}
+														</div>
 														{#if comment.reviewer.id === user.id}
-															<span class="ml-1 text-xs text-gray-500"> (You) </span>
-														{:else}
-															<span class="ml-1 text-xs text-gray-500"
-																>({comment.reviewer.email})</span
+															<form
+																method="POST"
+																action="?/deleteComment"
+																class="inline"
+																use:enhance={async ({ cancel, formData }) => {
+																	if (
+																		!(await confirm(
+																			'Are you sure you want to delete this comment?',
+																			'Delete Comment',
+																			'Cancel',
+																			'Confirm Comment Deletion'
+																		))
+																	) {
+																		cancel();
+																		return;
+																	}
+																	formData.append('commentId', comment.id);
+																	nProgress.start();
+																	return async ({ result }) => {
+																		if (result.type === 'success') {
+																			addNotif('Comment deleted successfully', 'success');
+																			comments = comments.filter((c) => c.id !== comment.id);
+																		} else if (result.type === 'failure') {
+																			addNotif(result.data?.error as string, 'error');
+																		} else {
+																			addNotif('An unknown error occurred', 'error');
+																		}
+																		nProgress.done();
+																	};
+																}}
 															>
+																<input type="hidden" name="commentId" value={comment.id} />
+																<button
+																	type="submit"
+																	class="text-xs font-medium text-red-600 hover:text-red-800"
+																	title="Delete comment"
+																>
+																	Delete
+																</button>
+															</form>
 														{/if}
 													</div>
 													<div class="text-sm text-gray-600">

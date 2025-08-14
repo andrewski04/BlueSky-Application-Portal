@@ -33,17 +33,21 @@ export async function createMagicToken(
 	// Set expiration time (10 minutes from now)
 	const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
-	// Store the token and device ID in the database
-	await prisma.magicToken.create({
-		data: {
-			hashedToken,
-			deviceId,
-			email,
-			expiresAt
-		}
-	});
+	try {
+		// Store the token and device ID in the database
+		await prisma.magicToken.create({
+			data: {
+				hashedToken,
+				deviceId,
+				email,
+				expiresAt
+			}
+		});
 
-	return ok({ token });
+		return ok({ token });
+	} catch {
+		return err(new AppError('Error creating magic token', 'ERR_CREATE_MAGIC_TOKEN'));
+	}
 }
 
 /**

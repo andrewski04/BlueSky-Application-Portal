@@ -1,18 +1,20 @@
 import { prismaResult, prisma } from '$lib/server/prisma';
 import { type Result, ok, err } from '$lib/utils/error';
+import type { ApplicationReview } from '@prisma/client';
 
 export async function upsertApplicationReview(
 	applicationId: string,
 	rating: number,
 	reviewerId: string
-) {
-	return await prismaResult(
+): Promise<Result<ApplicationReview>> {
+	const result = await prismaResult(
 		prisma.applicationReview.upsert({
 			where: { applicationId_reviewerId: { applicationId, reviewerId } },
 			update: { rating },
 			create: { applicationId, reviewerId, rating }
 		})
 	);
+	return result;
 }
 
 export async function aggregateApplicationReview(applicationId: string): Promise<Result<number>> {
