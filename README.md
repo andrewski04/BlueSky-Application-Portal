@@ -1,14 +1,47 @@
 # BlueSky Application Portal
 
-This project is a prototype for a new BlueSky Application Portal for prospective students to register.
+The BlueSky Application Portal is a fully functional form builder & submission manager tailored towards the needs of the [BlueSky TN Institute](https://www.blueskytn.com/). This project was built over 8 months for classes Software Engineering I & II (CSCI 4250 & 4350).
 
-## Stack
+This project was built on Node.js with SvelteKit, Prisma ORM (PostgreSQL), and S3 file storage on the backend. The frontend was designed and built from scratch leveraging TailwindCSS. Authentication was custom implemented following the Lucia Auth guide, with passwordless authentication (using magic email links) and role-based authorization.
 
-- SvelteKit
-- NodeJS
-- Tailwind CSS
-- Prisma ORM
-- PostgreSQL
+## Features
+
+- **Admin Features**
+  - Fully customizable draft forms
+  - Custom form color schemes
+  - Question types: text, paragraph, multiple choice, dropdown, checkbox, file upload, date, number, multiple choice grid, and checkbox grid
+  - Configurable answer validation (required, min/max length, etc.)
+  - Drag & drop question and section ordering
+  - Published form open and due date
+  - Submission groups for cohort/group organization
+  - Bulk/single submission PDF export
+  - Collaborative submission reviews and comments
+  - User announcement system
+- **User Features**
+  - Responses save real time while editing
+  - User can leave and resume form at any time
+  - Users can view previous submission responses
+  - Real-time input validation shows invalid responses
+- **Developer Features**
+  - One command development environment setup script for Windows and Linux.
+  - All external dependencies run in Docker, with premade Docker Compose configuration.
+  - Generate test data script creates dummy users, forms, submissions, etc. for easy testing.
+  - Standalone documentation site provides guides on setup, project architecture, debugging and more.
+  - Vitest unit tests with 90% code coverage
+
+## Images
+
+**Admin Overview Dashboard**
+![Dashboard](/docs/static/img/dashboard.png)
+
+**Form Editor**
+![Editor](/docs/static/img/editor.png)
+
+**User Form View**
+![Form](/docs/static/img/form.png)
+
+**Submissions Page**
+![Submissions](/docs/static/img/submissions.png)
 
 # Setup Environment
 
@@ -18,13 +51,14 @@ Install [Node.js](https://nodejs.org/en/download/)\
 Install [VSCode](https://code.visualstudio.com/) \
 Install [Docker](https://docs.docker.com/desktop/setup/install/windows-install/)
 
-> **Note:** After installing Docker, ensure that you restart your computer and open Docker Desktop to start the Docker Engine for the first time. After that, it will run on startup by default.
-
 ### Run the Setup Script
 
 The setup batch script will handle installing Node dependencies, starting Docker containers, setting environment variables, initializing the database, and installing VSCode extensions.
 
-Simply run this after cloning the repository: `./setup.bat`
+Simply run this after cloning the repository:
+
+- **Windows**: `./setup.bat`
+- **Linux**: `./setup.sh` (Untested on MacOS)
 
 Read [Manual Environment Setup](docs/docs/getting-started/dev-env-setup.md) for the manual steps if you are having issues or read [Setup Script](docs/docs/getting-started/setup-script.md) for more info.
 
@@ -37,11 +71,7 @@ To start the SvelteKit dev server, enter the following command while in the proj
 npm run dev -- --open
 ```
 
-The dev server will automatically rebuild the project and reload the page when a change is saved.
-
-### Start Documentations Server
-
-> After setting up your development environment, I **highly recommend** reading the complete documentation.
+### Start Documentation Server
 
 The documentation, powered by Docusaurus, runs locally and can be starting using the following command:
 
@@ -51,9 +81,9 @@ npm run docs
 
 You can then access it at "http://localhost:3000/".
 
-You can also access and edit the Markdown files directly at `./docs/docs`, sorted into different sections. Note that the `api` section is auto-generated from the codebase and should not be edited manually.
-
 The documentation contains a lot of information about the structure of the project and other useful resources to help get you started. It also contains automatically generated API documentation from TypeScript, allowing you to quickly navigate the codebase.
+
+All content for the documentation is location in `./docs/docs` as plain Markdown files.
 
 ### Development Links
 
